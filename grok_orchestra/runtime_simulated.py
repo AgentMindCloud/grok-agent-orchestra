@@ -145,8 +145,9 @@ def run_simulated_orchestra(
     _console.section(console, "🚫  Lucas veto")
     veto_report: Mapping[str, Any] | None = None
     if safety_cfg.get("lucas_veto_enabled", True):
-        veto_report = _run_lucas_veto(final_content, safety_cfg)
-        console.log(f"[dim]veto → {veto_report}[/dim]")
+        final_content, veto_report = _run_lucas_veto(
+            final_content, config, client=client, console=console
+        )
     else:
         console.log("[dim]skipped (safety.lucas_veto_enabled=false)[/dim]")
 
@@ -227,22 +228,98 @@ class DryRunSimulatedClient:
         reasoning_effort: str = "medium",
         max_tokens: int = 2048,
     ) -> Iterator[MultiAgentEvent]:
-        """Yield canned :class:`MultiAgentEvent`\\ s for one role turn."""
+        """Yield canned :class:`MultiAgentEvent`\\ s for one simulated call.
+
+        Recognises three call shapes:
+
+        * Lucas veto requests (``is_veto_messages``) — yields a canned
+          :func:`safety_veto.dry_run_veto_events` stream keyed on toxicity
+          sentinels present in the proposed content.
+        * Final Grok synthesis — yields a final event that echoes the
+          original goal so veto decisions in dry-run demos feel realistic.
+        * Anything else — falls back to :func:`dry_run_turn_events` keyed
+          on the role implied by the system prompt.
+        """
+        from grok_orchestra.safety_veto import (
+            dry_run_veto_events,
+            extract_proposed_content,
+            is_veto_messages,
+        )
+
+        msgs_list = list(messages)
         self.calls.append(
             {
                 "model": model,
-                "messages": list(messages),
+                "messages": msgs_list,
                 "tools": tools,
                 "reasoning_effort": reasoning_effort,
                 "max_tokens": max_tokens,
             }
         )
-        role = _infer_role_from_messages(messages)
         round_num = self.calls[-1]["round_hint"] = len(self.calls)
+
+        if is_veto_messages(msgs_list):
+            user = msgs_list[1].get("content", "") if len(msgs_list) > 1 else ""
+            content = extract_proposed_content(user)
+            for ev in dry_run_veto_events(content):
+                if self.tick_seconds:
+                    time.sleep(self.tick_seconds)
+                yield ev
+            return
+
+        user_body = msgs_list[1].get("content", "") if len(msgs_list) > 1 else ""
+        if "Synthesise consensus" in user_body or "Synthesize consensus" in user_body:
+            goal = _extract_goal_from_user(user_body)
+            for ev in _synthesis_events(goal, round_num):
+                if self.tick_seconds:
+                    time.sleep(self.tick_seconds)
+                yield ev
+            return
+
+        role = _infer_role_from_messages(messages)
         for ev in dry_run_turn_events(role, round_num):
             if self.tick_seconds:
                 time.sleep(self.tick_seconds)
             yield ev
+
+
+def _extract_goal_from_user(user_body: str) -> str:
+    """Pull the ``Original goal: <...>`` header out of a user prompt."""
+    marker = "Original goal:"
+    if marker not in user_body:
+        return ""
+    tail = user_body.split(marker, 1)[1].strip()
+    # Goal ends at the next blank line or the next section header.
+    for sep in ("\n\nDebate so far", "\n\nFull debate", "\n\nYour turn"):
+        if sep in tail:
+            tail = tail.split(sep, 1)[0].strip()
+            break
+    return tail.splitlines()[0].strip() if tail else ""
+
+
+def _synthesis_events(goal: str, round_num: int) -> list[MultiAgentEvent]:
+    """Canned synthesis events that echo the goal into the final text."""
+    lowered = goal.lower()
+    toxic = any(
+        bad in lowered for bad in ("toxic", "hate", "violence", "incite", "harass", "slur")
+    )
+    if toxic:
+        final_text = f"Proposed post: {goal}"
+    elif goal:
+        final_text = (
+            f"Consensus ship: {goal} — Hello · Hola · Bonjour, delivered with care."
+        )
+    else:
+        final_text = "Consensus ship: Hello · Hola · Bonjour."
+    return [
+        MultiAgentEvent(
+            kind="token",
+            text=f"[Grok synthesis r{round_num}] ",
+            agent_id=round_num,
+        ),
+        MultiAgentEvent(kind="reasoning_tick", reasoning_tokens=96),
+        MultiAgentEvent(kind="final", text=final_text),
+    ]
 
 
 # --------------------------------------------------------------------------- #

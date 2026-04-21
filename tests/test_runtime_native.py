@@ -58,14 +58,29 @@ def _spec(**orch_overrides: Any) -> dict[str, Any]:
 
 
 class _FakeClient:
-    """Mimics :class:`OrchestraClient` with a pre-scripted event stream."""
+    """Mimics :class:`OrchestraClient` with a pre-scripted event stream.
+
+    ``single_call`` auto-approves by default so the veto phase does not
+    fail transport and block downstream phases; individual tests can
+    replace the mock if they want to drive different veto behaviour.
+    """
 
     def __init__(self, events: list[MultiAgentEvent]) -> None:
         self.events = events
         self.stream_multi_agent = MagicMock(side_effect=self._stream)
+        self.single_call = MagicMock(side_effect=self._single_call)
 
     def _stream(self, *_args: Any, **_kwargs: Any) -> Any:
         yield from self.events
+
+    def _single_call(self, *_args: Any, **_kwargs: Any) -> Any:
+        yield MultiAgentEvent(
+            kind="final",
+            text=(
+                '{"safe": true, "confidence": 0.9, '
+                '"reasons": ["ok"], "alternative_post": null}'
+            ),
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -155,19 +170,25 @@ def test_audit_skipped_when_post_to_x_false() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_lucas_veto_constructed_when_enabled() -> None:
-    client = _FakeClient([MultiAgentEvent(kind="final", text="ok")])
-    with patch("grok_orchestra.runtime_native.LucasVeto") as m_veto:
-        instance = MagicMock()
-        instance.review = MagicMock(side_effect=NotImplementedError("session 6"))
-        m_veto.return_value = instance
+def test_lucas_veto_called_when_enabled() -> None:
+    from grok_orchestra.safety_veto import VetoReport
 
+    client = _FakeClient([MultiAgentEvent(kind="final", text="ok")])
+    with patch("grok_orchestra.runtime_native.safety_lucas_veto") as m_veto:
+        m_veto.return_value = VetoReport(
+            safe=True,
+            confidence=0.92,
+            reasons=("looks benign",),
+            alternative_post=None,
+            raw_response="{}",
+            cost_tokens=42,
+        )
         result = run_native_orchestra(_spec(), client=client)
 
     m_veto.assert_called_once()
     assert result.veto_report is not None
-    assert result.veto_report["approved"] is True  # stub fallback
-    assert "stub" in result.veto_report.get("reason", "").lower()
+    assert result.veto_report["approved"] is True
+    assert result.veto_report["confidence"] == 0.92
 
 
 def test_lucas_veto_skipped_when_disabled() -> None:
@@ -175,7 +196,7 @@ def test_lucas_veto_skipped_when_disabled() -> None:
     spec = _spec()
     spec["safety"]["lucas_veto_enabled"] = False
 
-    with patch("grok_orchestra.runtime_native.LucasVeto") as m_veto:
+    with patch("grok_orchestra.runtime_native.safety_lucas_veto") as m_veto:
         result = run_native_orchestra(spec, client=client)
 
     m_veto.assert_not_called()

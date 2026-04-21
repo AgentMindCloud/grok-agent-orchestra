@@ -70,9 +70,18 @@ def _role_events(role_name: str) -> list[MultiAgentEvent]:
 
 
 class _ScriptedClient:
-    """Inspectable stand-in for :class:`XAIClient` with scripted single_call."""
+    """Inspectable stand-in for :class:`XAIClient` with scripted single_call.
+
+    Tracks *role* calls (debate + synthesis) separately from veto calls via
+    :attr:`role_calls`; the veto branch auto-approves so downstream phases
+    (deploy) are reached by default.
+    """
 
     def __init__(self) -> None:
+        from grok_orchestra.safety_veto import is_veto_messages
+
+        self._is_veto_messages = is_veto_messages
+        self.role_calls: list[dict[str, Any]] = []
         self.single_call = MagicMock(side_effect=self._stream)
 
     def _stream(
@@ -83,8 +92,22 @@ class _ScriptedClient:
         tools: list[Any] | None = None,
         **_kwargs: Any,
     ) -> Iterator[MultiAgentEvent]:
+        msgs = messages or []
+        if self._is_veto_messages(msgs):
+            yield MultiAgentEvent(
+                kind="final",
+                text=(
+                    '{"safe": true, "confidence": 0.9, '
+                    '"reasons": ["auto-approved for tests"], '
+                    '"alternative_post": null}'
+                ),
+            )
+            return
+        self.role_calls.append(
+            {"messages": list(msgs), "model": model, "tools": tools}
+        )
         role_name = _role_name_from_system(
-            (messages or [{}])[0].get("content", "") if messages else ""
+            msgs[0].get("content", "") if msgs else ""
         )
         yield from _role_events(role_name)
 
@@ -196,11 +219,9 @@ def test_turn_order_grok_harper_benjamin_lucas_then_synthesis() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
 
-    call_list = client.single_call.call_args_list
-    # 4 role turns + 1 synthesis = 5
-    assert len(call_list) == 5
-
-    systems = [call.kwargs["messages"][0]["content"] for call in call_list]
+    # 4 role turns + 1 synthesis = 5 (veto calls are tracked separately).
+    assert len(client.role_calls) == 5
+    systems = [call["messages"][0]["content"] for call in client.role_calls]
     assert systems[0] == GROK_SYSTEM
     assert systems[1] == HARPER_SYSTEM
     assert systems[2] == BENJAMIN_SYSTEM
@@ -211,15 +232,15 @@ def test_turn_order_grok_harper_benjamin_lucas_then_synthesis() -> None:
 def test_multiple_rounds_produce_rounds_times_roles_plus_synthesis() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=3), client=client)
-    # 3 rounds × 4 roles + 1 synthesis = 13
-    assert client.single_call.call_count == 13
+    # 3 rounds × 4 roles + 1 synthesis = 13 (veto calls excluded).
+    assert len(client.role_calls) == 13
 
 
 def test_final_synthesis_user_message_mentions_consensus() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
-    final_call = client.single_call.call_args_list[-1]
-    user_content = final_call.kwargs["messages"][1]["content"]
+    final_call = client.role_calls[-1]
+    user_content = final_call["messages"][1]["content"]
     assert "consensus" in user_content.lower()
 
 
@@ -240,10 +261,9 @@ def test_transcript_carries_previous_turns_into_next_prompt() -> None:
 
     # On the second round's Grok call (index 4), the user prompt should
     # carry the first-round turns in the "Debate so far" section.
-    grok_round2 = client.single_call.call_args_list[4]
-    user_body = grok_round2.kwargs["messages"][1]["content"]
+    grok_round2 = client.role_calls[4]
+    user_body = grok_round2["messages"][1]["content"]
     assert "Debate so far" in user_body
-    # At least one role tag from round 1 should appear in the compacted body.
     assert any(
         f"{r} [r1]" in user_body for r in ("Grok", "Harper", "Benjamin", "Lucas")
     )
@@ -257,8 +277,8 @@ def test_transcript_carries_previous_turns_into_next_prompt() -> None:
 def test_default_tools_grant_harper_web_and_x_search() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
-    harper_call = client.single_call.call_args_list[1]
-    tool_types = [t.get("type") for t in (harper_call.kwargs.get("tools") or [])]
+    harper_call = client.role_calls[1]
+    tool_types = [t.get("type") for t in (harper_call.get("tools") or [])]
     assert "web_search" in tool_types
     assert "x_search" in tool_types
 
@@ -266,8 +286,8 @@ def test_default_tools_grant_harper_web_and_x_search() -> None:
 def test_default_tools_do_not_grant_grok_tools() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
-    grok_call = client.single_call.call_args_list[0]
-    assert not (grok_call.kwargs.get("tools") or [])
+    grok_call = client.role_calls[0]
+    assert not (grok_call.get("tools") or [])
 
 
 def test_tool_routing_override_wins() -> None:
@@ -278,12 +298,12 @@ def test_tool_routing_override_wins() -> None:
         "Harper": [],
     }
     run_simulated_orchestra(spec, client=client)
-    grok_call = client.single_call.call_args_list[0]
-    harper_call = client.single_call.call_args_list[1]
-    assert [t.get("type") for t in (grok_call.kwargs.get("tools") or [])] == [
+    grok_call = client.role_calls[0]
+    harper_call = client.role_calls[1]
+    assert [t.get("type") for t in (grok_call.get("tools") or [])] == [
         "code_execution"
     ]
-    assert not (harper_call.kwargs.get("tools") or [])
+    assert not (harper_call.get("tools") or [])
 
 
 # --------------------------------------------------------------------------- #
@@ -312,10 +332,18 @@ def test_audit_called_when_post_to_x_true() -> None:
 def test_lucas_veto_consulted_when_enabled() -> None:
     client = _ScriptedClient()
     with patch("grok_orchestra.runtime_simulated._run_lucas_veto") as m_veto:
-        m_veto.return_value = {"approved": True, "reason": "ok", "stub": False}
+        m_veto.return_value = (
+            "ok",
+            {"approved": True, "safe": True, "confidence": 0.9, "reviewer": "Lucas"},
+        )
         result = run_simulated_orchestra(_spec(debate_rounds=1), client=client)
     m_veto.assert_called_once()
-    assert result.veto_report == {"approved": True, "reason": "ok", "stub": False}
+    assert result.veto_report == {
+        "approved": True,
+        "safe": True,
+        "confidence": 0.9,
+        "reviewer": "Lucas",
+    }
 
 
 def test_deploy_called_when_target_present() -> None:
@@ -332,7 +360,10 @@ def test_deploy_blocked_when_veto_denies() -> None:
     with patch("grok_orchestra.runtime_simulated._run_lucas_veto") as m_veto, patch(
         "grok_orchestra.runtime_simulated.deploy_to_target"
     ) as m_deploy:
-        m_veto.return_value = {"approved": False, "reason": "unsafe"}
+        m_veto.return_value = (
+            "final content",
+            {"approved": False, "safe": False, "reasons": ["unsafe"]},
+        )
         result = run_simulated_orchestra(_spec(debate_rounds=1), client=client)
     m_deploy.assert_not_called()
     assert result.success is False
@@ -346,9 +377,7 @@ def test_deploy_blocked_when_veto_denies() -> None:
 def test_empty_agents_list_uses_default_order() -> None:
     client = _ScriptedClient()
     run_simulated_orchestra(_spec(debate_rounds=1, agents=[]), client=client)
-    # The 4 role turns + 1 synthesis ordering is asserted elsewhere; here we
-    # just confirm 5 calls happened (i.e. the default 4 roles were used).
-    assert client.single_call.call_count == 5
+    assert len(client.role_calls) == 5  # 4 default roles + synthesis
 
 
 def test_custom_agents_respected() -> None:
@@ -361,9 +390,8 @@ def test_custom_agents_respected() -> None:
         ],
     )
     run_simulated_orchestra(spec, client=client)
-    # 2 role turns + 1 synthesis = 3.
-    assert client.single_call.call_count == 3
-    systems = [c.kwargs["messages"][0]["content"] for c in client.single_call.call_args_list]
+    assert len(client.role_calls) == 3  # Harper + Lucas + synthesis
+    systems = [c["messages"][0]["content"] for c in client.role_calls]
     assert systems[0] == HARPER_SYSTEM
     assert systems[1] == LUCAS_SYSTEM
     assert systems[2] == GROK_SYSTEM  # synthesis
@@ -374,24 +402,30 @@ def test_custom_agents_respected() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def _non_veto_calls(client: DryRunSimulatedClient) -> list[dict[str, Any]]:
+    from grok_orchestra.safety_veto import is_veto_messages
+
+    return [c for c in client.calls if not is_veto_messages(c["messages"])]
+
+
 def test_dry_run_client_plays_full_debate() -> None:
     client = DryRunSimulatedClient(tick_seconds=0)
     with patch("grok_orchestra.runtime_simulated.deploy_to_target"):
         result = run_simulated_orchestra(_spec(debate_rounds=2), client=client)
-    # 2 rounds × 4 roles + 1 synthesis = 9 calls logged.
-    assert len(client.calls) == 9
+    # 2 rounds × 4 roles + 1 synthesis = 9 debate calls (veto calls excluded).
+    assert len(_non_veto_calls(client)) == 9
     assert result.mode == "simulated"
     assert result.total_reasoning_tokens > 0
-    # Synthesis output contains a preview string from Grok's canned events.
     assert result.final_content.strip() != ""
 
 
 def test_dry_run_client_records_model_and_tools() -> None:
     client = DryRunSimulatedClient(tick_seconds=0)
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
-    # First call is Grok (no tools by default).
-    assert client.calls[0]["model"] == "grok-4.20-0309"
-    assert client.calls[0]["tools"] in (None, [])
-    # Second call is Harper (web + x_search by default).
-    assert client.calls[1]["tools"] is not None
-    assert any(t.get("type") == "web_search" for t in client.calls[1]["tools"])
+    debate = _non_veto_calls(client)
+    # First debate call is Grok (no tools by default).
+    assert debate[0]["model"] == "grok-4.20-0309"
+    assert debate[0]["tools"] in (None, [])
+    # Second debate call is Harper (web + x_search by default).
+    assert debate[1]["tools"] is not None
+    assert any(t.get("type") == "web_search" for t in debate[1]["tools"])

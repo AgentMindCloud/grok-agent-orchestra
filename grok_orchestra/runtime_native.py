@@ -12,7 +12,6 @@ rather than re-implemented here.
 
 from __future__ import annotations
 
-import asyncio
 import time
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
@@ -28,7 +27,11 @@ from grok_orchestra.multi_agent_client import (
     OrchestraClient,
 )
 from grok_orchestra.parser import map_effort_to_agents
-from grok_orchestra.safety_veto import LucasVeto
+from grok_orchestra.safety_veto import (
+    VetoReport,
+    print_veto_verdict,
+    safety_lucas_veto,
+)
 from grok_orchestra.streaming import DebateTUI
 
 NATIVE_MODEL_ID = "grok-4.20-multi-agent-0309"
@@ -153,8 +156,9 @@ def run_native_orchestra(
     _console.section(console, "🚫  Lucas veto")
     veto_report: Mapping[str, Any] | None = None
     if safety_cfg.get("lucas_veto_enabled", True):
-        veto_report = _run_lucas_veto(final_content, safety_cfg)
-        console.log(f"[dim]veto → {veto_report}[/dim]")
+        final_content, veto_report = _run_lucas_veto(
+            final_content, config, client=client, console=console
+        )
     else:
         console.log("[dim]skipped (safety.lucas_veto_enabled=false)[/dim]")
 
@@ -252,12 +256,60 @@ class DryRunOrchestraClient:
         tools: list[Any] | None = None,
         **_kwargs: Any,
     ) -> Iterator[MultiAgentEvent]:
-        """Yield the canned events, sleeping ``tick_seconds`` between each."""
-        del goal, agent_count, tools
+        """Yield the canned events, sleeping ``tick_seconds`` between each.
+
+        Echoes ``goal`` into the final event so the downstream veto can see
+        any toxicity sentinels and respond appropriately during dry-run
+        demos.
+        """
+        del agent_count, tools
         for ev in self._events:
             if self._tick_seconds:
                 time.sleep(self._tick_seconds)
-            yield ev
+            if ev.kind == "final":
+                yield MultiAgentEvent(
+                    kind="final",
+                    text=_compose_final_from_goal(goal, ev.text or ""),
+                    agent_id=ev.agent_id,
+                    timestamp=ev.timestamp,
+                )
+            else:
+                yield ev
+
+    def single_call(
+        self,
+        messages: list[Mapping[str, str]] | None = None,
+        **_kwargs: Any,
+    ) -> Iterator[MultiAgentEvent]:
+        """Respond to downstream single-agent calls — used for the veto.
+
+        Recognises veto messages via :func:`safety_veto.is_veto_messages`
+        and emits a canned :func:`safety_veto.dry_run_veto_events` stream.
+        Anything else returns an empty stream.
+        """
+        from grok_orchestra.safety_veto import (
+            dry_run_veto_events,
+            extract_proposed_content,
+            is_veto_messages,
+        )
+
+        msgs = list(messages or [])
+        if is_veto_messages(msgs):
+            user = msgs[1].get("content", "") if len(msgs) > 1 else ""
+            content = extract_proposed_content(user)
+            yield from dry_run_veto_events(
+                content, tick_seconds=self._tick_seconds
+            )
+            return
+        return
+
+
+def _compose_final_from_goal(goal: str, default_final: str) -> str:
+    """Weave the goal into the dry-run final so toxicity flows to the veto."""
+    lowered = goal.lower()
+    if any(bad in lowered for bad in ("toxic", "hate", "violence", "incite", "harass", "slur")):
+        return f"Proposed post: {goal}"
+    return default_final or f"Proposed post: {goal}"
 
 
 # --------------------------------------------------------------------------- #
@@ -282,23 +334,53 @@ def _resolve_tool_names(config: Mapping[str, Any]) -> list[str]:
 
 def _run_lucas_veto(
     final_content: str,
-    safety_cfg: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    strict = bool(safety_cfg.get("strict", True))
-    veto = LucasVeto(strict=strict)
-    action = {"content": final_content, "kind": "final_response"}
-    try:
-        decision = asyncio.run(veto.review(action))
-    except NotImplementedError:
-        return {
-            "approved": True,
-            "reason": "LucasVeto stub — full impl lands in session 6",
-            "stub": True,
-        }
+    config: Mapping[str, Any],
+    *,
+    client: Any,
+    console: Any,
+) -> tuple[str, Mapping[str, Any]]:
+    """Invoke :func:`safety_lucas_veto`, render the verdict, and optionally retry.
+
+    If Lucas returns ``safe=False`` with an ``alternative_post`` and
+    ``safety.max_veto_retries > 0``, the runtime re-runs the veto once with
+    the alternative content. The returned ``final_content`` is the content
+    that was ultimately approved (or the last content considered, when the
+    retry still fails).
+    """
+    safety_cfg = dict(config.get("safety", {}) or {})
+    max_retries = max(0, int(safety_cfg.get("max_veto_retries", 1)))
+
+    report = safety_lucas_veto(final_content, config, client=client)
+    print_veto_verdict(report, console=console)
+
+    retried = False
+    if (
+        not report.safe
+        and report.alternative_post
+        and max_retries > 0
+    ):
+        retried = True
+        console.log(
+            "[yellow]Lucas proposed a safer rewrite — re-running the veto with it.[/yellow]"
+        )
+        final_content = report.alternative_post
+        report = safety_lucas_veto(final_content, config, client=client)
+        print_veto_verdict(report, console=console)
+
+    veto_report: dict[str, Any] = _report_to_dict(report)
+    veto_report["retried_with_alternative"] = retried
+    return final_content, veto_report
+
+
+def _report_to_dict(report: VetoReport) -> dict[str, Any]:
     return {
-        "approved": bool(getattr(decision, "approved", True)),
-        "reason": str(getattr(decision, "reason", "")),
-        "reviewer": str(getattr(decision, "reviewer", "Lucas")),
+        "safe": report.safe,
+        "approved": report.safe,
+        "confidence": report.confidence,
+        "reasons": list(report.reasons),
+        "alternative_post": report.alternative_post,
+        "cost_tokens": report.cost_tokens,
+        "reviewer": "Lucas",
     }
 
 

@@ -116,6 +116,11 @@ def run(
 
     _print_result(console, result)
     if not result.success:
+        veto = result.veto_report or {}
+        # Exit 4 = safety veto denial; exit 1 = any other failure
+        # (rate-limit, partial stream, etc.).
+        if veto.get("approved") is False or veto.get("safe") is False:
+            raise typer.Exit(code=4)
         raise typer.Exit(code=1)
 
 
