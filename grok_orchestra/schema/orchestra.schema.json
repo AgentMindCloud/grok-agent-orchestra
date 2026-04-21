@@ -1,1 +1,320 @@
-{}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentmind.cloud/schemas/grok-agent-orchestra/orchestra.schema.json",
+  "title": "Grok Agent Orchestra Spec",
+  "description": "Draft 2020-12 JSON Schema for the Orchestra extensions on top of a Grok Build Bridge spec. Bridge fields are validated by grok_build_bridge.parser.load_yaml; this schema validates only the Orchestra additions — the `orchestra` block and the extended `safety` fields — and is applied as a second pass by grok_orchestra.parser.load_orchestra_yaml.",
+  "type": "object",
+  "properties": {
+    "orchestra": { "$ref": "#/$defs/Orchestra" },
+    "safety": { "$ref": "#/$defs/SafetyExtension" }
+  },
+  "required": ["orchestra"],
+  "additionalProperties": true,
+  "$defs": {
+    "Orchestra": {
+      "type": "object",
+      "description": "Orchestra-specific configuration block; required for pure-Orchestra runs.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["native", "simulated", "auto"],
+          "default": "auto",
+          "description": "Execution mode. `native` dispatches to the xAI multi-agent endpoint, `simulated` runs a prompt-driven named-role debate, `auto` picks native when available and simulated otherwise.",
+          "examples": ["auto", "native", "simulated"]
+        },
+        "agent_count": {
+          "type": "integer",
+          "enum": [4, 16],
+          "description": "Number of native agents the multi-agent model should orchestrate. Ignored in simulated mode.",
+          "examples": [4, 16]
+        },
+        "reasoning_effort": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "xhigh"],
+          "default": "medium",
+          "description": "Reasoning effort hint. Maps to `agent_count` when `agent_count` is omitted: low/medium → 4, high/xhigh → 16.",
+          "examples": ["medium", "high"]
+        },
+        "include_verbose_streaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Stream per-role thought-chain events over the Rich TUI.",
+          "examples": [true, false]
+        },
+        "use_encrypted_content": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use encrypted content envelopes. Playground-only today; do not enable in production pipelines.",
+          "examples": [false]
+        },
+        "debate_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 2,
+          "description": "Number of debate rounds to run. Simulated mode only; ignored in native.",
+          "examples": [2, 3]
+        },
+        "debate_style": {
+          "type": "string",
+          "enum": ["xai-native", "prompt-simulated"],
+          "description": "Label exposed to consumers describing which debate surface is rendered.",
+          "examples": ["xai-native", "prompt-simulated"]
+        },
+        "agents": {
+          "type": "array",
+          "description": "Display-only metadata surfaced in the marketplace UI; not used by the runtimes.",
+          "items": { "$ref": "#/$defs/AgentMeta" },
+          "examples": [
+            [
+              { "name": "Grok", "role": "coordinator" },
+              { "name": "Harper", "role": "researcher" },
+              { "name": "Benjamin", "role": "logician" },
+              { "name": "Lucas", "role": "contrarian" }
+            ]
+          ]
+        },
+        "orchestration": { "$ref": "#/$defs/Orchestration" },
+        "tool_routing": { "$ref": "#/$defs/ToolRouting" }
+      },
+      "additionalProperties": false
+    },
+    "AgentMeta": {
+      "type": "object",
+      "description": "Marketplace metadata for a single named role.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["Grok", "Harper", "Benjamin", "Lucas", "custom"],
+          "description": "Role name. Use `custom` for marketplace-defined personas.",
+          "examples": ["Grok", "Harper"]
+        },
+        "role": {
+          "type": "string",
+          "enum": ["coordinator", "researcher", "logician", "contrarian", "custom"],
+          "description": "Functional role the agent plays in the debate.",
+          "examples": ["coordinator", "researcher"]
+        }
+      },
+      "required": ["name", "role"],
+      "additionalProperties": false
+    },
+    "Orchestration": {
+      "type": "object",
+      "description": "Pattern selection and pattern-specific configuration.",
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "enum": ["native", "hierarchical", "dynamic-spawn", "debate-loop", "parallel-tools", "recovery"],
+          "description": "Which orchestration pattern to drive the runtime with.",
+          "examples": ["hierarchical", "debate-loop"]
+        },
+        "config": {
+          "type": "object",
+          "description": "Pattern-specific configuration. Validated by the matching $defs entry below based on `pattern`.",
+          "examples": [{ "max_depth": 3 }]
+        },
+        "fallback_on_rate_limit": { "$ref": "#/$defs/FallbackOnRateLimit" }
+      },
+      "required": ["pattern"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "pattern": { "const": "native" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/NativePatternConfig" } } }
+        },
+        {
+          "if": { "properties": { "pattern": { "const": "hierarchical" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/HierarchicalConfig" } } }
+        },
+        {
+          "if": { "properties": { "pattern": { "const": "dynamic-spawn" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/DynamicSpawnConfig" } } }
+        },
+        {
+          "if": { "properties": { "pattern": { "const": "debate-loop" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/DebateLoopConfig" } } }
+        },
+        {
+          "if": { "properties": { "pattern": { "const": "parallel-tools" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/ParallelToolsConfig" } } }
+        },
+        {
+          "if": { "properties": { "pattern": { "const": "recovery" } }, "required": ["pattern"] },
+          "then": { "properties": { "config": { "$ref": "#/$defs/RecoveryConfig" } } }
+        }
+      ]
+    },
+    "FallbackOnRateLimit": {
+      "type": "object",
+      "description": "Policy for degrading when the native multi-agent endpoint is rate-limited.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to fall back when hitting a 429.",
+          "examples": [true]
+        },
+        "fallback_model": {
+          "type": "string",
+          "enum": ["grok-4.20-0309"],
+          "description": "Single-agent model id to use as the fallback.",
+          "examples": ["grok-4.20-0309"]
+        },
+        "lowered_effort": {
+          "type": "string",
+          "enum": ["low", "medium"],
+          "description": "Reasoning effort to use after falling back.",
+          "examples": ["low", "medium"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ToolRouting": {
+      "type": "object",
+      "description": "Optional per-agent tool allowlist. Keys are agent names (alphanumeric, `_`, or `-`).",
+      "patternProperties": {
+        "^[A-Za-z0-9_-]+$": {
+          "type": "array",
+          "description": "Tools the named agent is permitted to invoke.",
+          "items": {
+            "type": "string",
+            "enum": ["x_search", "web_search", "code_execution"]
+          },
+          "examples": [["x_search", "web_search"]]
+        }
+      },
+      "additionalProperties": false
+    },
+    "NativePatternConfig": {
+      "type": "object",
+      "description": "Pass-through config for the `native` pattern; accepts no keys.",
+      "additionalProperties": false,
+      "examples": [{}]
+    },
+    "HierarchicalConfig": {
+      "type": "object",
+      "description": "Config for the hierarchical planner→sub-roles pattern.",
+      "properties": {
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 3,
+          "description": "Maximum planner→sub-role delegation depth.",
+          "examples": [3]
+        },
+        "coordinator": {
+          "type": "string",
+          "description": "Name of the role that serves as the top-level planner.",
+          "examples": ["Grok"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "DynamicSpawnConfig": {
+      "type": "object",
+      "description": "Config for the dynamic speaker-election pattern.",
+      "properties": {
+        "max_spawns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 8,
+          "description": "Max number of ad-hoc sub-agents that can be spawned.",
+          "examples": [8]
+        }
+      },
+      "additionalProperties": false
+    },
+    "DebateLoopConfig": {
+      "type": "object",
+      "description": "Config for the fixed-roster debate loop.",
+      "properties": {
+        "consensus_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.75,
+          "description": "Confidence above which the debate terminates with consensus.",
+          "examples": [0.75]
+        },
+        "max_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Hard cap on debate rounds.",
+          "examples": [3]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ParallelToolsConfig": {
+      "type": "object",
+      "description": "Config for the parallel fan-out / fan-in pattern.",
+      "properties": {
+        "max_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 4,
+          "description": "Maximum concurrent role invocations.",
+          "examples": [4]
+        }
+      },
+      "additionalProperties": false
+    },
+    "RecoveryConfig": {
+      "type": "object",
+      "description": "Config for the retry-with-reflection recovery pattern.",
+      "properties": {
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 2,
+          "description": "Maximum number of reflective retries before giving up.",
+          "examples": [2]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SafetyExtension": {
+      "type": "object",
+      "description": "Orchestra additions to the Bridge `safety` block. Bridge safety fields remain valid (additionalProperties: true).",
+      "properties": {
+        "lucas_veto_enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, every agent-authored side effect must pass a Lucas veto review.",
+          "examples": [true]
+        },
+        "lucas_model": {
+          "type": "string",
+          "enum": ["grok-4.20-0309"],
+          "default": "grok-4.20-0309",
+          "description": "Model used by the Lucas veto reviewer.",
+          "examples": ["grok-4.20-0309"]
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.75,
+          "description": "Minimum confidence Lucas must have to approve an action.",
+          "examples": [0.75]
+        },
+        "max_veto_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 1,
+          "description": "Number of rewrite-retry attempts before Lucas blocks permanently.",
+          "examples": [1]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
