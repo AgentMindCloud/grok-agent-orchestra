@@ -59,11 +59,16 @@ class _StubXAIClient:
     """Stand-in for ``grok_build_bridge.xai_client.XAIClient``.
 
     Accepts any kwargs so subclasses can be instantiated in tests without
-    having to mirror the real Bridge constructor.
+    having to mirror the real Bridge constructor. Provides a no-op
+    ``single_call`` so code paths that probe for it succeed in isolation;
+    tests typically replace this with a :class:`unittest.mock.MagicMock`.
     """
 
     def __init__(self, *_args: Any, **_kwargs: Any) -> None:
         self.chat = _StubChat()
+
+    def single_call(self, *_args: Any, **_kwargs: Any) -> list[Any]:
+        return []
 
 
 class _StubRateLimitError(Exception):

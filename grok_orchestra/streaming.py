@@ -70,6 +70,7 @@ class DebateTUI:
         self._layout: Layout | None = None
         self._live: Live | None = None
         self._finalized = False
+        self._active_role: tuple[str, str, int, str] | None = None
 
     # ------------------------------------------------------------------ #
     # Context manager.
@@ -138,6 +139,44 @@ class DebateTUI:
             self._reasoning_tokens = total_tokens
             self._refresh_left()
 
+    def start_role_turn(
+        self,
+        role_name: str,
+        role_type: str,
+        round_num: int,
+        color: str = "cyan",
+    ) -> None:
+        """Mark the start of a new named-role turn in the simulated debate.
+
+        Renders a coloured divider into the debate pane and updates the
+        header so the viewer can see who is currently speaking at a glance.
+
+        Parameters
+        ----------
+        role_name:
+            Display name of the role (``"Grok"``, ``"Harper"``, ...).
+        role_type:
+            Functional role (``"coordinator"``, ``"researcher"``, ...).
+        round_num:
+            Debate round number, 1-indexed.
+        color:
+            Rich colour name to use for the header / divider.
+        """
+        with self._lock:
+            self._active_role = (role_name, role_type, round_num, color)
+            divider = (
+                f"\n\n[bold {color}]▶ {role_name} · {role_type} · r{round_num}[/bold {color}]\n"
+            )
+            self._tokens.append(divider)
+            self._trim_tokens()
+            self._refresh_header()
+            self._refresh_right()
+            if not self._tty:
+                self.console.log(
+                    f"[bold {color}]▶ {role_name}[/bold {color}] "
+                    f"[dim]{role_type} · r{round_num}[/dim]"
+                )
+
     # ------------------------------------------------------------------ #
     # Finalisation.
     # ------------------------------------------------------------------ #
@@ -190,7 +229,15 @@ class DebateTUI:
             return
         header = Text()
         header.append("grok-orchestra · ", style=_TITLE_STYLE)
-        header.append("native multi-agent debate", style="white")
+        mode_label = "multi-agent debate"
+        header.append(mode_label, style="white")
+        if self._active_role is not None:
+            role_name, role_type, round_num, color = self._active_role
+            header.append("  ·  ")
+            header.append(
+                f"▶ {role_name}", style=f"bold {color}"
+            )
+            header.append(f" ({role_type}, r{round_num})", style="dim")
         if self.goal:
             header.append(f"\ngoal: {self.goal}", style="dim")
         header.append(f"\nagent_count: {self.agent_count}", style="dim")

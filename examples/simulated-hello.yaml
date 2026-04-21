@@ -1,0 +1,31 @@
+name: simulated-hello
+goal: "Say hello in three languages through a visible Grok/Harper/Benjamin/Lucas debate."
+
+orchestra:
+  mode: simulated
+  debate_rounds: 2
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: debate-loop
+    config:
+      max_rounds: 2
+  agents:
+    - name: Grok
+      role: coordinator
+    - name: Harper
+      role: researcher
+    - name: Benjamin
+      role: logician
+    - name: Lucas
+      role: contrarian
+  tool_routing:
+    Harper: [web_search, x_search]
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.75
+
+deploy:
+  target: stdout
+  post_to_x: false

@@ -30,6 +30,10 @@ from grok_orchestra.runtime_native import (
     OrchestraResult,
     run_native_orchestra,
 )
+from grok_orchestra.runtime_simulated import (
+    DryRunSimulatedClient,
+    run_simulated_orchestra,
+)
 
 app = typer.Typer(
     name="grok-orchestra",
@@ -88,13 +92,19 @@ def run(
         raise typer.Exit(code=2) from exc
 
     effective_mode = mode or resolve_mode(config)
-    if effective_mode != "native":
+    if effective_mode == "native":
+        native_client = DryRunOrchestraClient() if dry_run else None
+        result = run_native_orchestra(config, client=native_client)
+    elif effective_mode == "simulated":
+        sim_client = DryRunSimulatedClient() if dry_run else None
+        result = run_simulated_orchestra(config, client=sim_client)
+    else:
         console.print(
             Panel(
                 Text(
                     f"Mode {effective_mode!r} is not yet wired into the CLI. "
-                    "Native is available; simulated lands in session 5, "
-                    "the dispatcher in session 8.",
+                    "Native + simulated are available; the auto dispatcher "
+                    "lands in session 8.",
                     style="yellow",
                 ),
                 title="grok-orchestra",
@@ -104,8 +114,6 @@ def run(
         )
         raise typer.Exit(code=2)
 
-    client = DryRunOrchestraClient() if dry_run else None
-    result = run_native_orchestra(config, client=client)
     _print_result(console, result)
     if not result.success:
         raise typer.Exit(code=1)
