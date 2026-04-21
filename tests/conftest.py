@@ -31,8 +31,16 @@ def _stub_load_yaml(path: str | Path) -> Any:
         return yaml.safe_load(fh)
 
 
-def _stub_audit_x_post(*_args: Any, **_kwargs: Any) -> bool:
-    return True
+def _stub_audit_x_post(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+    return {"approved": True, "flagged": False}
+
+
+def _stub_deploy_to_target(*_args: Any, **_kwargs: Any) -> str:
+    return "https://example.test/deployed"
+
+
+def _stub_section(console: Any, title: str) -> None:
+    console.rule(title, style="cyan")
 
 
 class _StubChat:
@@ -81,20 +89,24 @@ def _install_bridge_stub() -> None:
     pkg = types.ModuleType("grok_build_bridge")
     parser_mod = types.ModuleType("grok_build_bridge.parser")
     safety_mod = types.ModuleType("grok_build_bridge.safety")
+    deploy_mod = types.ModuleType("grok_build_bridge.deploy")
     xai_mod = types.ModuleType("grok_build_bridge.xai_client")
     console_mod = types.ModuleType("grok_build_bridge._console")
 
     parser_mod.load_yaml = _stub_load_yaml
     parser_mod.BridgeConfigError = _StubBridgeConfigError
     safety_mod.audit_x_post = _stub_audit_x_post
+    deploy_mod.deploy_to_target = _stub_deploy_to_target
     xai_mod.XAIClient = _StubXAIClient
     console_mod.console = Console()
+    console_mod.section = _stub_section
 
     pkg._console = console_mod  # type: ignore[attr-defined]
 
     sys.modules["grok_build_bridge"] = pkg
     sys.modules["grok_build_bridge.parser"] = parser_mod
     sys.modules["grok_build_bridge.safety"] = safety_mod
+    sys.modules["grok_build_bridge.deploy"] = deploy_mod
     sys.modules["grok_build_bridge.xai_client"] = xai_mod
     sys.modules["grok_build_bridge._console"] = console_mod
 

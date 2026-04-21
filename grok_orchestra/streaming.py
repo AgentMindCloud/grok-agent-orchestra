@@ -1,26 +1,250 @@
 """Rich-powered streaming TUI for live multi-agent debate.
 
-Renders role turns, thought chains, and Lucas veto decisions to the terminal
-using the Bridge-shared Rich console (``grok_build_bridge._console``) so that
-Bridge and Orchestra share a single styled output surface.
+:class:`DebateTUI` is a context manager that renders a 4-region Rich Layout
+while native multi-agent events stream in. It degrades gracefully when the
+shared console is not attached to a TTY (e.g. under CI): events are recorded
+and rendered as plain structured log lines instead of a live layout.
+
+The design is a deliberate wow-moment: monochrome cyan/white, rounded boxes,
+zero flicker. All state transitions are serialised through a small lock so
+``record_event`` / ``render_reasoning`` are safe to call from event callbacks
+firing on whichever thread the SDK happens to use.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+import threading
+from collections import deque
+from types import TracebackType
 from typing import Any
 
 from grok_build_bridge import _console
+from rich import box
+from rich.align import Align
+from rich.console import Console
+from rich.layout import Layout
+from rich.live import Live
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
+from grok_orchestra.multi_agent_client import MultiAgentEvent
+
+_BORDER = "cyan"
+_TITLE_STYLE = "bold cyan"
+_REFRESH_HZ = 12
+_MAX_FOOTER_ROWS = 5
+_MAX_BODY_CHARS = 4000
 
 
-async def stream_debate(events: AsyncIterator[dict[str, Any]]) -> None:
-    """Render a debate event stream to the shared console.
+class DebateTUI:
+    """Live TUI for Orchestra's native multi-agent debate.
 
-    Parameters
-    ----------
-    events:
-        An async iterator of debate event dicts produced by the native or
-        simulated runtime.
+    Usage::
+
+        with DebateTUI(goal="...", agent_count=4) as tui:
+            for ev in client.stream_multi_agent(...):
+                tui.record_event(ev)
+            tui.finalize(final_text)
+
+    When ``stdout`` is not a TTY the layout is replaced by structured log
+    lines so logs in CI remain readable.
     """
-    _ = _console  # keep the shared console import live for future use
+
+    def __init__(
+        self,
+        *,
+        goal: str = "",
+        agent_count: int = 4,
+        console: Console | None = None,
+    ) -> None:
+        self.goal = goal
+        self.agent_count = agent_count
+        self.console: Console = console or _console.console
+        self._tty = bool(getattr(self.console, "is_terminal", True))
+        self._lock = threading.Lock()
+        self._tokens: list[str] = []
+        self._tools: deque[str] = deque(maxlen=_MAX_FOOTER_ROWS * 2)
+        self._reasoning_tokens = 0
+        self._event_counts: dict[str, int] = {}
+        self._layout: Layout | None = None
+        self._live: Live | None = None
+        self._finalized = False
+
+    # ------------------------------------------------------------------ #
+    # Context manager.
+    # ------------------------------------------------------------------ #
+
+    def __enter__(self) -> DebateTUI:
+        if self._tty:
+            self._layout = self._build_layout()
+            self._refresh_all()
+            self._live = Live(
+                self._layout,
+                console=self.console,
+                refresh_per_second=_REFRESH_HZ,
+                screen=False,
+                transient=False,
+            )
+            self._live.__enter__()
+        else:
+            self.console.log(
+                f"[bold cyan]debate start[/bold cyan] goal={self.goal!r} "
+                f"agent_count={self.agent_count}"
+            )
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        if self._live is not None:
+            self._live.__exit__(exc_type, exc, tb)
+            self._live = None
+
+    # ------------------------------------------------------------------ #
+    # Public recording surface.
+    # ------------------------------------------------------------------ #
+
+    def record_event(self, ev: MultiAgentEvent) -> None:
+        """Record a streamed :class:`MultiAgentEvent` into the layout."""
+        with self._lock:
+            self._event_counts[ev.kind] = self._event_counts.get(ev.kind, 0) + 1
+            if ev.kind in ("token", "final") and ev.text:
+                self._tokens.append(ev.text)
+                self._trim_tokens()
+                self._refresh_right()
+            elif ev.kind == "reasoning_tick" and ev.reasoning_tokens:
+                self._reasoning_tokens += ev.reasoning_tokens
+                self._refresh_left()
+            elif ev.kind == "tool_call" and ev.tool_name:
+                self._tools.append(ev.tool_name)
+                self._refresh_footer()
+                if not self._tty:
+                    self.console.log(f"[dim]tool_call: {ev.tool_name}[/dim]")
+            elif ev.kind == "tool_result":
+                self._refresh_footer()
+            elif ev.kind == "rate_limit":
+                self._tokens.append(
+                    "\n[bold red]⚠ rate-limited; aborting native stream[/bold red]\n"
+                )
+                self._refresh_right()
+
+    def render_reasoning(self, total_tokens: int) -> None:
+        """Replace the running reasoning-token counter with ``total_tokens``."""
+        with self._lock:
+            self._reasoning_tokens = total_tokens
+            self._refresh_left()
+
+    # ------------------------------------------------------------------ #
+    # Finalisation.
+    # ------------------------------------------------------------------ #
+
+    def finalize(self, summary: str | None = None) -> None:
+        """Close the live layout and print a terminal summary panel."""
+        if self._finalized:
+            return
+        self._finalized = True
+        if self._live is not None:
+            self._live.__exit__(None, None, None)
+            self._live = None
+        body = Text()
+        body.append("✓ Debate complete\n", style="bold green")
+        body.append(f"reasoning tokens: {self._reasoning_tokens}\n", style="white")
+        counts = ", ".join(f"{k}={v}" for k, v in sorted(self._event_counts.items()))
+        body.append(f"events: {counts or 'none'}\n", style="dim")
+        if summary:
+            body.append("\n", style="white")
+            body.append(summary, style="white")
+        self.console.print(
+            Panel(body, box=box.ROUNDED, border_style=_BORDER, title="grok-orchestra")
+        )
+
+    # ------------------------------------------------------------------ #
+    # Internal layout building.
+    # ------------------------------------------------------------------ #
+
+    def _build_layout(self) -> Layout:
+        layout = Layout(name="root")
+        layout.split_column(
+            Layout(name="header", size=3),
+            Layout(name="body", ratio=1),
+            Layout(name="footer", size=_MAX_FOOTER_ROWS + 2),
+        )
+        layout["body"].split_row(
+            Layout(name="left", ratio=1),
+            Layout(name="right", ratio=3),
+        )
+        return layout
+
+    def _refresh_all(self) -> None:
+        self._refresh_header()
+        self._refresh_left()
+        self._refresh_right()
+        self._refresh_footer()
+
+    def _refresh_header(self) -> None:
+        if self._layout is None:
+            return
+        header = Text()
+        header.append("grok-orchestra · ", style=_TITLE_STYLE)
+        header.append("native multi-agent debate", style="white")
+        if self.goal:
+            header.append(f"\ngoal: {self.goal}", style="dim")
+        header.append(f"\nagent_count: {self.agent_count}", style="dim")
+        self._layout["header"].update(
+            Panel(header, box=box.ROUNDED, border_style=_BORDER)
+        )
+
+    def _refresh_left(self) -> None:
+        if self._layout is None:
+            return
+        gauge = Text()
+        gauge.append("reasoning\n", style=_TITLE_STYLE)
+        gauge.append(f"{self._reasoning_tokens}", style="bold white")
+        gauge.append(" tokens", style="dim")
+        self._layout["left"].update(
+            Panel(
+                Align.center(gauge, vertical="middle"),
+                box=box.ROUNDED,
+                border_style=_BORDER,
+                title="effort",
+            )
+        )
+
+    def _refresh_right(self) -> None:
+        if self._layout is None:
+            return
+        body_text = "".join(self._tokens) or "[dim]…waiting for tokens…[/dim]"
+        body = Text.from_markup(body_text)
+        self._layout["right"].update(
+            Panel(body, box=box.ROUNDED, border_style=_BORDER, title="debate")
+        )
+
+    def _refresh_footer(self) -> None:
+        if self._layout is None:
+            return
+        table = Table.grid(padding=(0, 2))
+        table.add_column(style="dim")
+        table.add_column(style="white")
+        rows = list(self._tools)[-_MAX_FOOTER_ROWS:] or ["(none yet)"]
+        for idx, name in enumerate(rows, start=1):
+            table.add_row(f"{idx:>2}", name)
+        self._layout["footer"].update(
+            Panel(table, box=box.ROUNDED, border_style=_BORDER, title="tool calls")
+        )
+
+    def _trim_tokens(self) -> None:
+        joined_len = sum(len(t) for t in self._tokens)
+        if joined_len <= _MAX_BODY_CHARS:
+            return
+        # Drop from the front until under the cap.
+        while self._tokens and sum(len(t) for t in self._tokens) > _MAX_BODY_CHARS:
+            self._tokens.pop(0)
+
+
+async def stream_debate(events: Any) -> None:  # pragma: no cover - session 10
+    """Async wrapper reserved for the full TUI pipeline in session 10."""
     raise NotImplementedError("session 10")

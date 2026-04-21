@@ -1,0 +1,21 @@
+name: native-hello
+goal: "Say hello in three languages using the Grok 4.20 native multi-agent model."
+
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+  tool_routing:
+    Grok: [web_search]
+    Harper: [web_search]
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.75
+
+deploy:
+  target: stdout
+  post_to_x: false
