@@ -16,7 +16,7 @@ from __future__ import annotations
 import threading
 from collections import deque
 from types import TracebackType
-from typing import Any
+from typing import Any, ClassVar
 
 from grok_build_bridge import _console
 from rich import box
@@ -38,7 +38,7 @@ _MAX_BODY_CHARS = 4000
 
 
 class DebateTUI:
-    """Live TUI for Orchestra's native multi-agent debate.
+    """Live TUI for Orchestra's multi-agent debate.
 
     Usage::
 
@@ -49,7 +49,18 @@ class DebateTUI:
 
     When ``stdout`` is not a TTY the layout is replaced by structured log
     lines so logs in CI remain readable.
+
+    **Re-entrant by design.** When a :class:`DebateTUI` enters its context
+    while another instance is already active (e.g. the combined runtime
+    opens an outer TUI and a nested simulated runtime tries to open its
+    own), the inner instance becomes a transparent delegate to the outer
+    one — every public method (``record_event`` / ``render_reasoning`` /
+    ``start_role_turn`` / ``set_phase``) forwards to the outer TUI, and
+    the inner ``__exit__`` and ``finalize`` are no-ops. This lets the
+    combined runtime present one continuous show across phases.
     """
+
+    _active: ClassVar[DebateTUI | None] = None
 
     def __init__(
         self,
@@ -71,12 +82,18 @@ class DebateTUI:
         self._live: Live | None = None
         self._finalized = False
         self._active_role: tuple[str, str, int, str] | None = None
+        self._phase: tuple[str, str] | None = None
+        self._delegate: DebateTUI | None = None
 
     # ------------------------------------------------------------------ #
     # Context manager.
     # ------------------------------------------------------------------ #
 
     def __enter__(self) -> DebateTUI:
+        if DebateTUI._active is not None and DebateTUI._active is not self:
+            # Nested — become a transparent delegate to the outer TUI.
+            self._delegate = DebateTUI._active
+            return self
         if self._tty:
             self._layout = self._build_layout()
             self._refresh_all()
@@ -93,6 +110,7 @@ class DebateTUI:
                 f"[bold cyan]debate start[/bold cyan] goal={self.goal!r} "
                 f"agent_count={self.agent_count}"
             )
+        DebateTUI._active = self
         return self
 
     def __exit__(
@@ -101,9 +119,15 @@ class DebateTUI:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
+        if self._delegate is not None:
+            # Nested context — leave the outer owner intact.
+            self._delegate = None
+            return
         if self._live is not None:
             self._live.__exit__(exc_type, exc, tb)
             self._live = None
+        if DebateTUI._active is self:
+            DebateTUI._active = None
 
     # ------------------------------------------------------------------ #
     # Public recording surface.
@@ -111,6 +135,9 @@ class DebateTUI:
 
     def record_event(self, ev: MultiAgentEvent) -> None:
         """Record a streamed :class:`MultiAgentEvent` into the layout."""
+        if self._delegate is not None:
+            self._delegate.record_event(ev)
+            return
         with self._lock:
             self._event_counts[ev.kind] = self._event_counts.get(ev.kind, 0) + 1
             if ev.kind in ("token", "final") and ev.text:
@@ -135,9 +162,29 @@ class DebateTUI:
 
     def render_reasoning(self, total_tokens: int) -> None:
         """Replace the running reasoning-token counter with ``total_tokens``."""
+        if self._delegate is not None:
+            self._delegate.render_reasoning(total_tokens)
+            return
         with self._lock:
             self._reasoning_tokens = total_tokens
             self._refresh_left()
+
+    def set_phase(self, label: str, color: str = "cyan") -> None:
+        """Update the live header to show the currently running phase.
+
+        Used by the combined runtime to flow the user from
+        ``"🎯 Bridge: generating code"`` → ``"🎤 Orchestra: 4-agent
+        debate"`` → ``"🛡 Lucas: final veto"`` inside one continuous
+        Live render — no teardown / re-setup flicker.
+        """
+        if self._delegate is not None:
+            self._delegate.set_phase(label, color)
+            return
+        with self._lock:
+            self._phase = (label, color)
+            self._refresh_header()
+            if not self._tty:
+                self.console.log(f"[bold {color}]{label}[/bold {color}]")
 
     def start_role_turn(
         self,
@@ -162,6 +209,9 @@ class DebateTUI:
         color:
             Rich colour name to use for the header / divider.
         """
+        if self._delegate is not None:
+            self._delegate.start_role_turn(role_name, role_type, round_num, color)
+            return
         with self._lock:
             self._active_role = (role_name, role_type, round_num, color)
             divider = (
@@ -182,7 +232,14 @@ class DebateTUI:
     # ------------------------------------------------------------------ #
 
     def finalize(self, summary: str | None = None) -> None:
-        """Close the live layout and print a terminal summary panel."""
+        """Close the live layout and print a terminal summary panel.
+
+        When this TUI is acting as a delegate for an outer one, finalize
+        is a no-op — the outer owner closes the Live and prints the
+        summary.
+        """
+        if self._delegate is not None:
+            return
         if self._finalized:
             return
         self._finalized = True
@@ -229,8 +286,11 @@ class DebateTUI:
             return
         header = Text()
         header.append("grok-orchestra · ", style=_TITLE_STYLE)
-        mode_label = "multi-agent debate"
-        header.append(mode_label, style="white")
+        if self._phase is not None:
+            label, color = self._phase
+            header.append(label, style=f"bold {color}")
+        else:
+            header.append("multi-agent debate", style="white")
         if self._active_role is not None:
             role_name, role_type, round_num, color = self._active_role
             header.append("  ·  ")

@@ -1,14 +1,12 @@
 """Command-line entry point for ``grok-orchestra``.
 
-Thin Typer wrapper. Subcommands progressively grow as sessions land:
+Thin Typer wrapper. Subcommands:
 
-- ``validate`` — parse a spec and print defaults (session 2).
-- ``run``      — execute a full Orchestra flow (session 4-7); supports
-  ``--dry-run`` to replay a canned multi-agent / per-role stream so the
-  TUI and pattern flow can be previewed without a live xAI call. Routes
-  through :mod:`grok_orchestra.dispatcher` so any of the configured
-  patterns (``native`` / ``hierarchical`` / ``dynamic-spawn`` /
-  ``debate-loop`` / ``parallel-tools``) is honoured.
+- ``validate`` — parse a spec and report defaults (session 2).
+- ``run``      — execute a pure-Orchestra spec via the dispatcher
+  (sessions 4-7). Supports ``--dry-run``.
+- ``combined`` — execute a combined Bridge + Orchestra spec end-to-end
+  (session 9). Supports ``--dry-run`` and ``--force``.
 """
 
 from __future__ import annotations
@@ -23,6 +21,11 @@ from rich.panel import Panel
 from rich.text import Text
 
 from grok_orchestra import __version__
+from grok_orchestra.combined import (
+    CombinedResult,  # noqa: F401  # re-exported for callers using `from cli import ...`
+    CombinedRuntimeError,
+    run_combined_bridge_orchestra,
+)
 from grok_orchestra.dispatcher import run_orchestra
 from grok_orchestra.parser import (
     OrchestraConfigError,
@@ -138,6 +141,82 @@ def validate(
             box=box.ROUNDED,
         )
     )
+
+
+@app.command()
+def combined(
+    spec: Annotated[
+        str, typer.Argument(help="Path to a combined Bridge + Orchestra YAML spec.")
+    ],
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Use scripted Bridge + Orchestra clients instead of calling xAI.",
+        ),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Ship generated code even when Bridge's safety scan flags issues.",
+        ),
+    ] = False,
+    output_dir: Annotated[
+        str | None,
+        typer.Option(
+            "--output-dir",
+            "-o",
+            help="Directory for Bridge-generated files (default: ./generated).",
+        ),
+    ] = None,
+) -> None:
+    """Run a combined Bridge + Orchestra spec end-to-end.
+
+    The single YAML drives Bridge code generation, an Orchestra
+    multi-agent debate over the generated code, a Lucas safety veto on
+    the synthesised content, and a deploy step. The whole flow renders
+    inside one continuous live debate panel.
+    """
+    console = _console.console
+    try:
+        config = load_orchestra_yaml(Path(spec))
+    except OrchestraConfigError as exc:
+        exc.render(console=console)
+        raise typer.Exit(code=2) from exc
+
+    pattern = (
+        config.get("orchestra", {})
+        .get("orchestration", {})
+        .get("pattern", "native")
+    )
+    effective_mode = resolve_mode(config)
+    client = _dry_run_client_for(pattern, effective_mode) if dry_run else None
+
+    try:
+        result = run_combined_bridge_orchestra(
+            Path(spec),
+            dry_run=dry_run,
+            force=force,
+            client=client,
+            output_dir=output_dir,
+        )
+    except CombinedRuntimeError as exc:
+        console.print(
+            Panel(
+                Text(str(exc), style="bold red"),
+                title="grok-orchestra · combined",
+                border_style="red",
+                box=box.ROUNDED,
+            )
+        )
+        raise typer.Exit(code=2) from exc
+
+    if not result.success:
+        veto = result.veto_report or {}
+        if veto.get("approved") is False or veto.get("safe") is False:
+            raise typer.Exit(code=4)
+        raise typer.Exit(code=1)
 
 
 def _dry_run_client_for(pattern: str, mode: str) -> Any:

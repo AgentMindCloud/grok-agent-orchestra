@@ -6,10 +6,30 @@
   "type": "object",
   "properties": {
     "orchestra": { "$ref": "#/$defs/Orchestra" },
-    "safety": { "$ref": "#/$defs/SafetyExtension" }
+    "safety": { "$ref": "#/$defs/SafetyExtension" },
+    "combined": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, this spec drives the combined Bridge + Orchestra runtime: Bridge generates code, Orchestra debates it, Lucas vetoes the synthesis, then deploy. Both `build:` and `orchestra:` blocks are required.",
+      "examples": [false, true]
+    },
+    "build": {
+      "type": "object",
+      "description": "Bridge build spec — validated by grok_build_bridge's own schema. Orchestra leaves this as an open object so Bridge stays the source of truth for its fields.",
+      "additionalProperties": true
+    }
   },
   "required": ["orchestra"],
   "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "combined": { "const": true } },
+        "required": ["combined"]
+      },
+      "then": { "required": ["build", "orchestra"] }
+    }
+  ],
   "$defs": {
     "Orchestra": {
       "type": "object",
