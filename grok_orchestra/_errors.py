@@ -42,9 +42,9 @@ EXIT_RATE_LIMIT = 5
 def exit_code_for(exc: BaseException) -> int:
     """Map an exception to the Orchestra CLI exit-code contract."""
     from grok_build_bridge.parser import BridgeConfigError
-    from xai_sdk.errors import RateLimitError
 
     from grok_orchestra.combined import CombinedRuntimeError
+    from grok_orchestra.multi_agent_client import RateLimitError
 
     if isinstance(exc, RateLimitError):
         return EXIT_RATE_LIMIT
@@ -58,9 +58,9 @@ def exit_code_for(exc: BaseException) -> int:
 def hints_for(exc: BaseException) -> Sequence[str]:
     """Return 3-5 actionable next-step bullets for ``exc``."""
     from grok_build_bridge.parser import BridgeConfigError
-    from xai_sdk.errors import RateLimitError
 
     from grok_orchestra.combined import CombinedRuntimeError
+    from grok_orchestra.multi_agent_client import RateLimitError
     from grok_orchestra.parser import OrchestraConfigError
 
     if isinstance(exc, OrchestraConfigError):

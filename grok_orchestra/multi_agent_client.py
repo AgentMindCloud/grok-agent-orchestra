@@ -18,7 +18,19 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from grok_build_bridge.xai_client import XAIClient
-from xai_sdk.errors import RateLimitError
+
+# xai-sdk 1.x does not ship a dedicated ``errors`` submodule — rate
+# limits surface as ``grpc.StatusCode.RESOURCE_EXHAUSTED`` on a
+# ``grpc.RpcError``. Our test conftest injects an
+# ``xai_sdk.errors.RateLimitError`` convenience for scripted failure
+# injection; when that shim is not present (i.e. in production with
+# real xai-sdk) we fall back to a local sentinel class so Orchestra's
+# module imports cleanly either way.
+try:
+    from xai_sdk.errors import RateLimitError  # type: ignore[import-not-found]
+except ModuleNotFoundError:  # pragma: no cover - environment guard
+    class RateLimitError(Exception):  # noqa: N818 - sentinel
+        """Fallback raised when the client exhausts retries on a rate limit."""
 
 NATIVE_MODEL_ID = "grok-4.20-multi-agent-0309"
 

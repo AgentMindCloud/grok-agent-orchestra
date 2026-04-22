@@ -172,23 +172,40 @@ def _install_bridge_stub() -> None:
 
 
 def _install_xai_sdk_stub() -> None:
-    if "xai_sdk" in sys.modules:
-        return
+    """Ensure ``xai_sdk`` and its submodules are importable in tests.
 
-    pkg = types.ModuleType("xai_sdk")
-    tools_mod = types.ModuleType("xai_sdk.tools")
-    errors_mod = types.ModuleType("xai_sdk.errors")
+    Real xai-sdk 1.x does **not** ship an ``errors`` submodule — rate
+    limits surface as gRPC errors. The test suite still wants to
+    inject scripted ``RateLimitError`` exceptions, so we always
+    register a shim ``xai_sdk.errors`` module carrying a
+    :class:`_StubRateLimitError`. When no real xai-sdk is installed
+    (stub-only CI run) we also register ``xai_sdk`` + ``xai_sdk.tools``
+    with the minimal tool factories Orchestra expects.
+    """
+    if "xai_sdk" not in sys.modules:
+        pkg = types.ModuleType("xai_sdk")
+        tools_mod = types.ModuleType("xai_sdk.tools")
 
-    tools_mod.x_search = _stub_x_search
-    tools_mod.web_search = _stub_web_search
-    tools_mod.code_execution = _stub_code_execution
+        tools_mod.x_search = _stub_x_search
+        tools_mod.web_search = _stub_web_search
+        tools_mod.code_execution = _stub_code_execution
 
-    errors_mod.RateLimitError = _StubRateLimitError
-    pkg.RateLimitError = _StubRateLimitError  # type: ignore[attr-defined]
+        pkg.RateLimitError = _StubRateLimitError  # type: ignore[attr-defined]
 
-    sys.modules["xai_sdk"] = pkg
-    sys.modules["xai_sdk.tools"] = tools_mod
-    sys.modules["xai_sdk.errors"] = errors_mod
+        sys.modules["xai_sdk"] = pkg
+        sys.modules["xai_sdk.tools"] = tools_mod
+
+    # `xai_sdk.errors` is missing from real xai-sdk 1.x — always inject
+    # a shim so ``from xai_sdk.errors import RateLimitError`` works for
+    # both stubbed and real-SDK test runs.
+    if "xai_sdk.errors" not in sys.modules:
+        errors_mod = types.ModuleType("xai_sdk.errors")
+        errors_mod.RateLimitError = _StubRateLimitError
+        sys.modules["xai_sdk.errors"] = errors_mod
+        # Also attach as an attribute so ``import xai_sdk; xai_sdk.errors`` works.
+        real_pkg = sys.modules.get("xai_sdk")
+        if real_pkg is not None:
+            real_pkg.errors = errors_mod  # type: ignore[attr-defined]
 
 
 _install_bridge_stub()

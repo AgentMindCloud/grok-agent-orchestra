@@ -41,7 +41,7 @@ Apache-2.0, 100% additive to the official `xai-sdk`.
 ## 60-second Quick Start
 
 ```bash
-# 1. Install
+# 1. Install (once Bridge hits PyPI; until then, see "From source" below)
 pip install grok-agent-orchestra
 
 # 2. Scaffold a spec
@@ -50,6 +50,27 @@ grok-orchestra init orchestra-native-4 --out my-spec.yaml
 # 3. Preview the debate (no API calls)
 grok-orchestra run my-spec.yaml --dry-run
 ```
+
+### From source (pre-PyPI)
+
+Orchestra depends on its sibling project
+[`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge),
+which owns the shared `XAIClient`, parser, safety scan, and deploy
+primitives. Until Bridge publishes to PyPI, install from source in
+order:
+
+```bash
+# 1. Clone + install Bridge
+git clone https://github.com/agentmindcloud/grok-build-bridge
+pip install -e ./grok-build-bridge
+
+# 2. Clone + install Orchestra
+git clone https://github.com/agentmindcloud/grok-agent-orchestra
+pip install -e ./grok-agent-orchestra
+```
+
+After that, `grok-orchestra --help` and `grok-orchestra templates`
+work the same as the PyPI path.
 
 You'll see the branded banner, a live Rich debate TUI, a green
 Lucas-approval panel, and the final post in a bordered summary. The

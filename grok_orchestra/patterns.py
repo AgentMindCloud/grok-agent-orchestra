@@ -29,7 +29,6 @@ from grok_build_bridge import _console
 from grok_build_bridge.deploy import deploy_to_target
 from grok_build_bridge.safety import audit_x_post
 from grok_build_bridge.xai_client import XAIClient
-from xai_sdk.errors import RateLimitError
 
 from grok_orchestra._roles import (
     BENJAMIN,
@@ -43,6 +42,7 @@ from grok_orchestra._tools import build_per_agent_tools
 from grok_orchestra.multi_agent_client import (
     MultiAgentEvent,
     OrchestraClient,
+    RateLimitError,
 )
 from grok_orchestra.runtime_native import (
     OrchestraResult,
