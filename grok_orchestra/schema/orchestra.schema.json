@@ -223,6 +223,14 @@
           "default": 8,
           "description": "Max number of ad-hoc sub-agents that can be spawned.",
           "examples": [8]
+        },
+        "sub_tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 3,
+          "description": "Number of sub-tasks Grok decomposes the goal into before fanning out concurrent mini-debates.",
+          "examples": [3]
         }
       },
       "additionalProperties": false
@@ -246,6 +254,14 @@
           "default": 3,
           "description": "Hard cap on debate rounds.",
           "examples": [3]
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 5,
+          "description": "Number of full debate-loop iterations to run before giving up. Each iteration runs one debate round + a mid-loop Lucas veto + a consensus check.",
+          "examples": [3, 5]
         }
       },
       "additionalProperties": false

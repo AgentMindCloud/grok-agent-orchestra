@@ -1,0 +1,21 @@
+name: dynamic-spawn-hello
+goal: "Plan a friendly multilingual hello by decomposing into 3 sub-tasks and debating each."
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: dynamic-spawn
+    config:
+      sub_tasks: 3
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.75
+  max_veto_retries: 0
+
+deploy:
+  target: stdout
+  post_to_x: false

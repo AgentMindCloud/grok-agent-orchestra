@@ -1,0 +1,24 @@
+name: parallel-tools-hello
+goal: "Run native multi-agent with explicit per-agent tool routing."
+
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  include_verbose_streaming: true
+  orchestration:
+    pattern: parallel-tools
+  tool_routing:
+    Grok: []
+    Harper: [web_search, x_search]
+    Benjamin: []
+    Lucas: []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.75
+  max_veto_retries: 0
+
+deploy:
+  target: stdout
+  post_to_x: false

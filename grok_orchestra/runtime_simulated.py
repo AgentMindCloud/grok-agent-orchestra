@@ -268,6 +268,23 @@ class DryRunSimulatedClient:
             return
 
         user_body = msgs_list[1].get("content", "") if len(msgs_list) > 1 else ""
+
+        # Pattern hooks: classification (dynamic-spawn) and consensus
+        # check (debate-loop) both emit JSON-only Grok responses.
+        if "Decompose this goal" in user_body and "JSON array" in user_body:
+            count = _extract_sub_task_count(user_body) or 3
+            yield from _emit_canned_json(
+                _dry_run_classification(user_body, count),
+                tick=self.tick_seconds,
+            )
+            return
+        if '"consensus"' in user_body and "remaining_disagreements" in user_body:
+            yield from _emit_canned_json(
+                {"consensus": True, "remaining_disagreements": []},
+                tick=self.tick_seconds,
+            )
+            return
+
         if "Synthesise consensus" in user_body or "Synthesize consensus" in user_body:
             goal = _extract_goal_from_user(user_body)
             for ev in _synthesis_events(goal, round_num):
@@ -295,6 +312,57 @@ def _extract_goal_from_user(user_body: str) -> str:
             tail = tail.split(sep, 1)[0].strip()
             break
     return tail.splitlines()[0].strip() if tail else ""
+
+
+def _extract_sub_task_count(user_body: str) -> int | None:
+    """Pull the integer ``N`` out of `Decompose ... into exactly N sub-tasks`."""
+    import re
+
+    match = re.search(r"exactly\s+(\d+)\s+small", user_body)
+    return int(match.group(1)) if match else None
+
+
+def _dry_run_classification(user_body: str, count: int) -> dict[str, Any] | list[str]:
+    """Return a canned classification list for the dynamic-spawn dry-run path."""
+    goal = _extract_goal_from_user_body(user_body) or ""
+    base_tasks = [
+        "Identify the primary greeting in each language",
+        "Verify cultural appropriateness across regions",
+        "Choose a tone that matches the platform audience",
+        "Draft a short, sharable form",
+        "Sanity-check for inclusivity and accessibility",
+    ]
+    if count <= len(base_tasks):
+        tasks = base_tasks[:count]
+    else:
+        tasks = base_tasks + [
+            f"Additional research thread #{i + 1}"
+            for i in range(count - len(base_tasks))
+        ]
+    if goal:
+        tasks = [f"{t} for goal: {goal}" for t in tasks]
+    return tasks
+
+
+def _extract_goal_from_user_body(user_body: str) -> str:
+    """Pull a `Goal:\\n<x>` header out of a user prompt (lenient)."""
+    for marker in ("Goal:\n", "Original goal:\n"):
+        if marker in user_body:
+            tail = user_body.split(marker, 1)[1].strip()
+            return tail.splitlines()[0].strip() if tail else ""
+    return ""
+
+
+def _emit_canned_json(
+    payload: Any, *, tick: float
+) -> Iterator[MultiAgentEvent]:
+    """Yield a single ``final`` event carrying a JSON-encoded payload."""
+    import json as _json
+
+    if tick:
+        time.sleep(tick)
+    yield MultiAgentEvent(kind="reasoning_tick", reasoning_tokens=64)
+    yield MultiAgentEvent(kind="final", text=_json.dumps(payload))
 
 
 def _synthesis_events(goal: str, round_num: int) -> list[MultiAgentEvent]:

@@ -3,15 +3,18 @@
 Thin Typer wrapper. Subcommands progressively grow as sessions land:
 
 - ``validate`` — parse a spec and print defaults (session 2).
-- ``run``      — execute a native Orchestra flow (session 4); supports
-  ``--dry-run`` to replay a canned multi-agent stream so the TUI can be
-  previewed without a live xAI call. Simulated/auto modes land later.
+- ``run``      — execute a full Orchestra flow (session 4-7); supports
+  ``--dry-run`` to replay a canned multi-agent / per-role stream so the
+  TUI and pattern flow can be previewed without a live xAI call. Routes
+  through :mod:`grok_orchestra.dispatcher` so any of the configured
+  patterns (``native`` / ``hierarchical`` / ``dynamic-spawn`` /
+  ``debate-loop`` / ``parallel-tools``) is honoured.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from grok_build_bridge import _console
@@ -20,6 +23,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from grok_orchestra import __version__
+from grok_orchestra.dispatcher import run_orchestra
 from grok_orchestra.parser import (
     OrchestraConfigError,
     load_orchestra_yaml,
@@ -28,12 +32,8 @@ from grok_orchestra.parser import (
 from grok_orchestra.runtime_native import (
     DryRunOrchestraClient,
     OrchestraResult,
-    run_native_orchestra,
 )
-from grok_orchestra.runtime_simulated import (
-    DryRunSimulatedClient,
-    run_simulated_orchestra,
-)
+from grok_orchestra.runtime_simulated import DryRunSimulatedClient
 
 app = typer.Typer(
     name="grok-orchestra",
@@ -83,7 +83,13 @@ def run(
         ),
     ] = False,
 ) -> None:
-    """Run an orchestra spec end-to-end against grok-4.20-multi-agent-0309."""
+    """Run an orchestra spec end-to-end via the dispatcher.
+
+    The dispatcher reads the spec's ``orchestra.orchestration.pattern`` and
+    routes to the matching pattern in :mod:`grok_orchestra.patterns`. Any
+    explicit ``--mode`` override is recorded for visibility but the
+    pattern-driven dispatch is the source of truth.
+    """
     console = _console.console
     try:
         config = load_orchestra_yaml(Path(spec))
@@ -92,28 +98,17 @@ def run(
         raise typer.Exit(code=2) from exc
 
     effective_mode = mode or resolve_mode(config)
-    if effective_mode == "native":
-        native_client = DryRunOrchestraClient() if dry_run else None
-        result = run_native_orchestra(config, client=native_client)
-    elif effective_mode == "simulated":
-        sim_client = DryRunSimulatedClient() if dry_run else None
-        result = run_simulated_orchestra(config, client=sim_client)
-    else:
-        console.print(
-            Panel(
-                Text(
-                    f"Mode {effective_mode!r} is not yet wired into the CLI. "
-                    "Native + simulated are available; the auto dispatcher "
-                    "lands in session 8.",
-                    style="yellow",
-                ),
-                title="grok-orchestra",
-                border_style="yellow",
-                box=box.ROUNDED,
-            )
-        )
-        raise typer.Exit(code=2)
+    pattern = (
+        config.get("orchestra", {})
+        .get("orchestration", {})
+        .get("pattern", "native")
+    )
+    console.log(
+        f"[dim]dispatcher: mode={effective_mode} pattern={pattern}[/dim]"
+    )
 
+    client = _dry_run_client_for(pattern, effective_mode) if dry_run else None
+    result = run_orchestra(config, client=client)
     _print_result(console, result)
     if not result.success:
         veto = result.veto_report or {}
@@ -143,6 +138,22 @@ def validate(
             box=box.ROUNDED,
         )
     )
+
+
+def _dry_run_client_for(pattern: str, mode: str) -> Any:
+    """Build the right scripted client for the dry-run path.
+
+    The native and parallel-tools patterns ride on the multi-agent
+    transport, so we hand them a :class:`DryRunOrchestraClient`.
+    Everything else uses the per-role :class:`DryRunSimulatedClient`.
+    """
+    if pattern in ("native", "parallel-tools") and mode == "native":
+        return DryRunOrchestraClient()
+    if pattern == "native" and mode != "native":
+        return DryRunSimulatedClient()
+    if pattern == "parallel-tools":
+        return DryRunOrchestraClient()
+    return DryRunSimulatedClient()
 
 
 def _print_result(console: object, result: OrchestraResult) -> None:

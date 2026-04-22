@@ -7,9 +7,11 @@ orchestra:
   debate_style: prompt-simulated
   include_verbose_streaming: true
   orchestration:
-    pattern: debate-loop
-    config:
-      max_rounds: 1
+    # Use the transport-native pattern so the runtime's max_veto_retries
+    # gating is the only alt-post pathway — that lets this fixture
+    # exercise a terminal veto without the debate-loop pattern's
+    # implicit goal-rewriting kicking in.
+    pattern: native
   agents:
     - name: Grok
       role: coordinator
