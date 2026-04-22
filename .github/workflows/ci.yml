@@ -3,37 +3,142 @@ name: ci
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
 jobs:
-  lint-and-test:
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install package and dev deps
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Install dev deps
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-
       - name: Ruff
         run: ruff check .
-
-      - name: Mypy
+      - name: Mypy (non-blocking during pre-1.0)
         run: mypy grok_orchestra
         continue-on-error: true
 
-      - name: Pytest
-        run: pytest -q
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package + dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install pytest-cov
+      - name: Pytest (with coverage)
+        run: pytest --cov=grok_orchestra --cov-report=term-missing --cov-fail-under=85 -q
+
+  schema-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest-cov
+      - name: Runtime schema is valid JSON Schema (Draft 2020-12)
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          path = "grok_orchestra/schema/orchestra.schema.json"
+          with open(path, encoding="utf-8") as fh:
+              schema = json.load(fh)
+          Draft202012Validator.check_schema(schema)
+          print(f"{path}: Draft 2020-12 OK")
+          PY
+      - name: VS Code schema is valid JSON Schema (Draft-07)
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft7Validator
+          path = "vscode/schemas/orchestra.schema.json"
+          with open(path, encoding="utf-8") as fh:
+              schema = json.load(fh)
+          Draft7Validator.check_schema(schema)
+          print(f"{path}: Draft-07 OK")
+          PY
+      - name: Every bundled template validates against the runtime schema
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from grok_orchestra.parser import load_orchestra_yaml, OrchestraConfigError
+          failed = []
+          for path in sorted(Path("grok_orchestra/templates").glob("*.yaml")):
+              if path.stem.upper() == "INDEX":
+                  continue
+              try:
+                  load_orchestra_yaml(path)
+                  print(f"OK  {path}")
+              except OrchestraConfigError as exc:
+                  failed.append((path, exc))
+                  print(f"FAIL {path}: {exc}")
+          if failed:
+              raise SystemExit(1)
+          PY
+
+  safety-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Install safety scanner
+        run: pip install pip-audit
+      - name: pip-audit
+        run: pip-audit --ignore-vuln GHSA-xxxx-xxxx-xxxx || true  # soft-fail during pre-1.0
+        continue-on-error: true
+
+  build:
+    needs: [lint, test, schema-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+      - name: Build wheel + sdist
+        run: python -m build
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  release:
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
