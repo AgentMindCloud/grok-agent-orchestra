@@ -40,6 +40,11 @@ Apache-2.0, 100% additive to the official `xai-sdk`.
 
 ## 60-second Quick Start
 
+> First time here? Start with the full [**Getting started**](docs/getting-started.md)
+> guide — a single linear walkthrough from `git clone` to a green
+> Lucas approval, with expected output at every step and the top-5
+> troubleshooting cases mapped to fixes.
+
 ```bash
 # 1. Install (once Bridge hits PyPI; until then, see "From source" below)
 pip install grok-agent-orchestra
@@ -333,6 +338,7 @@ anything that touches the veto or the combined runtime. Run the
 full suite locally with `pytest --cov=grok_orchestra` — CI enforces
 ≥85% coverage and `ruff check .` clean.
 
+- [`docs/getting-started.md`](docs/getting-started.md) — clone-to-green walkthrough with expected output at every step.
 - [`docs/orchestra.md`](docs/orchestra.md) — full YAML reference + pattern internals.
 - [`docs/vscode-orchestra.md`](docs/vscode-orchestra.md) — IntelliSense for Orchestra YAMLs.
 - [`docs/playground.md`](docs/playground.md) — SSE adapter for the browser playground.
