@@ -1,0 +1,86 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-hierarchical-research
+#
+# Purpose
+#   "Research report → X thread" workflow. A two-team hierarchy:
+#     1. ResearchTeam (Harper + Benjamin) gathers evidence and checks
+#        logic for 1 round.
+#     2. CritiqueTeam (Lucas + Grok) ingests the ResearchTeam's output
+#        as context and stress-tests it for 1 round.
+#     3. Grok synthesises across both teams into the final thread.
+#
+#   The hierarchy gives you a clean separation-of-concerns between
+#   evidence gathering and judgment — it tends to produce tighter,
+#   better-cited threads than a single round of a flat debate.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 18–25 k tokens per run (≈ 3× a plain simulated run).
+#   - ResearchTeam: 2 agents × 1 round + synthesis
+#   - CritiqueTeam: 2 agents × 1 round + synthesis
+#   - Final Grok synthesis + Lucas veto
+#
+# Expected output
+#   A production-grade X thread (5–7 tweets). The run transcript shows
+#   the research → critique flow explicitly — you can read the verdict
+#   chain from Harper's sources through Lucas's challenges to Grok's
+#   final decision.
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-hierarchical-research
+goal: |
+  Produce a research-grade X thread (5–7 tweets) on a topic you care
+  about *this week*.
+
+  Phase 1 — ResearchTeam (Harper + Benjamin), 1 round:
+    - Harper: surface 3 strongest primary sources (peer-reviewed or
+      authoritative) with one-line summaries + URLs.
+    - Benjamin: check the logical structure of each source's headline
+      claim; flag any informal fallacies or unstated assumptions.
+
+  Phase 2 — CritiqueTeam (Lucas + Grok), 1 round:
+    - Lucas: identify 1–3 flaws or missing perspectives in the
+      ResearchTeam output. "Flaw N: … | Risk: … | Counter-evidence: …"
+    - Grok: synthesise the ResearchTeam output against Lucas's flaws
+      and decide which flaws are load-bearing.
+
+  Phase 3 — Grok final synthesis:
+    - Compose a 5–7 tweet thread. Each tweet: one claim, one source,
+      one takeaway. Final tweet: a short "what's still unknown" list.
+    - Tone: rigorous, specific, no hype. No emoji. Prefer active voice.
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+    - {name: Grok,     role: coordinator}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

@@ -581,10 +581,16 @@ def veto(
 
 
 def _dry_run_client_for(pattern: str, mode: str) -> Any:
-    """Pick the right scripted client for the dry-run path."""
-    if pattern in ("native", "parallel-tools") and mode == "native":
-        return DryRunOrchestraClient()
-    if pattern == "parallel-tools":
+    """Pick the right scripted client for the dry-run path.
+
+    Client choice keys off the resolved ``mode`` rather than the pattern
+    because some patterns (``recovery``, ``parallel-tools``) ride on
+    whichever transport the wrapped runtime uses. ``mode == "native"``
+    implies :meth:`stream_multi_agent` will be called somewhere in the
+    stack; simulated mode only ever touches :meth:`single_call`.
+    """
+    del pattern
+    if mode == "native":
         return DryRunOrchestraClient()
     return DryRunSimulatedClient()
 

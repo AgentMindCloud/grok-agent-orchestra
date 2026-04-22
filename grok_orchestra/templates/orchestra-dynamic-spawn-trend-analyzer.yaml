@@ -1,0 +1,75 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-dynamic-spawn-trend-analyzer
+#
+# Purpose
+#   Multi-angle trend analysis. A single Grok call decomposes "biggest
+#   X trends today" into N sub-analyses (default 3), each of which then
+#   runs a small concurrent Harper + Lucas mini-debate. Grok aggregates
+#   the sub-debates into a single synthesis.
+#
+#   Use this template when the goal is inherently parallelizable —
+#   research across several angles, multi-topic summaries, fan-out
+#   analyses — and you want concurrency, not sequential rounds.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 12–18 k tokens per run.
+#   - 1 classification call (decompose goal → N sub-tasks)
+#   - N × 2 role calls (Harper + Lucas per sub-task)
+#   - 1 aggregation call
+#   - 1 Lucas veto
+#
+# Expected output
+#   A concise trend report with one short section per sub-task, and a
+#   summary paragraph that explicitly calls out the cross-cutting
+#   themes. The run summary shows total events ~= (1 + 2N + 1 + 1).
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-dynamic-spawn-trend-analyzer
+goal: |
+  Analyse the biggest X / Twitter trends of today. Decompose the goal
+  into exactly 3 sub-analyses (Grok classification call will do this):
+
+    1. What is dominating tech conversation?  (who, what, why)
+    2. What is dominating mainstream conversation outside tech?
+    3. Which emerging signal crosses both audiences?
+
+  For each sub-analysis, the mini-debate should:
+    - Harper: pull 2–3 specific posts / accounts as evidence; quote
+      sparingly, cite handles.
+    - Lucas: identify the strongest alternative interpretation or
+      the most important angle Harper missed.
+
+  Final aggregation (Grok): one synthesis paragraph naming the
+  single *cross-cutting* trend of the day with the one most useful
+  piece of evidence for each of the three angles.
+
+orchestra:
+  mode: simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: dynamic-spawn
+    config:
+      sub_tasks: 3
+      max_spawns: 6
+  agents:
+    - {name: Harper, role: researcher}
+    - {name: Lucas,  role: contrarian}
+  tool_routing:
+    Harper: [web_search, x_search]
+    Lucas:  []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.75
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

@@ -1,0 +1,135 @@
+# -----------------------------------------------------------------------------
+# Template: combined-trendseeker
+#
+# Purpose
+#   Flagship combined Bridge + Orchestra template. A single YAML drives:
+#     1. 🎯 Bridge generates a lightweight X scraper Python module.
+#     2. 🎤 Orchestra runs a simulated 4-role debate over the scraped
+#        output to draft a daily trend thread.
+#     3. 🛡 Lucas vetoes the synthesis against safety rules.
+#     4. 🚀 Deploy (stdout by default; flip to x when ready).
+#
+#   Intended deployment pattern: schedule this YAML with cron or any
+#   scheduler (e.g. GitHub Actions on a cron trigger). Each run
+#   regenerates the scraper (idempotent) and ships a fresh thread.
+#
+# Required env
+#   XAI_API_KEY                    required — used for both Bridge code
+#                                  generation and Orchestra debate.
+#   X_API_KEY / X_API_SECRET       required only if deploy.post_to_x is
+#                                  flipped to true.
+#
+# Estimated cost
+#   ≈ 30–60 k tokens per run.
+#   - Bridge code-gen: 5–15 k (depends on file count).
+#   - Orchestra simulated debate (1 round × 4 roles + synthesis): ≈ 12 k.
+#   - Lucas final veto at high effort: ≈ 3 k.
+#
+# Expected output
+#   - A regenerated `trendseeker/` Python package under --output-dir
+#     (default ./generated).
+#   - A 3–4 tweet daily trend thread printed to the summary panel.
+#   - Deploy URL when deploy.post_to_x is live.
+#
+# How to run
+#   grok-orchestra combined <this-file>
+#   grok-orchestra combined <this-file> --dry-run
+#   grok-orchestra combined <this-file> --output-dir ./out --force
+# -----------------------------------------------------------------------------
+
+name: combined-trendseeker
+goal: |
+  Every day, surface the single most-discussed tech topic on X and
+  ship a 3-tweet thread about it:
+    - tweet 1: hook + the topic + why today.
+    - tweet 2: the most-cited primary post or article (quote ≤ 20
+      words, link or @handle).
+    - tweet 3: a one-line actionable takeaway.
+  Tone: curious, specific, no hype, no emoji.
+  Explicitly use the outputs of the trendseeker scraper module built
+  in Phase 1 — the debate should reference the scraped data, not
+  hallucinate fresh examples.
+
+combined: true
+
+build:
+  name: trendseeker
+  target: python
+  entry: trendseeker/__init__.py
+  # Bridge requires `required_tools` here if the generated code calls
+  # out to xAI or X APIs at runtime. We keep it conservative — just
+  # the web stack.
+  required_tools: [web_search, x_search]
+  files:
+    - path: trendseeker/__init__.py
+      template: |
+        """Surface today's most-discussed topic on X."""
+
+        from .scraper import top_topic  # re-export the canonical entry.
+
+        __all__ = ["top_topic"]
+    - path: trendseeker/scraper.py
+      template: |
+        """Fetch the top trending topic on X for today and return it
+        as a structured TrendReport."""
+
+        from dataclasses import dataclass
+
+
+        @dataclass(frozen=True)
+        class TrendReport:
+            topic: str
+            headline_post_handle: str
+            headline_post_excerpt: str  # <=200 chars
+            source_urls: tuple[str, ...]
+
+
+        def top_topic() -> TrendReport:
+            """Return today's top-discussed topic on X.
+
+            Bridge fills in the actual implementation — this template
+            is a type-pinned contract so Orchestra's debate can reason
+            about the shape even when the body is stubbed.
+            """
+            raise NotImplementedError
+    - path: trendseeker/cli.py
+      template: |
+        from . import top_topic
+
+
+        def main() -> None:
+            report = top_topic()
+            print(f"{report.topic}\n  → {report.headline_post_excerpt}")
+
+
+        if __name__ == "__main__":
+            main()
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: []
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  # The combined runtime adds its own final veto pass; don't
+  # double-retry at the inner-runtime layer.
+  max_veto_retries: 0
+
+deploy:
+  target: stdout
+  post_to_x: false

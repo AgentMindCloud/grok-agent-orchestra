@@ -183,11 +183,37 @@ def test_validate_json_mode(tmp_path: Path) -> None:
 
 
 def test_templates_lists_bundled(tmp_path: Path) -> None:
+    """The table prints without error and contains the 'bundled' header."""
     result = runner.invoke(cli_module.app, ["templates"])
     assert result.exit_code == 0
-    # At least one of the shipped templates must be listed.
-    for name in ("basic-native", "basic-simulated", "hierarchical", "combined"):
-        assert name in result.stdout, f"missing {name!r} in templates table"
+    assert "bundled Orchestra templates" in result.stdout
+    # Pattern column shows every pattern we shipped a template for.
+    for pattern in ("native", "hierarchical", "dynamic-spawn", "debate-loop", "parallel-tools", "recovery"):
+        assert pattern in result.stdout, f"missing pattern badge {pattern!r}"
+
+
+def test_templates_lists_all_ten_in_json() -> None:
+    """JSON mode is the machine-readable surface — should list all 10 templates."""
+    result = runner.invoke(cli_module.app, ["--json", "templates"])
+    assert result.exit_code == 0
+    import json as _json
+
+    last = result.stdout.strip().splitlines()[-1]
+    payload = _json.loads(last)
+    names = {t["name"] for t in payload["templates"]}
+    expected = {
+        "orchestra-native-4",
+        "orchestra-native-16",
+        "orchestra-simulated-truthseeker",
+        "orchestra-hierarchical-research",
+        "orchestra-dynamic-spawn-trend-analyzer",
+        "orchestra-debate-loop-policy",
+        "orchestra-parallel-tools-fact-check",
+        "orchestra-recovery-resilient",
+        "combined-trendseeker",
+        "combined-coder-critic",
+    }
+    assert expected.issubset(names), f"missing templates: {expected - names}"
 
 
 def test_templates_json_mode() -> None:
@@ -199,22 +225,28 @@ def test_templates_json_mode() -> None:
     payload = _json.loads(last)
     assert payload["ok"] is True
     names = [t["name"] for t in payload["templates"]]
-    assert "basic-native" in names
+    assert "orchestra-native-4" in names
+    # INDEX.yaml is a catalog, not a template — it must NOT appear.
+    assert "INDEX" not in names
 
 
 def test_init_copies_template(tmp_path: Path) -> None:
     dest = tmp_path / "my-spec.yaml"
-    result = runner.invoke(cli_module.app, ["init", "basic-native", "--out", str(dest)])
+    result = runner.invoke(
+        cli_module.app, ["init", "orchestra-native-4", "--out", str(dest)]
+    )
     assert result.exit_code == 0, result.stdout
     assert dest.exists()
     content = dest.read_text(encoding="utf-8")
-    assert "basic-native" in content or "mode: native" in content
+    assert "orchestra-native-4" in content or "mode: native" in content
 
 
 def test_init_refuses_to_overwrite(tmp_path: Path) -> None:
     dest = tmp_path / "my-spec.yaml"
     dest.write_text("existing", encoding="utf-8")
-    result = runner.invoke(cli_module.app, ["init", "basic-native", "--out", str(dest)])
+    result = runner.invoke(
+        cli_module.app, ["init", "orchestra-native-4", "--out", str(dest)]
+    )
     assert result.exit_code == EXIT_CONFIG
     assert "refusing to overwrite" in result.stdout or "overwrite" in result.stdout
 

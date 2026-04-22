@@ -1,0 +1,149 @@
+# -----------------------------------------------------------------------------
+# Template: combined-coder-critic
+#
+# Purpose
+#   "Generate, critique, ship" workflow for a TypeScript CLI.
+#     1. 🎯 Bridge generates a small TypeScript CLI from a goal.
+#     2. 🎤 Orchestra runs a 4-role critique of the generated code
+#        itself — Harper checks docs/conventions, Benjamin checks
+#        correctness & types, Lucas hunts for edge cases, Grok
+#        synthesises a verdict + (if warranted) an X review thread.
+#     3. 🛡 Lucas vetoes the synthesis.
+#     4. 🚀 Deploy: writes files to --output-dir and posts the review
+#        thread to X (when post_to_x is flipped on).
+#
+# Required env
+#   XAI_API_KEY                    required.
+#   NODE / PNPM / NPM              needed locally if you actually want
+#                                  to compile the generated TS.
+#   X_API_KEY / X_API_SECRET       only if deploy.post_to_x is true.
+#
+# Estimated cost
+#   ≈ 35–70 k tokens per run.
+#   - Bridge TS generation: 10–20 k (multi-file modules).
+#   - Orchestra 4-role code critique (1 round) + synthesis: ≈ 12 k.
+#   - Lucas final veto at high effort on the review thread: ≈ 3 k.
+#
+# Expected output
+#   - A generated `my-cli/` TypeScript package under --output-dir.
+#   - A 3–4 tweet review thread in the run summary panel: what the
+#     tool does, the one thing that makes it better than the
+#     obvious alternative, and a link or path to the source.
+#   - Deploy URL when deploy.post_to_x is live.
+#
+# How to run
+#   grok-orchestra combined <this-file>
+#   grok-orchestra combined <this-file> --dry-run
+#   grok-orchestra combined <this-file> --output-dir ./out
+# -----------------------------------------------------------------------------
+
+name: combined-coder-critic
+goal: |
+  Build a lightweight TypeScript CLI that reads a JSON config, runs a
+  single named task, and prints structured output.
+
+  Then, ship a 3–4 tweet review thread ABOUT the generated code:
+    - tweet 1: what the CLI does in one sentence, including the
+      single line command a user types to invoke it.
+    - tweet 2: the single design decision that makes this CLI better
+      than the obvious alternative (be specific — name the
+      alternative and the trade-off).
+    - tweet 3: a one-line on the code-quality signal you'd look for
+      if you were code-reviewing it (what Benjamin's verdict was).
+    - tweet 4 (optional): a link / path to the source.
+
+  The Orchestra critique phase should reason about the GENERATED code
+  (Phase 1 output), not hallucinate a different implementation.
+
+combined: true
+
+build:
+  name: my_cli
+  target: typescript
+  entry: src/main.ts
+  required_tools: [code_execution]
+  files:
+    - path: package.json
+      template: |
+        {
+          "name": "my-cli",
+          "version": "0.1.0",
+          "type": "module",
+          "bin": { "my-cli": "dist/main.js" },
+          "scripts": { "build": "tsc" }
+        }
+    - path: tsconfig.json
+      template: |
+        {
+          "compilerOptions": {
+            "target": "ES2022",
+            "module": "ESNext",
+            "moduleResolution": "Bundler",
+            "outDir": "dist",
+            "rootDir": "src",
+            "strict": true,
+            "esModuleInterop": true
+          },
+          "include": ["src/**/*.ts"]
+        }
+    - path: src/main.ts
+      template: |
+        // Entry point. Bridge fills in the body based on the goal;
+        // this contract is enough for Orchestra to reason about shape.
+        import { readFileSync } from "node:fs";
+
+        interface TaskConfig {
+          task: string;
+          inputs: Record<string, unknown>;
+        }
+
+        function loadConfig(path: string): TaskConfig {
+          const raw = readFileSync(path, "utf8");
+          return JSON.parse(raw) as TaskConfig;
+        }
+
+        async function run(config: TaskConfig): Promise<unknown> {
+          throw new Error("not implemented — Bridge will fill this in");
+        }
+
+        async function main(): Promise<void> {
+          const path = process.argv[2];
+          if (!path) {
+            console.error("usage: my-cli <config.json>");
+            process.exit(2);
+          }
+          const result = await run(loadConfig(path));
+          console.log(JSON.stringify(result, null, 2));
+        }
+
+        main().catch((err) => {
+          console.error(err);
+          process.exit(1);
+        });
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search]     # doc-hunting only; no X for a code review
+    Benjamin: [code_execution] # type-check / run against a sample input
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 0
+
+deploy:
+  target: stdout
+  post_to_x: false

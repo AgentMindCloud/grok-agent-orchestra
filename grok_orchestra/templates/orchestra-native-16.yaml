@@ -1,0 +1,72 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-native-16
+#
+# Purpose
+#   Weekly deep-research thread. Runs the xAI native multi-agent endpoint
+#   with 16 agents at high reasoning effort — the setup Orchestra was
+#   designed for when the output genuinely has to be right.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#   X_API_KEY / X_API_SECRET       only if deploy.post_to_x is flipped
+#                                  on. The template ships to stdout so
+#                                  an editor can read the draft first.
+#
+# Estimated cost
+#   ≈ 25–40 k tokens per run (roughly 4× a native-4 run).
+#   - 16 agents × high effort reasoning
+#   - verbose streaming adds observability tokens
+#   - one Lucas veto at hard-coded high effort
+#
+#   Budget note: this template intentionally allows long-form output.
+#   A 200 k total-token budget is a reasonable ceiling before xAI rate
+#   limits bite; `fallback_on_rate_limit` is enabled so we degrade
+#   gracefully instead of failing the run.
+#
+# Expected output
+#   A 5–8 tweet thread with research-grade specificity: cited sources,
+#   numerical claims, and a "what's still unknown" close. Uses the full
+#   16-agent verdict machinery so disagreements are visible in the
+#   transcript.
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-native-16
+goal: |
+  Produce a 5–8 tweet weekly research thread on the most important
+  development in agentic LLMs from the past 7 days. Constraints:
+    - Pick ONE development. Justify the pick in tweet 1.
+    - Every subsequent tweet must add a fact, citation, or nuance not
+      in prior tweets — no restatement.
+    - Include at least one number (benchmark, rollout, adoption) and
+      one named primary source per claim.
+    - End with a "what's still unknown" tweet — explicit list of open
+      questions. No speculation framed as fact.
+  Audience: engineers building on LLMs today. Tone: rigorous, concrete,
+  no hype, no emoji.
+
+orchestra:
+  mode: native
+  agent_count: 16
+  reasoning_effort: high
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+    fallback_on_rate_limit:
+      enabled: true
+      fallback_model: grok-4.20-0309
+      lowered_effort: medium
+
+safety:
+  # Tighter veto — long-form research is exactly where cite-to-source
+  # and low-confidence degrade matter most.
+  lucas_veto_enabled: true
+  confidence_threshold: 0.88
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

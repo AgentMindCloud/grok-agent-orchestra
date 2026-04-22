@@ -1,0 +1,61 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-native-4
+#
+# Purpose
+#   Daily X thread on a trending topic — the workhorse template. Uses the
+#   xAI native multi-agent endpoint with 4 agents at medium reasoning
+#   effort: the sweet spot between cost and quality for day-to-day
+#   shipping.
+#
+# Required env
+#   XAI_API_KEY                    required — the xAI API key.
+#   X_API_KEY / X_API_SECRET       only if deploy.post_to_x is flipped to
+#                                  true (the template ships to stdout by
+#                                  default so you can inspect the draft).
+#
+# Estimated cost
+#   ≈ 6–10 k tokens per run. 4 agents × ~1.5 k reasoning each + synthesis
+#   + one Lucas veto at high effort on grok-4.20-0309.
+#
+# Expected output
+#   A 3-4 tweet thread on today's chosen trending topic, streamed live
+#   into the DebateTUI. Lucas's veto verdict renders as a green Panel on
+#   approval; the final content prints at the bottom of the run summary.
+#
+# How to run
+#   grok-orchestra run <this-file>             # live
+#   grok-orchestra run <this-file> --dry-run   # canned stream, no API
+# -----------------------------------------------------------------------------
+
+name: orchestra-native-4
+goal: |
+  Draft a 3-tweet X thread on today's most-discussed topic in AI agent
+  orchestration. Requirements:
+    - tweet 1: hook + headline claim (≤ 240 chars).
+    - tweet 2: the single piece of evidence that makes the claim
+      non-obvious (cite a source inline).
+    - tweet 3: one actionable takeaway the reader can try today.
+  Tone: curious, specific, no hype, no emoji.
+  Do NOT repeat the claim across tweets. Use active voice.
+
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+    # Enable automatic degrade on 429s; we still want the thread out.
+    fallback_on_rate_limit:
+      enabled: true
+      fallback_model: grok-4.20-0309
+      lowered_effort: medium
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

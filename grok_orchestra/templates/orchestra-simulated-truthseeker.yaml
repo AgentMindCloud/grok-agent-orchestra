@@ -1,0 +1,87 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-simulated-truthseeker
+#
+# Purpose
+#   Full visible Grok / Harper / Benjamin / Lucas debate aimed at
+#   fact-checking a specific claim. Every role turn is streamed live —
+#   you can watch Harper fetch sources, Benjamin check logic, and Lucas
+#   hunt for missing perspectives in real time.
+#
+#   Use this template whenever you want an auditable chain of reasoning
+#   behind a claim (audits, public fact-checks, research write-ups).
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 10–15 k tokens per run.
+#   - 4 role calls × 3 debate rounds = 12 per-role calls
+#   - + 1 synthesis + 1 Lucas veto
+#   - + Harper's tool calls (web_search, x_search) and Benjamin's
+#     sandboxed code_execution for any numerical checks
+#
+# Expected output
+#   A transparent verdict block:
+#     - Grok's synthesis paragraph ending in "resolved:" if roles
+#       disagreed.
+#     - Lucas's final safety panel (green on approval, red on veto).
+#   The run summary prints the full reasoning-token total so you can
+#   track cost per fact-check.
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-simulated-truthseeker
+goal: |
+  Fact-check this specific claim: "<paste the claim here, verbatim>".
+
+  Each role produces its turn per round:
+    - Harper (researcher): surface the 2–3 strongest primary sources
+      for OR against the claim. Quote ≤ 20 words per source and
+      include the URL / @handle.
+    - Benjamin (logician): name the argument form (e.g. modus tollens
+      on Harper's A → ¬B) and, for any numerical claim, verify one
+      step via code_execution.
+    - Lucas (contrarian): identify 1–3 specific flaws or missing
+      perspectives in the claim, in the "Flaw N: … | Risk: … |
+      Counter-evidence: …" format.
+    - Grok (coordinator): synthesise the round, cite who agreed /
+      disagreed, and end with "resolved: <X> vs <Y> on <topic> —
+      chose <Z> because <W>".
+
+  Final synthesis: a 2–3 sentence verdict on the original claim, with
+  (a) the strongest evidence supporting the verdict, (b) the strongest
+  residual uncertainty, and (c) a one-line "what would change this
+  verdict".
+
+orchestra:
+  mode: simulated
+  debate_rounds: 3
+  debate_style: prompt-simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  # Per-agent tool overrides. Harper gets both search tools; Benjamin
+  # can execute code for numerical sanity checks; Grok + Lucas reason
+  # from the transcript only.
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

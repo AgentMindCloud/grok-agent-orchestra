@@ -1,0 +1,73 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-parallel-tools-fact-check
+#
+# Purpose
+#   Native 4-agent run with explicit per-agent tool routing. Harper is
+#   the only agent allowed to reach the internet; Benjamin is the only
+#   one allowed to run code; Lucas and Grok reason purely from the
+#   transcript. After the run, Orchestra scans the transcript and warns
+#   if the native router gave a tool to an agent off its allowlist —
+#   useful audit trail for anything safety-sensitive.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 6–10 k tokens per run — essentially a native-4 run with per-agent
+#   scoping layered on top. No extra calls; the post-stream audit is
+#   local.
+#
+# Expected output
+#   A 3–4 tweet fact-check thread. The run log includes any
+#   `[yellow] parallel-tools: native router gave <tool> to <agent>`
+#   warnings so operators can tell when the native router chose to
+#   use a tool outside the declared allowlist.
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-parallel-tools-fact-check
+goal: |
+  Fact-check the following claim and produce a 3–4 tweet thread for X:
+  "<paste claim here, verbatim, with source attribution>".
+
+  Tool scoping for this run (enforced via tool_routing below):
+    - Harper may use web_search and x_search. Harper is the only
+      agent permitted to bring external evidence into the debate.
+    - Benjamin may use code_execution. Benjamin is the only agent
+      permitted to run numerical / arithmetic verification.
+    - Lucas and Grok reason strictly from the transcript — no tools,
+      no speculation beyond what Harper and Benjamin produced.
+
+  Output format: 3–4 tweets.
+    - Tweet 1: the claim + Lucas's top concern with it.
+    - Tweet 2: Harper's single strongest primary source.
+    - Tweet 3: Benjamin's numerical check result (if applicable) or
+      the decisive logical step.
+    - Tweet 4 (optional): a one-line "what would flip this verdict".
+
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  include_verbose_streaming: true
+  orchestration:
+    pattern: parallel-tools
+  # These per-agent allowlists are enforced by the post-stream audit:
+  # off-list tool_call events produce yellow warnings in the transcript.
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

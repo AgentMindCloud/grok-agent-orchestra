@@ -1,0 +1,82 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-debate-loop-policy
+#
+# Purpose
+#   Converge toward a maximally-balanced 280-character summary of a
+#   contested topic. Runs up to 5 full simulated rounds, each with a
+#   mid-loop Lucas veto + a structured consensus check; exits early
+#   when Grok reports "no remaining disagreements".
+#
+#   The debate-loop pattern is the right fit when:
+#     - the topic is contested,
+#     - you want iterative refinement, not a one-shot,
+#     - you can tolerate higher token cost for lower risk of
+#       inflammatory language slipping through.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 15–40 k tokens per run.
+#   Each iteration ≈ simulated-1-round + mid-loop veto + consensus
+#   check. Typical runs terminate after 1–3 iterations; the 5-iter
+#   ceiling is the pessimistic case.
+#
+# Expected output
+#   A single ≤ 280-character summary that survived every iteration
+#   Lucas could throw at it. The run summary reports the iteration
+#   count and whether consensus was reached before the cap.
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-debate-loop-policy
+goal: |
+  Draft the most balanced 280-character summary of the current public
+  policy debate around AI agent autonomy.
+
+  Explicit constraints for every iteration:
+    - ≤ 280 chars (count whitespace + punctuation).
+    - Name BOTH the strongest argument for more autonomy AND the
+      strongest argument for less. Neither side gets more words than
+      the other (±10%).
+    - No loaded verbs ("dangerous", "reckless", "urgent"). Prefer
+      neutral predicates ("claims", "proposes", "observes").
+    - No first-person. No emoji. No exclamation marks.
+    - If a specific regulation or paper is cited, it must be named
+      (not "some studies say").
+
+  Lucas should veto (and trigger re-iteration) if any of the above
+  constraints are violated, or if the summary takes a side
+  implicitly via framing.
+
+orchestra:
+  mode: simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: debate-loop
+    config:
+      iterations: 5
+      consensus_threshold: 0.80
+      max_rounds: 1
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: []
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.90      # strict — balance is safety-adjacent
+  max_veto_retries: 0             # loop handles rewrites; don't double-retry
+
+deploy:
+  target: stdout
+  post_to_x: false

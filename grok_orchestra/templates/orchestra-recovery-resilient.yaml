@@ -1,0 +1,71 @@
+# -----------------------------------------------------------------------------
+# Template: orchestra-recovery-resilient
+#
+# Purpose
+#   Production-resilient native-16 run. The recovery pattern wraps the
+#   primary dispatch; on RateLimitError, ToolExecutionError, or
+#   TimeoutError, the runtime lowers reasoning_effort and (optionally)
+#   swaps to grok-4.20-0309 before retrying exactly once. On the happy
+#   path there is **zero** overhead — the wrap only engages on
+#   transient failures.
+#
+#   Use this template for anything on a deadline (scheduled jobs,
+#   cron-driven posts, anything you cannot afford to silently fail).
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   Happy path: same as a native-16 run (≈ 25–40 k tokens).
+#   Pessimistic (one degraded retry): + another 4–6 k tokens at
+#   medium effort on grok-4.20-0309.
+#
+# Expected output
+#   Same shape as orchestra-native-16 on success. If recovery fires,
+#   the run log includes an explicit "[yellow] recovery triggered by
+#   <ErrorClass>: …" line and a second run summary; exit code
+#   distinguishes between clean success (0) and recovery-after-retry
+#   vs. permanent failure (5 — see grok-orchestra CLI docs).
+#
+# How to run
+#   grok-orchestra run <this-file>
+#   grok-orchestra run <this-file> --dry-run
+# -----------------------------------------------------------------------------
+
+name: orchestra-recovery-resilient
+goal: |
+  Produce a 4–6 tweet X thread summarising the week's single most
+  important AI-agent news story. Constraints:
+    - The story must be verifiable (named publication or primary
+      source) and less than 7 days old.
+    - Every tweet adds one new fact, citation, or nuance — no
+      restatement.
+    - Tone: calm, specific, no hype.
+
+  This run is wrapped in the recovery pattern: on a rate-limit or
+  tool-execution failure, reasoning_effort drops to medium, the
+  single-agent grok-4.20-0309 fallback kicks in, and the run retries
+  exactly once before surfacing an error.
+
+orchestra:
+  mode: native
+  agent_count: 16
+  reasoning_effort: high
+  include_verbose_streaming: true
+  orchestration:
+    pattern: recovery
+    config:
+      max_retries: 1
+    fallback_on_rate_limit:
+      enabled: true
+      fallback_model: grok-4.20-0309
+      lowered_effort: medium
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

@@ -38,6 +38,9 @@ class Template:
     combined: bool
 
 
+_NON_TEMPLATE_STEMS: frozenset[str] = frozenset({"INDEX", "index"})
+
+
 def _iter_yaml_names() -> Iterator[str]:
     try:
         pkg = resources.files(_TEMPLATES_PACKAGE)
@@ -45,8 +48,13 @@ def _iter_yaml_names() -> Iterator[str]:
         return
     for item in pkg.iterdir():  # type: ignore[attr-defined]
         name = item.name
-        if name.endswith(".yaml") or name.endswith(".yml"):
-            yield name
+        if not (name.endswith(".yaml") or name.endswith(".yml")):
+            continue
+        stem = name.rsplit(".", 1)[0]
+        # Skip catalog / metadata files that live in the same directory.
+        if stem in _NON_TEMPLATE_STEMS or stem.startswith("."):
+            continue
+        yield name
 
 
 def _read_yaml(name: str) -> tuple[str, dict[str, Any]]:
