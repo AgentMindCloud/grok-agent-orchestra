@@ -1,0 +1,33 @@
+// Grok Agent Orchestra — VS Code YAML validation patch.
+//
+// Merge the `yamlValidation` array below into your VS Code extension's
+// `contributes` block (or into the Grok Install Ecosystem extension's
+// existing `contributes.yamlValidation` array alongside Bridge's entries).
+// The Red Hat YAML extension then auto-binds the schema by filename.
+//
+// File-name conventions the patch picks up:
+//   - grok-orchestra.yaml        the conventional project-root spec
+//   - *.orchestra.yaml            per-flow specs, e.g. trendseeker.orchestra.yaml
+//   - *.combined.yaml             combined Bridge + Orchestra specs
+//
+// If you copy the schema somewhere else (CDN, shared artefact store), swap
+// the `url` for that location. The schema itself is portable.
+
+{
+  "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "grok-orchestra.yaml",
+        "url": "./schemas/orchestra.schema.json"
+      },
+      {
+        "fileMatch": "*.orchestra.yaml",
+        "url": "./schemas/orchestra.schema.json"
+      },
+      {
+        "fileMatch": "*.combined.yaml",
+        "url": "./schemas/orchestra.schema.json"
+      }
+    ]
+  }
+}

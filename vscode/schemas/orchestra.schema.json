@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentmind.cloud/schemas/grok-agent-orchestra/vscode.schema.json",
+  "title": "Grok Agent Orchestra",
+  "description": "Grok Agent Orchestra spec — drive a multi-agent debate on Grok 4.20 (native or prompt-simulated) and a Bridge + Orchestra combined run.",
+  "markdownDescription": "# Grok Agent Orchestra\n\nDrives a multi-agent debate on Grok 4.20 — either **native** (`grok-4.20-multi-agent-0309` with server-side routing between 4 or 16 agents) or **simulated** (a visible round-by-round debate between Grok / Harper / Benjamin / Lucas on `grok-4.20-0309`).\n\nWhen `combined: true`, the same YAML also drives a Grok Build Bridge code-generation phase first, then runs the debate over the generated code, then Lucas's safety veto, then deploy.\n\n_4 minds. 1 safer post. Zero compromise._",
+  "type": "object",
+  "required": ["orchestra"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "markdownDescription": "Short identifier for this spec. Used as a fallback goal when `goal` is omitted, and threaded through Bridge when `combined: true`.",
+      "examples": ["trendseeker", "daily-digest"]
+    },
+    "goal": {
+      "type": "string",
+      "markdownDescription": "The actual instruction the debate is trying to satisfy — a plain-English sentence or two. Prefer concrete, specific goals (\"Draft a tweet about today's xAI launch, under 240 chars, upbeat tone.\") over vague ones.",
+      "examples": [
+        "Draft a tweet about today's xAI launch.",
+        "Summarise the top 3 research papers on agentic LLMs in ≤280 chars."
+      ]
+    },
+    "combined": {
+      "type": "boolean",
+      "default": false,
+      "markdownDescription": "When `true`, this spec drives the **combined** Bridge + Orchestra runtime:\n\n1. 🎯 Bridge generates code from the `build:` block.\n2. 🎤 Orchestra debates the generated code.\n3. 🛡 Lucas vetoes the debate synthesis.\n4. 🚀 Deploy.\n\nRequires both `build:` **and** `orchestra:` blocks. Run with `grok-orchestra combined <yaml>`.",
+      "examples": [false, true]
+    },
+    "build": {
+      "type": "object",
+      "markdownDescription": "Grok Build Bridge build spec. Only consulted when `combined: true`. The Orchestra schema leaves this open because Bridge owns its own validation — see `grok-bridge validate` for field-level help.",
+      "additionalProperties": true
+    },
+    "deploy": {
+      "type": "object",
+      "markdownDescription": "Deploy target for the approved final content.\n\n- `target`: where to ship (`stdout`, `x`, `github`, etc.).\n- `post_to_x: true` triggers Bridge's `audit_x_post` check before shipping.\n\nDeploy is **skipped** when Lucas vetoes the final content.",
+      "additionalProperties": true,
+      "examples": [
+        { "target": "stdout", "post_to_x": false },
+        { "target": "x", "post_to_x": true }
+      ]
+    },
+    "required_tools": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["x_search", "web_search", "code_execution"] },
+      "markdownDescription": "Tools that should be available to every agent (top-level allowlist). For per-agent scoping, prefer `orchestra.tool_routing` instead."
+    },
+    "orchestra": { "$ref": "#/definitions/Orchestra" },
+    "safety": { "$ref": "#/definitions/SafetyExtension" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "combined": { "const": true } }, "required": ["combined"] },
+      "then": {
+        "required": ["build", "orchestra"],
+        "markdownDescription": "When `combined: true`, both `build:` and `orchestra:` blocks are required."
+      }
+    }
+  ],
+  "definitions": {
+    "Orchestra": {
+      "type": "object",
+      "markdownDescription": "The Orchestra block — how the debate is run. **Required** for every spec.",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["native", "simulated", "auto"],
+          "default": "auto",
+          "markdownDescription": "Execution mode.\n\n- `native` — xAI multi-agent endpoint.\n- `simulated` — visible named-role debate.\n- `auto` — pick automatically.\n\nSee enum descriptions below for when to choose each.",
+          "markdownEnumDescriptions": [
+            "**native** — call `grok-4.20-multi-agent-0309` with 4 or 16 agents. Server-side role routing.\n\n- **when to use**: production, shipping-critical posts, highest quality.\n- **cost impact**: baseline; a 16-agent run is ~4× the tokens of a 4-agent run.\n- **visibility**: limited — the model handles agent transitions internally; you see the aggregated stream.",
+            "**simulated** — prompt-driven debate between Grok / Harper / Benjamin / Lucas on single-agent `grok-4.20-0309`.\n\n- **when to use**: debugging, playground, audits, demos, learning.\n- **cost impact**: roughly equal to a 4-agent native run; scales linearly with `debate_rounds`.\n- **visibility**: every system prompt, every role turn, every tool call is exposed and cacheable.",
+            "**auto** — pick `native` when `agent_count` is set AND `include_verbose_streaming` is true; otherwise `simulated`.\n\n- **when to use**: set once, let the dispatcher decide per-run.\n- **cost impact**: matches whichever branch is selected."
+          ],
+          "examples": ["auto", "native", "simulated"]
+        },
+        "agent_count": {
+          "type": "integer",
+          "enum": [4, 16],
+          "markdownDescription": "Number of native agents the multi-agent model orchestrates. Ignored in simulated mode.\n\nMust be either `4` or `16`. Use `reasoning_effort` if you would rather let Orchestra pick.",
+          "markdownEnumDescriptions": [
+            "**4 agents** — baseline cost, fast, good for most posts and draft content. Default for `low`/`medium` effort.",
+            "**16 agents** — ~4× the cost but noticeably better quality on complex, subjective, or adversarial goals. Default for `high`/`xhigh` effort."
+          ],
+          "examples": [4, 16]
+        },
+        "reasoning_effort": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "xhigh"],
+          "default": "medium",
+          "markdownDescription": "Reasoning budget hint. Derives `agent_count` when that field is omitted.",
+          "markdownEnumDescriptions": [
+            "**low** — 2-4× fewer reasoning tokens than medium. Maps to `agent_count: 4`. Fastest, cheapest. Use for simple or well-scoped goals.",
+            "**medium** — baseline reasoning budget. Maps to `agent_count: 4`. The safe default for most posts.",
+            "**high** — ~2-3× more reasoning tokens than medium. Maps to `agent_count: 16`. Use for ambiguous goals or hard logic.",
+            "**xhigh** — ~4-6× more reasoning tokens than medium. Maps to `agent_count: 16`. Use for proofs, adversarial robustness, or safety-critical posts."
+          ],
+          "examples": ["medium", "high"]
+        },
+        "include_verbose_streaming": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Stream per-role reasoning ticks and tool calls into the live TUI.\n\nKeep `true` for any run you want to watch. Set `false` only for batched / non-interactive runs where streaming adds latency without value."
+        },
+        "use_encrypted_content": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use encrypted content envelopes between roles.\n\n⚠ Playground-only today; do not enable in production pipelines."
+        },
+        "debate_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 2,
+          "markdownDescription": "Number of debate rounds in **simulated** mode (ignored in native).\n\nEach round calls every agent once. Cost scales linearly:\n- `1` round ≈ 4 calls + 1 synthesis\n- `2` rounds ≈ 8 calls + 1 synthesis (default)\n- `5` rounds ≈ 20 calls + 1 synthesis"
+        },
+        "debate_style": {
+          "type": "string",
+          "enum": ["xai-native", "prompt-simulated"],
+          "markdownDescription": "Label exposed to consumers describing which debate surface is rendered. Purely informational — does not override `mode`.",
+          "markdownEnumDescriptions": [
+            "**xai-native** — advertised as an xAI native multi-agent run.",
+            "**prompt-simulated** — advertised as a prompt-driven debate (more transparent)."
+          ]
+        },
+        "agents": {
+          "type": "array",
+          "markdownDescription": "Ordered list of named roles that participate in the simulated debate.\n\nIf empty or omitted, Orchestra uses the canonical order: **Grok → Harper → Benjamin → Lucas**. Each role has a fixed system prompt — see the `name` enum below for what each persona does.",
+          "items": { "$ref": "#/definitions/AgentMeta" }
+        },
+        "orchestration": { "$ref": "#/definitions/Orchestration" },
+        "tool_routing": { "$ref": "#/definitions/ToolRouting" }
+      }
+    },
+    "AgentMeta": {
+      "type": "object",
+      "markdownDescription": "Metadata for a single named role in the debate.",
+      "additionalProperties": false,
+      "required": ["name", "role"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["Grok", "Harper", "Benjamin", "Lucas", "custom"],
+          "markdownDescription": "Canonical role name. Each maps to a fixed, version-pinned system prompt.",
+          "markdownEnumDescriptions": [
+            "**Grok** — _coordinator_. Synthesises inputs from the others, resolves contradictions, and produces the final synthesis turn. **tools**: none. **style**: 1-3 short paragraphs ending in `resolved: <roleA> vs <roleB> on <topic>`.",
+            "**Harper** — _researcher_. Gathers external evidence. **tools**: `web_search`, `x_search`. **style**: bulleted findings, each with a source URL or handle.",
+            "**Benjamin** — _logician_. Checks arguments for validity, soundness, and informal fallacies. **tools**: none (reasons from the transcript). **style**: ends with exactly one line `verdict: sound | unsound | underdetermined`.",
+            "**Lucas** — _contrarian_ & **veto authority**. Finds flaws, biases, missing perspectives. Also the safety reviewer downstream. **tools**: none. **style**: strict `Flaw N: … | Risk: … | Counter-evidence: …` blocks, max 3 flaws.",
+            "**custom** — marketplace-defined persona. Treated as display-only metadata until session 11 adds full custom-role plumbing."
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": ["coordinator", "researcher", "logician", "contrarian", "custom"],
+          "markdownDescription": "Functional role. Must match the system prompt of the `name` above for the canonical roles (coordinator = Grok, researcher = Harper, logician = Benjamin, contrarian = Lucas)."
+        }
+      }
+    },
+    "Orchestration": {
+      "type": "object",
+      "markdownDescription": "Pattern selection and pattern-specific configuration. When omitted, the transport-native runtime runs (one debate + veto + deploy).",
+      "additionalProperties": false,
+      "required": ["pattern"],
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "enum": ["native", "hierarchical", "dynamic-spawn", "debate-loop", "parallel-tools", "recovery"],
+          "markdownDescription": "Which orchestration pattern drives the runtime. See enum docs for when to use each.",
+          "markdownEnumDescriptions": [
+            "**native** — pass-through to the transport runtime (one debate, one veto, one deploy).\n\n- **when to use**: simple one-pass goals, most default posts.\n- **cost**: baseline.",
+            "**hierarchical** — two sub-teams + final synthesis: _ResearchTeam (Harper + Benjamin)_ gathers evidence, _CritiqueTeam (Lucas + Grok)_ stress-tests it, then Grok synthesises.\n\n- **when to use**: when you want a clean separation of research vs critique, or the goal has both an evidence-gathering and a judgment component.\n- **cost**: ~3× simulated (two 1-round sub-debates + a synthesis + the final veto).",
+            "**dynamic-spawn** — Grok decomposes the goal into N sub-tasks (default 3, `config.sub_tasks`). Each sub-task runs a concurrent Harper + Lucas mini-debate. Grok aggregates.\n\n- **when to use**: parallelizable goals, research fan-out, multi-angle analyses.\n- **cost**: ~1 classification call + N × 2 mini-debate calls + 1 synthesis + 1 veto. Lower latency than doing N sub-tasks sequentially.",
+            "**debate-loop** — N iterations (`config.iterations`, default 5). Each iteration runs a full simulated round + a mid-loop Lucas veto + a structured consensus check. Exits early on consensus; swaps the goal to Lucas's `alternative_post` if the veto rejects.\n\n- **when to use**: iterative refinement when convergence matters more than speed.\n- **cost**: up to N × simulated + consensus checks. Often terminates in 1-2 iterations on benign goals.",
+            "**parallel-tools** — native multi-agent run with explicit per-agent tool routing via `tool_routing`. Warns when the native router gives a tool to an agent off its allowlist.\n\n- **when to use**: when you need per-agent tool permissions (e.g., only Harper may `x_search`).\n- **cost**: baseline native.",
+            "**recovery** — wraps another pattern. On `RateLimitError`, `ToolExecutionError`, or `TimeoutError`, lowers `reasoning_effort` (and optionally swaps to `fallback_model`), retries once.\n\n- **when to use**: anytime rate limits are plausible — essentially always safe to enable.\n- **cost**: +1 retry worst case; 0 overhead on happy path."
+          ]
+        },
+        "config": {
+          "type": "object",
+          "markdownDescription": "Pattern-specific configuration.\n\n- `hierarchical` → `{ max_depth, coordinator }`\n- `dynamic-spawn` → `{ sub_tasks, max_spawns }`\n- `debate-loop` → `{ iterations, max_rounds, consensus_threshold }`\n- `parallel-tools` → `{ max_concurrency }`\n- `recovery` → `{ max_retries }`\n- `native` → empty object\n\nOrchestra validates the shape based on `pattern` at load time.",
+          "additionalProperties": true
+        },
+        "fallback_on_rate_limit": { "$ref": "#/definitions/FallbackOnRateLimit" }
+      }
+    },
+    "FallbackOnRateLimit": {
+      "type": "object",
+      "markdownDescription": "Policy for degrading when the native multi-agent endpoint is rate-limited. Consulted by the `recovery` pattern and by the dispatcher's implicit recovery wrap.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Opt into automatic rate-limit recovery. Recommended `true` for production runs."
+        },
+        "fallback_model": {
+          "type": "string",
+          "enum": ["grok-4.20-0309"],
+          "markdownDescription": "Single-agent model to swap to on fallback. Currently `grok-4.20-0309` is the only supported target."
+        },
+        "lowered_effort": {
+          "type": "string",
+          "enum": ["low", "medium"],
+          "markdownDescription": "Reasoning effort to drop to on fallback. Usually `low` for max cost relief, `medium` if quality matters more than cost.",
+          "markdownEnumDescriptions": [
+            "**low** — aggressive cost relief. Best when you just need the post to ship.",
+            "**medium** — milder degrade. Best when the content is complex enough that `low` would be too lossy."
+          ]
+        }
+      }
+    },
+    "ToolRouting": {
+      "type": "object",
+      "markdownDescription": "Per-agent tool allowlist. Keys are agent names (alphanumeric, `_`, or `-`). Values are arrays of tool names the named agent is permitted to invoke.\n\nOverrides the per-role default set. Use this when you want Harper to drop `x_search` for a particular run, or to give Grok a specific tool for a one-off task.",
+      "patternProperties": {
+        "^[A-Za-z0-9_-]+$": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["x_search", "web_search", "code_execution"],
+            "markdownEnumDescriptions": [
+              "**x_search** — search posts on X / Twitter. Default-on for Harper.",
+              "**web_search** — public web pages and docs. Default-on for Harper.",
+              "**code_execution** — sandboxed Python run. Off by default for every role — grant explicitly."
+            ]
+          },
+          "markdownDescription": "Tools the named agent may call."
+        }
+      },
+      "additionalProperties": false
+    },
+    "SafetyExtension": {
+      "type": "object",
+      "markdownDescription": "Safety block. Extends Bridge's own safety block with Lucas-veto fields. Bridge safety fields remain valid (additional properties are passed through).",
+      "additionalProperties": true,
+      "properties": {
+        "lucas_veto_enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "🛡 **Strongly recommended: keep `true`.** Lucas's veto is Orchestra's hero safety feature — the final gate before any agent-authored content ships (X post, PR body, deploy artefact).\n\nWhen true, every final content goes through `safety_lucas_veto`, which calls Lucas (contrarian role) on `grok-4.20-0309` at `reasoning_effort: high` and parses a strict JSON verdict `{safe, confidence, reasons, alternative_post?}`. Denials block `deploy` and exit the CLI with code **4**.\n\nDisable **only** for playground / debugging runs where you deliberately want to inspect raw debate output — and never on a production pipeline that ships to X."
+        },
+        "lucas_model": {
+          "type": "string",
+          "enum": ["grok-4.20-0309"],
+          "default": "grok-4.20-0309",
+          "markdownDescription": "Model used by the Lucas reviewer. Pinned to `grok-4.20-0309` — this is a safety primitive, so we do not let users pick a smaller/cheaper model by mistake."
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.75,
+          "markdownDescription": "Minimum confidence Lucas must have to approve an action. An approval below this threshold is downgraded to `safe: false` with a `low-confidence: <conf> < threshold <t>` reason.\n\n- **0.90-1.00** — strict. Use for anything that could meaningfully harm a human or a brand.\n- **0.75** — default. Sensible for most posts.\n- **0.50** — permissive. Use only in exploratory / research runs.",
+          "examples": [0.75, 0.9]
+        },
+        "max_veto_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 1,
+          "markdownDescription": "How many times to let Lucas rewrite-and-re-veto on a denial.\n\n- `0` — the veto is terminal. Denial exits immediately with code **4**. Use for adversarial / test fixtures.\n- `1` — default. One chance to apply Lucas's `alternative_post` and re-veto.\n- `2-5` — aggressive rewriting. Useful for stubborn content, but costs one extra veto call per retry."
+        }
+      }
+    }
+  }
+}
