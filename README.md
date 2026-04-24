@@ -1,183 +1,102 @@
-<div align="center">
+# Grok Agent Orchestra
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/hero-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset=".github/assets/hero-light.png">
-  <img alt="Grok Agent Orchestra — Plate N° 08" src=".github/assets/hero-dark.png" width="100%">
-</picture>
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![License](https://img.shields.io/github/license/agentmindcloud/grok-agent-orchestra?style=for-the-badge)
+![Last Commit](https://img.shields.io/github/last-commit/agentmindcloud/grok-agent-orchestra?style=for-the-badge)
+![xAI SDK](https://img.shields.io/badge/xAI-SDK-111111?style=for-the-badge)
+![Lucas Veto](https://img.shields.io/badge/Lucas%20Veto-fail--closed-C62828?style=for-the-badge)
+![Coverage](https://img.shields.io/badge/coverage-%E2%89%A585%25-0A7F5A?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-0.1.0%20pre--PyPI-8B5CF6?style=for-the-badge)
 
-<br>
+## The auditable Grok 4.20 multi-agent layer with a mandatory Lucas veto before deploy
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/status-active-dark.svg">
-  <img alt="Active" src=".github/assets/badges/status-active-dark.svg" height="28">
-</picture>
-<img alt="Apache 2.0" src=".github/assets/badges/license-apache-dark.svg" height="28">
-<img alt="Python 3.10+" src=".github/assets/badges/python-dark.svg" height="28">
-<img alt="PyPI Pending" src=".github/assets/badges/pypi-pending-dark.svg" height="28">
-<img alt="Plate N° 08" src=".github/assets/badges/plate-08-dark.svg" height="28">
+**Grok Agent Orchestra** turns a single YAML spec into either the xAI-native `grok-4.20-multi-agent-0309` flow or a visible four-role simulated debate.  
+Every orchestration pattern ends with the same hard rule: a strict-JSON **Lucas veto** on `grok-4.20-0309` that fails closed and can block deploy or X-posting with **exit code 4**.
 
-<br><br>
+---
 
-<em>YAML → four-agent debate → Lucas veto → deploy.</em><br>
-<em>If Lucas says no, nothing ships. That's the entire product.</em>
+## Why this repo matters
 
-</div>
+| Problem | What Orchestra does |
+|---|---|
+| Multi-agent systems are hard to audit | Makes debate visible through named roles and a Rich live TUI |
+| Safety checks are often optional | Runs a mandatory Lucas veto on every pattern before deploy |
+| Previewing orchestration usually burns tokens | Supports full `--dry-run` replay with canned-stream clients |
+| Multi-stage pipelines often feel fragmented | Chains parse → Bridge → debate → veto → deploy in one continuous Live panel |
 
-<br>
+---
 
-<img src=".github/assets/dividers/network.svg" width="100%" alt="">
-
-## What this is
-
-Grok Agent Orchestra turns one YAML file into a **Grok 4.20 multi-agent run** with a mandatory safety veto at the exit. Four named roles — Grok (executive), Harper (research), Benjamin (critique), and Lucas (veto) — debate, and Lucas has the final word. Every deploy, every post, every webhook call passes through a fail-closed JSON gate running on `grok-4.20-0309`. Veto → exit code 4. No deploy.
-
-Two execution modes from the same spec: **native** (xAI's `grok-4.20-multi-agent-0309` endpoint, 4 or 16 agents) or **simulated** (visible per-role debate, streamed through a Rich live TUI you can actually watch).
-
-## Why you'd use it
-
-- You're shipping Grok-powered output to a public surface (X, webhooks, user-facing endpoints) and "the model said it was fine" isn't a safety review.
-- You want **auditable** multi-agent debate — not a black-box ensemble, but four named roles you can read the transcripts of.
-- You need the gate to **fail closed**: malformed veto response, low confidence, timeout → the post doesn't go out.
-
-<img src=".github/assets/dividers/pulse.svg" width="100%" alt="">
-
-## 30 seconds to a dry run
-
-```bash
-pip install grok-agent-orchestra   # pending — use `pip install -e .` from source for now
-grok-orchestra init orchestra-native-4 --out my-spec.yaml
-grok-orchestra run my-spec.yaml --dry-run
-```
-
-No xAI tokens needed for `--dry-run`. Canned-stream replay clients keyed on prompt shape make every pattern previewable offline.
-
-<img src=".github/assets/dividers/gate.svg" width="100%" alt="">
-
-## Architecture
+## Architecture at a glance
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{
-  'background':'#0a0706',
-  'primaryColor':'#1a1310',
-  'primaryTextColor':'#ead5bd',
-  'primaryBorderColor':'#baa590',
-  'lineColor':'#baa590',
-  'secondaryColor':'#1a1310',
-  'tertiaryColor':'#0a0706',
-  'fontFamily':'IBM Plex Mono, ui-monospace, monospace'
-}}}%%
 flowchart LR
-    YAML([YAML spec]) --> P[parser.load_orchestra_yaml]
-    P --> D{dispatcher<br/>pattern + mode}
+    A[One YAML Spec] --> B[Dispatcher]
+    B --> C[Native Mode]
+    B --> D[Simulated Mode]
 
-    D -->|native| RN[runtime_native<br/>xAI multi-agent endpoint]
-    D -->|simulated| RS[runtime_simulated<br/>4-role debate + TUI]
+    C --> E[grok-4.20-multi-agent-0309]
+    D --> F[Grok / Harper / Benjamin / Lucas]
 
-    RN --> GROK(((Grok<br/>executive)))
-    RS --> GROK
-    GROK --> HARPER((Harper<br/>research))
-    GROK --> BENJ((Benjamin<br/>critique))
-    HARPER <-.debate.-> BENJ
+    E --> G[Audit]
+    F --> G
 
-    HARPER --> LUCAS
-    BENJ --> LUCAS
-    GROK --> LUCAS
-
-    LUCAS{{"⛔ LUCAS VETO<br/>grok-4.20-0309<br/>strict JSON · fails closed"}}
-    LUCAS -->|safe=true| DEPLOY([deploy])
-    LUCAS -->|safe=false| BLOCK([exit 4 · blocked])
-
-    classDef veto fill:#d44936,stroke:#d44936,color:#0a0706,font-weight:bold
-    classDef exit fill:#1a1310,stroke:#d44936,color:#ead5bd
-    class LUCAS veto
-    class DEPLOY,BLOCK exit
+    G --> H[Lucas Veto]
+    H -->|safe| I[Deploy / X / Webhook]
+    H -->|unsafe| J[Exit Code 4]
 ```
 
-Five orchestration patterns compose on top: `hierarchical`, `dynamic-spawn`, `debate-loop`, `parallel-tools`, `recovery`. Each ≤120 LOC. Each ends at Lucas.
+---
 
-## The Lucas veto
+## What you get
 
-The thing that makes Orchestra different from every other agent framework.
+- **Mandatory Lucas veto** with strict JSON output, malformed-response retries, regex fallback parsing, and fail-closed behavior.
+- **Two execution modes from one YAML**: `native` for xAI multi-agent and `simulated` for visible named-role debate.
+- **Five composable orchestration patterns**: hierarchical, dynamic-spawn, debate-loop, parallel-tools, recovery.
+- **Rich live DebateTUI** with a re-entrant layout that keeps the entire run inside one continuous panel.
+- **Ten certified templates** plus machine-readable `INDEX.yaml`.
+- **VS Code support** via Draft-07 schema, markdown descriptions, and YAML snippets.
 
-- Runs on `grok-4.20-0309` with **high reasoning effort**
-- Enforces **strict JSON output** via schema + regex fallback parser
-- **Fails closed** on malformed output, low confidence, or timeout
-- Two separate veto passes in the combined runtime (one mid-debate, one pre-deploy)
-- Exit codes: `0` success · `2` CLI error · `3` parse fail · `4` **veto** · `5` runtime fail
-- Rich panel output: green ✅ for safe, red ⛔ for blocked
+---
 
-```yaml
-# my-spec.yaml — minimal native run with veto
-mode: native
-pattern: hierarchical
-model: grok-4.20-multi-agent-0309
-agents: 4
-task: "Draft a technical thread on the ΔS-1 migration."
-veto:
-  model: grok-4.20-0309
-  effort: high
-  fail_closed: true
+## Fastest demo
+
+```bash
+grok-orchestra init orchestra-native-4 --out my-spec.yaml && grok-orchestra run my-spec.yaml --dry-run
 ```
 
-<img src=".github/assets/dividers/network.svg" width="100%" alt="">
+---
 
-## CLI
+## Modes
 
-Eight commands, all Typer, all with typed exit codes.
+| Mode | What it does | Best when |
+|---|---|---|
+| `native` | Uses the xAI multi-agent endpoint directly | You want xAI-native coordination with 4 or 16 agents |
+| `simulated` | Runs a visible four-role debate | You want auditability, role visibility, and tool-routing clarity |
 
-| Command | Purpose |
-|---|---|
-| `init <template>` | Scaffold a YAML spec from 10 certified templates |
-| `run <spec>` | Execute orchestra (supports `--dry-run`) |
-| `validate <spec>` | Schema-check without executing |
-| `patterns` | List available orchestration patterns |
-| `templates` | List available templates with descriptions |
-| `veto <text>` | Run Lucas veto standalone on arbitrary text |
-| `combined <spec>` | Bridge codegen → Orchestra debate → veto → deploy in one Live panel |
-| `doctor` | Environment / API key / model access check |
+---
 
 ## Patterns
 
-- **Hierarchical** — executive (Grok) delegates to research (Harper) and critique (Benjamin); synthesis before veto
-- **Dynamic-spawn** — `asyncio.gather` fan-out across N agents; veto aggregates
-- **Debate-loop** — iterate Harper ↔ Benjamin with mid-loop veto and consensus check
-- **Parallel-tools** — union tool allowlist with post-stream audit before veto
-- **Recovery** — rate-limit / timeout wrapper with `fallback_model`; veto runs on final output only
+| Pattern | Purpose |
+|---|---|
+| `hierarchical` | Research → critique → synthesis |
+| `dynamic-spawn` | Async fan-out with `asyncio.gather` |
+| `debate-loop` | Iterative debate with mid-loop veto |
+| `parallel-tools` | Tool union + post-stream audit |
+| `recovery` | Timeout/rate-limit fallback handling |
 
-## VS Code integration
+---
 
-Draft-07 JSON Schema with `markdownDescription` on every field, 10 YAML snippets, glob-bound to `*.orchestra.yaml` and `*.combined.yaml`. Install the extension → autocompletion, inline docs, validation-as-you-type.
+## The technical detail serious builders will notice
 
-<img src=".github/assets/dividers/pulse.svg" width="100%" alt="">
+The standout implementation is the **combined runtime**: a re-entrant Rich `Live` TUI that streams multiple phases in one uninterrupted panel, supports non-TTY structured logs, runs dual safety gates, and still provides a full `--dry-run` path without making an xAI call.
 
-## Install from source
+---
 
-```bash
-git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
-cd grok-agent-orchestra
-pip install -e ".[dev]"
-grok-orchestra doctor
-```
+## Status
 
-Requires Python 3.10 / 3.11 / 3.12. CI matrix covers all three with ≥85% coverage enforcement.
+- **Version:** 0.1.0  
+- **License:** Apache-2.0  
+- **Cadence:** 17 commits in the last 30 days  
+- **Audience:** Python teams shipping Grok-powered agents to public endpoints that need auditable debate and a hard safety gate before anything goes live
 
-## Sibling tools
-
-Part of the AgentMindCloud family:
-
-- **[grok-build-bridge](https://github.com/agentmindcloud/grok-build-bridge)** — codegen layer. Orchestra + Bridge compose via `grok-orchestra combined`.
-- **[grok-install](https://github.com/agentmindcloud/grok-install)** — the declarative spawn manifest standard.
-- **[universal-spawn](https://github.com/agentmindcloud/universal-spawn)** — cross-platform spawn standard.
-
-## License
-
-Apache 2.0. Use it, fork it, ship it. Lucas still has to sign off.
-
-<br>
-
-<div align="center">
-<img src=".github/assets/footer-dark.svg" width="100%" alt="">
-<br>
-<em>Residual Frequencies · Plate N° 08 · Observational study, multi-agent orchestration under safety veto.</em>
-</div>
