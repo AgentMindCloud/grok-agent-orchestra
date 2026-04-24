@@ -7,6 +7,13 @@ on:
   pull_request:
     branches: [main]
 
+# Every job that imports `grok_orchestra` relies on `grok_build_bridge`
+# being importable. Until Bridge publishes to PyPI we do NOT let pip
+# pull the dep from there — install Orchestra with `--no-deps`, add the
+# explicit runtime deps, and let `tests/conftest.py` inject the Bridge
+# shim at test time. Non-test jobs avoid importing `grok_orchestra`
+# directly (see schema-check below).
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -14,10 +21,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
-      - name: Install dev deps
+      - name: Install Orchestra (--no-deps) + explicit runtime + dev deps
+        # Version specs are quoted so bash does not interpret `>=` as a
+        # redirection operator — important for multi-token install lines.
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install "xai-sdk>=1.0" "pyyaml>=6" "rich>=13" "typer>=0.12" "tenacity>=8.2" "jsonschema>=4.21"
+          pip install --no-deps -e .
+          pip install ruff mypy
       - name: Ruff
         run: ruff check .
       - name: Mypy (non-blocking during pre-1.0)
@@ -37,13 +48,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - name: Install package + dev deps
+      - name: Install Orchestra (--no-deps) + explicit runtime + test deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install pytest-cov
+          pip install "xai-sdk>=1.0" "pyyaml>=6" "rich>=13" "typer>=0.12" "tenacity>=8.2" "jsonschema>=4.21"
+          pip install --no-deps -e .
+          pip install pytest pytest-asyncio pytest-cov
       - name: Pytest (with coverage)
-        run: pytest --cov=grok_orchestra --cov-report=term-missing --cov-fail-under=85 -q
+        # Use `python -m pytest` so it always runs in the same interpreter
+        # the runtime deps were installed into, regardless of any other
+        # `pytest` shim on PATH.
+        run: python -m pytest --cov=grok_orchestra --cov-report=term-missing --cov-fail-under=85 -q
 
   schema-check:
     runs-on: ubuntu-latest
@@ -51,11 +66,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
-      - name: Install package
+      - name: Install only the bits schema-check needs (no Bridge)
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest-cov
+          pip install pyyaml jsonschema
       - name: Runtime schema is valid JSON Schema (Draft 2020-12)
         run: |
           python - <<'PY'
@@ -79,20 +93,31 @@ jobs:
           print(f"{path}: Draft-07 OK")
           PY
       - name: Every bundled template validates against the runtime schema
+        # Uses pure jsonschema + yaml, no grok_orchestra import — so
+        # we do not need Bridge installed to run schema validation.
         run: |
           python - <<'PY'
+          import json
           from pathlib import Path
-          from grok_orchestra.parser import load_orchestra_yaml, OrchestraConfigError
+          import yaml
+          from jsonschema import Draft202012Validator
+
+          with open("grok_orchestra/schema/orchestra.schema.json", encoding="utf-8") as fh:
+              schema = json.load(fh)
+          validator = Draft202012Validator(schema)
+
           failed = []
           for path in sorted(Path("grok_orchestra/templates").glob("*.yaml")):
               if path.stem.upper() == "INDEX":
                   continue
-              try:
-                  load_orchestra_yaml(path)
+              with open(path, encoding="utf-8") as fh:
+                  data = yaml.safe_load(fh)
+              errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
+              if errors:
+                  failed.append((path, errors[0]))
+                  print(f"FAIL {path}: {errors[0].message}")
+              else:
                   print(f"OK  {path}")
-              except OrchestraConfigError as exc:
-                  failed.append((path, exc))
-                  print(f"FAIL {path}: {exc}")
           if failed:
               raise SystemExit(1)
           PY
@@ -105,8 +130,8 @@ jobs:
         with: { python-version: "3.12", cache: pip }
       - name: Install safety scanner
         run: pip install pip-audit
-      - name: pip-audit
-        run: pip-audit --ignore-vuln GHSA-xxxx-xxxx-xxxx || true  # soft-fail during pre-1.0
+      - name: pip-audit (soft-fail during pre-1.0)
+        run: pip-audit || true
         continue-on-error: true
 
   build:
@@ -121,6 +146,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
       - name: Build wheel + sdist
+        # setuptools does not import the package during build; it only
+        # reads pyproject.toml + the source tree, so we do not need
+        # Bridge installed here.
         run: python -m build
       - name: Upload dist
         uses: actions/upload-artifact@v4
