@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 60" width="2400" height="60">
+  <line x1="0" y1="30" x2="1140" y2="30" stroke="#baa590" stroke-opacity="0.35" stroke-width="1"/>
+  <line x1="1260" y1="30" x2="2400" y2="30" stroke="#baa590" stroke-opacity="0.35" stroke-width="1"/>
+  <rect x="1140" y="14" width="120" height="32" fill="none" stroke="#d44936" stroke-width="1.4"/>
+  <text x="1200" y="35" text-anchor="middle" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" font-weight="700" letter-spacing="2.5" fill="#d44936">LUCAS</text>
+</svg>
