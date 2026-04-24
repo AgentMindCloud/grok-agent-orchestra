@@ -1,10 +1,15 @@
 # Grok Agent Orchestra
 
 [![CI](https://github.com/agentmindcloud/grok-agent-orchestra/actions/workflows/ci.yml/badge.svg)](https://github.com/agentmindcloud/grok-agent-orchestra/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/grok-agent-orchestra.svg)](https://pypi.org/project/grok-agent-orchestra/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](#quick-start)
+[![Pre-release v0.1.0](https://img.shields.io/badge/pre--release-v0.1.0-8B5CF6)](https://github.com/agentmindcloud/grok-agent-orchestra/releases)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](#60-second-quick-start)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 [![Lucas-certified](https://img.shields.io/badge/%F0%9F%9B%A1-Lucas--certified-8B5CF6)](docs/orchestra.md#lucas-veto)
+
+> **v0.1.0 is pre-PyPI.** Install from source (see
+> [Quick Start](#60-second-quick-start) below); the PyPI listing lands
+> once the companion project **Grok Build Bridge** publishes. A PyPI
+> version badge will appear here on release day.
 
 <p align="center">
   <img src="docs/assets/orchestra-debate.gif"
