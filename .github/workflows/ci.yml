@@ -130,9 +130,8 @@ jobs:
         with: { python-version: "3.12", cache: pip }
       - name: Install safety scanner
         run: pip install pip-audit
-      - name: pip-audit (soft-fail during pre-1.0)
-        run: pip-audit || true
-        continue-on-error: true
+      - name: pip-audit — fail on known vulnerabilities in runtime deps
+        run: pip-audit --requirement requirements.txt --strict
 
   build:
     needs: [lint, test, schema-check]
