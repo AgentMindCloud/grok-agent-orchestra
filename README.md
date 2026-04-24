@@ -132,11 +132,11 @@ Eight commands, all Typer, all with typed exit codes.
 | `init <template>` | Scaffold a YAML spec from 10 certified templates |
 | `run <spec>` | Execute orchestra (supports `--dry-run`) |
 | `validate <spec>` | Schema-check without executing |
-| `patterns` | List available orchestration patterns |
 | `templates` | List available templates with descriptions |
+| `debate <spec>` | Stream the debate only — no deploy, veto advisory |
 | `veto <text>` | Run Lucas veto standalone on arbitrary text |
 | `combined <spec>` | Bridge codegen → Orchestra debate → veto → deploy |
-| `doctor` | Environment / API key / model access check |
+| `version` | Print the installed Orchestra version |
 
 ## ✦ Orchestration Patterns
 
@@ -179,7 +179,7 @@ Eight commands, all Typer, all with typed exit codes.
 git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
 cd grok-agent-orchestra
 pip install -e ".[dev]"
-grok-orchestra doctor
+grok-orchestra version
 ```
 
 Requires Python 3.10 / 3.11 / 3.12. CI matrix covers all three with ≥85% coverage enforcement.
