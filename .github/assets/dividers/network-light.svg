@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 60" width="2400" height="60">
+  <g stroke="#4a3f32" stroke-opacity="0.4" stroke-width="1" fill="none">
+    <line x1="200" y1="30" x2="600" y2="30"/>
+    <line x1="600" y1="30" x2="900" y2="15"/>
+    <line x1="600" y1="30" x2="900" y2="45"/>
+    <line x1="900" y1="15" x2="1200" y2="30"/>
+    <line x1="900" y1="45" x2="1200" y2="30"/>
+  </g>
+  <g stroke="#a13d24" stroke-width="1.4" fill="none">
+    <line x1="1200" y1="30" x2="1500" y2="30"/>
+    <line x1="1500" y1="30" x2="2200" y2="30"/>
+  </g>
+  <g fill="#4a3f32">
+    <circle cx="200" cy="30" r="3"/>
+    <circle cx="600" cy="30" r="3"/>
+    <circle cx="900" cy="15" r="3"/>
+    <circle cx="900" cy="45" r="3"/>
+  </g>
+  <rect x="1180" y="18" width="40" height="24" fill="none" stroke="#a13d24" stroke-width="1.2"/>
+  <circle cx="1200" cy="30" r="4" fill="#a13d24"/>
+  <circle cx="1500" cy="30" r="3" fill="#a13d24"/>
+  <circle cx="2200" cy="30" r="3" fill="#a13d24"/>
+  <text x="1180" y="58" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="8" letter-spacing="2" fill="#4a3f32">LUCAS</text>
+</svg>

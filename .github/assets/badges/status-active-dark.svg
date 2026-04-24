@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="28" viewBox="0 0 140 28">
+  <rect width="140" height="28" rx="2" fill="#1a1310" stroke="#baa590" stroke-opacity="0.35"/>
+  <circle cx="16" cy="14" r="4" fill="#d44936">
+    <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <text x="32" y="18" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" font-weight="700" letter-spacing="2.5" fill="#ead5bd">STATUS · ACTIVE</text>
+</svg>

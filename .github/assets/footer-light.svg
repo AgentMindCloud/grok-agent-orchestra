@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 100" width="2400" height="100">
+  <rect width="2400" height="100" fill="#ede3cf"/>
+  <line x1="44" y1="30" x2="2356" y2="30" stroke="#1f1812" stroke-opacity="0.25"/>
+  <g stroke="#1f1812" stroke-opacity="0.5" fill="none">
+    <line x1="60" y1="22" x2="60" y2="38"/><line x1="52" y1="30" x2="68" y2="30"/>
+    <line x1="2340" y1="22" x2="2340" y2="38"/><line x1="2332" y1="30" x2="2348" y2="30"/>
+  </g>
+  <text x="44" y="70" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" letter-spacing="3.5" fill="#1f1812">AGENTMINDCLOUD · RESIDUAL FREQUENCIES · PLATE N° 08</text>
+  <text x="2356" y="70" text-anchor="end" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" letter-spacing="3.5" fill="#1f1812">APACHE 2.0 · v0.1.0 · ORCHESTRA</text>
+</svg>
