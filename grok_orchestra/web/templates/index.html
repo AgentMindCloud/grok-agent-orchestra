@@ -107,6 +107,7 @@
           <a id="dl-md" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .md</a>
           <a id="dl-pdf" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .pdf</a>
           <a id="dl-docx" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .docx</a>
+          <a id="view-trace" hidden target="_blank" rel="noopener" class="text-xs px-2 py-1 rounded bg-grok-500/15 border border-grok-500/40 text-grok-400 hover:bg-grok-500/25">🔭 View trace</a>
         </div>
       </div>
       <pre id="final" class="text-sm whitespace-pre-wrap font-mono text-slate-200 min-h-[80px]">—</pre>
@@ -345,7 +346,7 @@
     $("#final").textContent = "—";
     $("#reasoning-pill").textContent = "0 reasoning tokens";
     $("#reasoning-pill").dataset.total = "0";
-    for (const id of ["dl-md", "dl-pdf", "dl-docx"]) {
+    for (const id of ["dl-md", "dl-pdf", "dl-docx", "view-trace"]) {
       const el = document.getElementById(id);
       el.hidden = true;
       el.removeAttribute("href");
@@ -360,6 +361,17 @@
       el.href = `/api/runs/${encodeURIComponent(runId)}/${name}`;
       el.hidden = false;
     }
+    // Trace deep-link only renders when a backend is active.
+    fetch(`/api/runs/${encodeURIComponent(runId)}`)
+      .then((r) => r.json())
+      .then((body) => {
+        const url = body && body.trace_url;
+        if (!url) return;
+        const el = document.getElementById("view-trace");
+        el.href = url;
+        el.hidden = false;
+      })
+      .catch(() => {});
   }
 
   function setStatus(text, tone = "idle") {

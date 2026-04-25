@@ -244,6 +244,39 @@ grok-orchestra models test --model anthropic/claude-3-5-sonnet
 
 `models test` reads the matching `*_API_KEY` from the environment via LiteLLM's resolver — the framework never embeds, ships, or logs the value. A missing key surfaces a clear "set OPENAI_API_KEY" hint, not a stack trace.
 
+### Observability (BYOK, off by default)
+
+Tracing is **opt-in**. The framework ships with a zero-overhead `NoOpTracer` so unset runs are byte-for-byte identical to the no-tracing path. Set ONE of these env vars to enable a backend:
+
+| Backend | Activator env var(s) |
+| --- | --- |
+| **LangSmith** (primary) | `LANGSMITH_API_KEY` (+ optional `LANGSMITH_PROJECT`, `LANGSMITH_SAMPLE_RATE`) |
+| **Langfuse** | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` (+ optional `LANGFUSE_HOST`) |
+| **OTLP** (Jaeger / Tempo / Honeycomb / …) | `OTEL_EXPORTER_OTLP_ENDPOINT` |
+
+```bash
+pip install 'grok-agent-orchestra[tracing]'
+export LANGSMITH_API_KEY="<paste-your-key-here>"
+grok-orchestra trace info       # confirm the backend selected
+grok-orchestra trace test       # emit a synthetic two-span run + print the deep-link
+```
+
+Every run produces a span tree:
+
+```
+run → debate_round_N → role_turn (per role) → llm_call / tool_call
+                    → lucas_evaluation → veto_decision
+   → publisher → markdown_render / pdf_render / docx_render
+```
+
+When a backend is active, the dashboard's run-detail panel grows a **🔭 View trace** button that deep-links to the LangSmith / Langfuse run.
+
+**Scrubber.** Every span passes through `grok_orchestra.tracing.scrubber` before it leaves the box. Credential-shaped strings (`sk-…`, `tvly-…`, `Bearer …`, AWS / GCP keys, …) and sensitive field names (`Authorization`, `*_API_KEY`, `*_SECRET_KEY`, `*_TOKEN`) are redacted in-place; long strings are truncated to 4 KiB. Backends never see a raw key.
+
+![LangSmith trace](docs/images/trace-langsmith.png)
+
+Full reference: [`docs/observability.md`](docs/observability.md).
+
 ### Reports
 
 Every dashboard run auto-writes a structured Markdown report and a `run.json` snapshot to `$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/`. PDF and DOCX render lazily on first download. To enable PDF/DOCX install the `[publish]` extra:

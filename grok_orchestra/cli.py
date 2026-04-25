@@ -720,6 +720,175 @@ app.add_typer(models_app, name="models")
 
 
 # --------------------------------------------------------------------------- #
+# `trace` — observability helpers (Prompt 10). Tracer is OFF by default; these
+# subcommands inspect, smoke-test, and export traces without ever logging
+# raw credentials.
+# --------------------------------------------------------------------------- #
+
+
+trace_app = typer.Typer(
+    name="trace",
+    help="Inspect + smoke-test the (optional) tracing backend.",
+    invoke_without_command=False,
+    no_args_is_help=True,
+    add_completion=False,
+)
+
+
+@trace_app.command("info")
+def _trace_info(ctx: typer.Context) -> None:
+    """Show which tracer is active and which env vars selected it."""
+    import os as _os
+
+    from grok_orchestra.tracing import get_tracer
+
+    state = _state(ctx)
+    tracer = get_tracer()
+    snapshot = {
+        "name": tracer.name,
+        "enabled": bool(tracer.enabled),
+        "selectors": {
+            "LANGSMITH_API_KEY": _bool_env("LANGSMITH_API_KEY"),
+            "LANGFUSE_PUBLIC_KEY": _bool_env("LANGFUSE_PUBLIC_KEY"),
+            "LANGFUSE_SECRET_KEY": _bool_env("LANGFUSE_SECRET_KEY"),
+            "OTEL_EXPORTER_OTLP_ENDPOINT": _bool_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
+        },
+        "config": {
+            "LANGSMITH_PROJECT": _os.environ.get("LANGSMITH_PROJECT") or None,
+            "LANGSMITH_SAMPLE_RATE": _os.environ.get("LANGSMITH_SAMPLE_RATE") or None,
+            "LANGFUSE_HOST": _os.environ.get("LANGFUSE_HOST") or None,
+            "OTEL_SERVICE_NAME": _os.environ.get("OTEL_SERVICE_NAME") or None,
+        },
+    }
+    if state.json:
+        typer.echo(json.dumps({"ok": True, **snapshot}))
+        return
+    table = Table(
+        title="grok-orchestra · trace info",
+        border_style="#8B5CF6",
+        box=box.ROUNDED,
+        title_style="bold #B69EFE",
+    )
+    table.add_column("field", style="cyan")
+    table.add_column("value", style="white")
+    table.add_row("active backend", snapshot["name"])
+    table.add_row("enabled", "yes" if snapshot["enabled"] else "no")
+    for key, present in snapshot["selectors"].items():
+        table.add_row(f"env: {key}", "set" if present else "(unset)")
+    for key, value in snapshot["config"].items():
+        if value:
+            table.add_row(f"config: {key}", str(value))
+    state.console.print(table)
+    if not snapshot["enabled"]:
+        state.console.print(
+            Text(
+                "Tracing is OFF. Set LANGSMITH_API_KEY, LANGFUSE_PUBLIC_KEY+LANGFUSE_SECRET_KEY, "
+                "or OTEL_EXPORTER_OTLP_ENDPOINT to enable.",
+                style="dim",
+            )
+        )
+
+
+@trace_app.command("test")
+def _trace_test(ctx: typer.Context) -> None:
+    """Emit a tiny synthetic trace and confirm the backend accepts it."""
+    from grok_orchestra.tracing import get_tracer
+
+    state = _state(ctx)
+    tracer = get_tracer()
+
+    if not tracer.enabled:
+        _emit_error(
+            state,
+            RuntimeError(
+                "tracing is OFF — no backend is selected. Set LANGSMITH_API_KEY / "
+                "LANGFUSE_PUBLIC_KEY+LANGFUSE_SECRET_KEY / OTEL_EXPORTER_OTLP_ENDPOINT "
+                "and retry."
+            ),
+            title="grok-orchestra · trace test",
+        )
+        raise typer.Exit(code=EXIT_CONFIG)
+
+    try:
+        with tracer.span("trace-test", kind="run", inputs="ping") as root:
+            root.set_attribute("synthetic", True)
+            with tracer.span("trace-test/role_turn", kind="role_turn") as role:
+                role.set_input(["smoke", "ping"])
+                role.set_output("pong")
+                role.add_metric("tokens_in", 1)
+                role.add_metric("tokens_out", 1)
+            root.set_output("done")
+        tracer.flush()
+    except Exception as exc:  # noqa: BLE001
+        _emit_error(state, exc, title="grok-orchestra · trace test")
+        raise typer.Exit(code=EXIT_RUNTIME) from exc
+
+    if state.json:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": True,
+                    "backend": tracer.name,
+                    "trace_url": tracer.trace_url_for(tracer.current_run_id() or ""),
+                }
+            )
+        )
+        return
+    body = Text()
+    body.append(f"✓ {tracer.name} accepted the test trace\n", style="bold green")
+    url = tracer.trace_url_for(tracer.current_run_id() or "") or "(no deep-link URL)"
+    body.append(f"trace url: {url}\n", style="white")
+    state.console.print(
+        Panel(body, title="grok-orchestra · trace test", border_style="#8B5CF6", box=box.ROUNDED)
+    )
+
+
+@trace_app.command("export")
+def _trace_export(
+    ctx: typer.Context,
+    run_id: Annotated[
+        str, typer.Argument(help="Run ID — looks under $GROK_ORCHESTRA_WORKSPACE/runs/<id>/")
+    ],
+) -> None:
+    """Export the recorded events of a finished run as JSON for offline review."""
+    from grok_orchestra.publisher import run_report_dir
+
+    state = _state(ctx)
+    src_dir = run_report_dir(run_id)
+    snapshot_path = src_dir / "run.json"
+    if not snapshot_path.exists():
+        _emit_error(
+            state,
+            FileNotFoundError(
+                f"no snapshot at {snapshot_path}. Run via the dashboard once "
+                "to populate the workspace."
+            ),
+            title="grok-orchestra · trace export",
+        )
+        raise typer.Exit(code=EXIT_CONFIG)
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    payload = {
+        "run_id": run_id,
+        "trace_url": snapshot.get("trace_url"),
+        "mode_label": snapshot.get("mode_label"),
+        "role_models": snapshot.get("role_models"),
+        "provider_costs": snapshot.get("provider_costs"),
+        "veto_report": snapshot.get("veto_report"),
+        "events": snapshot.get("events"),
+    }
+    typer.echo(json.dumps(payload, indent=2, default=str))
+
+
+def _bool_env(name: str) -> bool:
+    import os as _os
+
+    return bool((_os.environ.get(name) or "").strip())
+
+
+app.add_typer(trace_app, name="trace")
+
+
+# --------------------------------------------------------------------------- #
 # `doctor` — environment self-check. Detects which of the three tiers
 # (Demo / Local Ollama / Cloud BYOK) is ready right now and prints a
 # friendly status. Network-light (a single 1-second GET to

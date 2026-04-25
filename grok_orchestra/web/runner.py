@@ -185,6 +185,19 @@ def start_run(*, run: Run) -> threading.Thread:
         )
         run.finished_at = time.time()
 
+        # Capture the trace deep-link if a tracing backend is active.
+        try:
+            from grok_orchestra.tracing import get_tracer
+
+            tracer = get_tracer()
+            if tracer.enabled:
+                root_id = tracer.current_run_id()
+                if root_id:
+                    run.trace_url = tracer.trace_url_for(root_id)
+                tracer.flush()
+        except Exception:  # noqa: BLE001 — telemetry must not crash a run
+            pass
+
         try:
             import json as _json
 

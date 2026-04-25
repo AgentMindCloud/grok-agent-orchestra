@@ -67,6 +67,10 @@ class Run:
     citations: list[dict[str, Any]] = field(default_factory=list)
     source_stats: dict[str, Any] = field(default_factory=dict)
 
+    # Set by the runner when a tracing backend is active. Surfaced on
+    # /api/runs/{id} so the frontend can render a "View trace" link.
+    trace_url: str | None = None
+
     def next_seq(self) -> int:
         with self._seq_lock:
             self.seq += 1
@@ -93,6 +97,7 @@ class Run:
             "error": self.error,
             "citations": list(self.citations),
             "source_stats": dict(self.source_stats),
+            "trace_url": self.trace_url,
         }
 
 

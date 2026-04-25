@@ -10,6 +10,65 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Optional tracing layer (BYOK, off by default).** New
+  ``grok_orchestra.tracing`` package exposes a narrow ``Tracer``
+  Protocol + ``SpanContext`` context-manager; ``NoOpTracer``
+  (default) is zero-overhead so unset runs are byte-for-byte
+  identical. Three concrete backends, all lazy-imported behind a new
+  ``[tracing]`` extra (``langsmith``, ``langfuse``,
+  ``opentelemetry-{api,sdk}``):
+  - ``LangSmithTracer`` — selected when ``LANGSMITH_API_KEY`` is set.
+    Maps every span to a LangSmith Run, preserves parent-child
+    relationships, surfaces a deep-link via
+    ``tracer.trace_url_for(run_id)``. Honours ``LANGSMITH_PROJECT`` +
+    ``LANGSMITH_SAMPLE_RATE`` (root-only sampling).
+  - ``LangfuseTracer`` — selected when ``LANGFUSE_PUBLIC_KEY`` +
+    ``LANGFUSE_SECRET_KEY`` are set. Routes root spans →
+    ``trace``, ``llm_call`` kind → ``generation``.
+  - ``OTelTracer`` — selected when
+    ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set. Targets any OTLP-compatible
+    collector.
+- **Span hierarchy** added at every meaningful boundary: ``run`` (root,
+  carries ``mode_label``, ``provider_costs``, ``role_models``, Lucas
+  verdict), ``debate_round_N``, ``role_turn`` (with ``tokens_in``,
+  ``tokens_out``, ``cost_usd``, ``provider``, ``model``),
+  ``lucas_evaluation`` → ``veto_decision`` (with ``approved``,
+  ``confidence``, ``reasons[]``, ``blocked_claim``), and ``publisher``
+  → ``markdown_render`` / ``pdf_render`` / ``docx_render``.
+- **PII / secret scrubber** (`grok_orchestra.tracing.scrubber`) runs
+  on every span before transit. Default config redacts known
+  credential patterns (``sk-…``, ``tvly-…``, ``xai-…``, ``pypi-…``,
+  ``ghp_…``, ``hf_…``, ``AKIA…``, ``AIza…``, ``Bearer …``) and
+  sensitive field names (``Authorization``, ``*_API_KEY``,
+  ``*_SECRET_KEY``, ``*_TOKEN``). Strings over 4 KiB hard-truncate.
+  Operators can extend via ``Scrubber(deny_field_substrings=…,
+  allow_field_substrings=…, extra_patterns=…)``.
+- **`grok-orchestra trace` CLI subgroup** — ``info`` (active backend
+  + selectors + config), ``test`` (emit a synthetic run + print
+  deep-link), ``export <run-id>`` (dump events JSON from
+  ``$GROK_ORCHESTRA_WORKSPACE/runs/<id>/run.json``).
+- **Run dataclass + dashboard** — ``Run.trace_url`` surfaces on
+  ``/api/runs/{id}`` when a backend is live; the run-results panel
+  renders a **🔭 View trace** button that deep-links to the backend's
+  UI for that run.
+- **Failure semantics**: every backend swallows errors at WARNING
+  level; a misconfigured tracer falls back to ``NoOpTracer`` and the
+  user's run never breaks. ``.env.example`` gains the four supported
+  env-var blocks (LangSmith / Langfuse / OTLP) under an
+  "Observability (optional)" section.
+- ``docs/observability.md`` — full reference covering backends,
+  span hierarchy, scrubber config, sampling, failure modes, and the
+  ``trace`` CLI surface. README gains a brief "Observability" section
+  with a screenshot placeholder.
+- **31 new tests** — ``tests/test_tracing_noop.py`` (zero-overhead
+  contract + dispatcher integration), ``tests/test_tracing_langsmith.py``
+  (mocked client, span shape, parent-child, scrubber applied to
+  inputs, sampling, deep-link URL, backend-failure-does-not-crash-run),
+  ``tests/test_scrubber.py`` (token-pattern redaction, field-name
+  redaction, 4 KiB truncation, recursion across list/tuple/Mapping,
+  custom allow / deny / extra patterns).
+
+### Added
 - **Three-tier capability matrix in the README** (Demo / Local Ollama
   / Cloud BYOK), with an honest tradeoffs section and a per-tier
   capability checklist. The framework now markets the local Ollama

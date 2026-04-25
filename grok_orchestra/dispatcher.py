@@ -118,14 +118,44 @@ def run_orchestra(
     if client is None:
         client = _build_client(pattern)
 
-    if _fallback_enabled(config):
-        return run_recovery(
-            config,
-            client,
-            primary_fn=pattern_fn,
-            event_callback=event_callback,
-        )
-    return _call_pattern(pattern_fn, config, client, event_callback)
+    # Open the root tracing span — every per-role / veto / publisher span
+    # below it inherits the trace_id. Tracer is a NoOp by default so this
+    # is zero-cost when observability is disabled.
+    from grok_orchestra.tracing import get_tracer
+
+    tracer = get_tracer()
+    with tracer.span(
+        f"run/{pattern}",
+        kind="run",
+        inputs={"goal": str(config.get("goal", ""))[:1024]},
+        pattern=pattern,
+        mode=resolve_mode(config),
+        simulated=bool(config.get("_simulated", False)),
+    ) as root:
+        if _fallback_enabled(config):
+            result = run_recovery(
+                config,
+                client,
+                primary_fn=pattern_fn,
+                event_callback=event_callback,
+            )
+        else:
+            result = _call_pattern(pattern_fn, config, client, event_callback)
+
+        # Record top-level outcome on the run span so LangSmith / Langfuse /
+        # Jaeger searches can filter by mode_label / cost / veto verdict.
+        try:
+            root.set_attribute("mode_label", getattr(result, "mode_label", "unknown"))
+            root.set_attribute("provider_costs", dict(getattr(result, "provider_costs", {}) or {}))
+            root.set_attribute("role_models", dict(getattr(result, "role_models", {}) or {}))
+            veto = getattr(result, "veto_report", None) or {}
+            if veto:
+                root.set_attribute("lucas_approved", bool(veto.get("approved", True)))
+                root.set_attribute("lucas_confidence", float(veto.get("confidence", 0.0)))
+            root.set_output(getattr(result, "final_content", ""))
+        except Exception:  # noqa: BLE001 — telemetry must not crash a run
+            pass
+    return result
 
 
 def _call_pattern(

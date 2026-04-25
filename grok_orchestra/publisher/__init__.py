@@ -322,36 +322,47 @@ class Publisher:
     def build_markdown(self, run: Any) -> str:
         from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-        env = Environment(
-            loader=FileSystemLoader(str(self.template_dir)),
-            autoescape=select_autoescape([]),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
-        template = env.get_template("default_report.md.j2")
+        from grok_orchestra.tracing import get_tracer
 
-        events = list(_g(run, "events", []) or [])
-        veto = _g(run, "veto_report")
-        confidence = _confidence_from_veto(veto)
-        citations = self.extract_citations(run)
-        ctx = {
-            "title": _title_for(run),
-            "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
-            "template_name": _g(run, "template_name"),
-            "version": _g(run, "version", "0.1.0"),
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "duration_seconds": _g(run, "duration_seconds")
-            or _duration_from_run(run),
-            "executive_summary": _g(run, "final_output") or "",
-            "findings": extract_role_section(events, "Harper"),
-            "analysis": extract_role_section(events, "Benjamin"),
-            "stress_test": extract_role_section(events, "Lucas"),
-            "synthesis": extract_role_section(events, "Grok"),
-            "confidence": confidence.to_dict(),
-            "citations": format_citations(citations),
-            "transcript_lines": _human_transcript(events),
-        }
-        return template.render(**ctx)
+        tracer = get_tracer()
+        run_id_attr = _g(run, "id") or _g(run, "run_id") or "unknown"
+        with tracer.span(
+            "publisher/markdown_render",
+            kind="markdown_render",
+            run_id=run_id_attr,
+        ) as span:
+            env = Environment(
+                loader=FileSystemLoader(str(self.template_dir)),
+                autoescape=select_autoescape([]),
+                trim_blocks=True,
+                lstrip_blocks=True,
+            )
+            template = env.get_template("default_report.md.j2")
+            events = list(_g(run, "events", []) or [])
+            veto = _g(run, "veto_report")
+            confidence = _confidence_from_veto(veto)
+            citations = self.extract_citations(run)
+            ctx = {
+                "title": _title_for(run),
+                "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
+                "template_name": _g(run, "template_name"),
+                "version": _g(run, "version", "0.1.0"),
+                "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "duration_seconds": _g(run, "duration_seconds")
+                or _duration_from_run(run),
+                "executive_summary": _g(run, "final_output") or "",
+                "findings": extract_role_section(events, "Harper"),
+                "analysis": extract_role_section(events, "Benjamin"),
+                "stress_test": extract_role_section(events, "Lucas"),
+                "synthesis": extract_role_section(events, "Grok"),
+                "confidence": confidence.to_dict(),
+                "citations": format_citations(citations),
+                "transcript_lines": _human_transcript(events),
+            }
+            rendered = template.render(**ctx)
+            span.set_attribute("output_chars", len(rendered))
+            span.set_attribute("citation_count", len(citations))
+            return rendered
 
     # ------------------------------------------------------------------ #
     # PDF.
@@ -367,24 +378,36 @@ class Publisher:
                 "pip install 'grok-agent-orchestra[publish]'"
             ) from exc
 
-        md_text = self.build_markdown(run)
-        html_body = _md.markdown(
-            _strip_frontmatter(md_text),
-            extensions=["fenced_code", "tables", "toc", "sane_lists"],
-        )
-        full_html = _wrap_html(
-            title=_title_for(run),
+        from grok_orchestra.tracing import get_tracer
+
+        tracer = get_tracer()
+        with tracer.span(
+            "publisher/pdf_render",
+            kind="pdf_render",
             run_id=_g(run, "id") or _g(run, "run_id") or "unknown",
-            confidence=_confidence_from_veto(_g(run, "veto_report")),
-            body=html_body,
-        )
-        css_text = self.css_path.read_text(encoding="utf-8") if self.css_path.exists() else ""
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        HTML(string=full_html).write_pdf(
-            target=str(output_path),
-            stylesheets=[CSS(string=css_text)] if css_text else None,
-        )
-        return output_path
+        ) as span:
+            md_text = self.build_markdown(run)
+            html_body = _md.markdown(
+                _strip_frontmatter(md_text),
+                extensions=["fenced_code", "tables", "toc", "sane_lists"],
+            )
+            full_html = _wrap_html(
+                title=_title_for(run),
+                run_id=_g(run, "id") or _g(run, "run_id") or "unknown",
+                confidence=_confidence_from_veto(_g(run, "veto_report")),
+                body=html_body,
+            )
+            css_text = self.css_path.read_text(encoding="utf-8") if self.css_path.exists() else ""
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            HTML(string=full_html).write_pdf(
+                target=str(output_path),
+                stylesheets=[CSS(string=css_text)] if css_text else None,
+            )
+            try:
+                span.set_attribute("output_bytes", output_path.stat().st_size)
+            except OSError:
+                pass
+            return output_path
 
     # ------------------------------------------------------------------ #
     # DOCX.
@@ -399,24 +422,36 @@ class Publisher:
                 "pip install 'grok-agent-orchestra[publish]'"
             ) from exc
 
-        events = list(_g(run, "events", []) or [])
-        ctx = {
-            "title": _title_for(run),
-            "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
-            "template_name": _g(run, "template_name"),
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "executive_summary": _g(run, "final_output") or "",
-            "findings": extract_role_section(events, "Harper"),
-            "analysis": extract_role_section(events, "Benjamin"),
-            "stress_test": extract_role_section(events, "Lucas"),
-            "synthesis": extract_role_section(events, "Grok"),
-            "confidence": _confidence_from_veto(_g(run, "veto_report")),
-            "citations": self.extract_citations(run),
-            "transcript_lines": _human_transcript(events),
-        }
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        write_docx(ctx, output_path)
-        return output_path
+        from grok_orchestra.tracing import get_tracer
+
+        tracer = get_tracer()
+        with tracer.span(
+            "publisher/docx_render",
+            kind="docx_render",
+            run_id=_g(run, "id") or _g(run, "run_id") or "unknown",
+        ) as span:
+            events = list(_g(run, "events", []) or [])
+            ctx = {
+                "title": _title_for(run),
+                "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
+                "template_name": _g(run, "template_name"),
+                "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "executive_summary": _g(run, "final_output") or "",
+                "findings": extract_role_section(events, "Harper"),
+                "analysis": extract_role_section(events, "Benjamin"),
+                "stress_test": extract_role_section(events, "Lucas"),
+                "synthesis": extract_role_section(events, "Grok"),
+                "confidence": _confidence_from_veto(_g(run, "veto_report")),
+                "citations": self.extract_citations(run),
+                "transcript_lines": _human_transcript(events),
+            }
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            write_docx(ctx, output_path)
+            try:
+                span.set_attribute("output_bytes", output_path.stat().st_size)
+            except OSError:
+                pass
+            return output_path
 
 
 # --------------------------------------------------------------------------- #

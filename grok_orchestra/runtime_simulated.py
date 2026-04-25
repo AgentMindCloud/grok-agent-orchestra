@@ -78,6 +78,10 @@ def run_simulated_orchestra(
     console = _console.console
     emit(event_callback, event_dict("run_started", mode="simulated"))
 
+    from grok_orchestra.tracing import get_tracer
+
+    tracer = get_tracer()
+
     # ----- Phase 1: Setup ------------------------------------------------- #
     _console.section(console, "🎯  Resolve roles")
     orch = dict(config.get("orchestra", {}) or {})
@@ -119,46 +123,73 @@ def run_simulated_orchestra(
                 event_callback,
                 event_dict("debate_round_started", round=round_num),
             )
-            for role in roles:
-                tui.start_role_turn(
-                    role.name, role.display_role, round_num, color=role.color
-                )
-                emit(
-                    event_callback,
-                    event_dict(
-                        "role_started",
+            with tracer.span(
+                f"debate_round_{round_num}",
+                kind="debate_round",
+                round=round_num,
+            ):
+                for role in roles:
+                    tui.start_role_turn(
+                        role.name, role.display_role, round_num, color=role.color
+                    )
+                    emit(
+                        event_callback,
+                        event_dict(
+                            "role_started",
+                            role=role.name,
+                            round=round_num,
+                            color=role.color,
+                            display_role=role.display_role,
+                        ),
+                    )
+                    messages = _build_role_messages(role, goal, transcript)
+                    with tracer.span(
+                        f"role_turn/{role.name}",
+                        kind="role_turn",
                         role=role.name,
                         round=round_num,
-                        color=role.color,
-                        display_role=role.display_role,
-                    ),
-                )
-                messages = _build_role_messages(role, goal, transcript)
-                turn_events, turn_text, turn_reasoning = _stream_single_call(
-                    role_clients[role],
-                    messages=messages,
-                    tools=per_role_tools.get(role),
-                    tui=tui,
-                    event_callback=event_callback,
-                    role_name=role.name,
-                    model=role_models.get(role.name),
-                )
-                total_reasoning += turn_reasoning
-                stream_events.extend(turn_events)
-                transcript.append(
-                    RoleTurn(role=role.name, round=round_num, content=turn_text)
-                )
-                if total_reasoning:
-                    tui.render_reasoning(total_reasoning)
-                emit(
-                    event_callback,
-                    event_dict(
-                        "role_completed",
-                        role=role.name,
-                        round=round_num,
-                        output=turn_text,
-                    ),
-                )
+                        model=role_models.get(role.name, ""),
+                        inputs=messages,
+                    ) as turn_span:
+                        turn_events, turn_text, turn_reasoning = _stream_single_call(
+                            role_clients[role],
+                            messages=messages,
+                            tools=per_role_tools.get(role),
+                            tui=tui,
+                            event_callback=event_callback,
+                            role_name=role.name,
+                            model=role_models.get(role.name),
+                        )
+                        turn_span.set_output(turn_text)
+                        turn_span.set_attribute(
+                            "reasoning_tokens", int(turn_reasoning)
+                        )
+                        # Provider cost is captured by the LiteLLMClient
+                        # (Grok-native runs report nothing — we surface 0).
+                        usage = getattr(role_clients[role], "last_usage", None)
+                        if usage is not None:
+                            turn_span.set_attribute("tokens_in", int(usage.prompt_tokens))
+                            turn_span.set_attribute(
+                                "tokens_out", int(usage.completion_tokens)
+                            )
+                            turn_span.set_attribute("cost_usd", float(usage.cost_usd))
+                            turn_span.set_attribute("provider", str(usage.provider))
+                    total_reasoning += turn_reasoning
+                    stream_events.extend(turn_events)
+                    transcript.append(
+                        RoleTurn(role=role.name, round=round_num, content=turn_text)
+                    )
+                    if total_reasoning:
+                        tui.render_reasoning(total_reasoning)
+                    emit(
+                        event_callback,
+                        event_dict(
+                            "role_completed",
+                            role=role.name,
+                            round=round_num,
+                            output=turn_text,
+                        ),
+                    )
 
         # ----- Phase 3: Final synthesis ---------------------------------- #
         tui.start_role_turn(
@@ -216,9 +247,32 @@ def run_simulated_orchestra(
     veto_report: Mapping[str, Any] | None = None
     if safety_cfg.get("lucas_veto_enabled", True):
         emit(event_callback, event_dict("lucas_started"))
-        final_content, veto_report = _run_lucas_veto(
-            final_content, config, client=client, console=console
-        )
+        with tracer.span(
+            "lucas_evaluation",
+            kind="lucas_evaluation",
+            inputs=final_content,
+        ) as lucas_span:
+            final_content, veto_report = _run_lucas_veto(
+                final_content, config, client=client, console=console
+            )
+            approved = veto_report is not None and bool(
+                veto_report.get("approved", True)
+            )
+            with tracer.span(
+                "veto_decision",
+                kind="veto_decision",
+                approved=approved,
+                confidence=float((veto_report or {}).get("confidence", 0.0)),
+            ) as decision_span:
+                if veto_report is not None:
+                    decision_span.set_attribute(
+                        "reasons",
+                        list(veto_report.get("reasons") or []),
+                    )
+                if not approved:
+                    decision_span.set_attribute("status", "blocked")
+                    decision_span.set_attribute("blocked_claim", final_content[:1024])
+            lucas_span.set_attribute("approved", approved)
         if veto_report is not None and bool(veto_report.get("approved", True)):
             emit(
                 event_callback,
