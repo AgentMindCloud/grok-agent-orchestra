@@ -9,6 +9,77 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — VS Code extension (Prompt 18)
+
+- **`extensions/vscode/` — first-party VS Code extension.** Right-
+  click any YAML, run **Agent Orchestra: Run current YAML**, and
+  watch the role-coloured debate stream in a side-panel webview
+  while the Lucas judge bench tracks the verdict. Marketplace
+  publisher: `agentmindcloud.agent-orchestra`.
+- **Five contributed commands**: `runCurrentFile`, `runTemplate`
+  (quick-pick over the backend's `/api/templates`),
+  `openDashboard`, `viewLastReport`, `compareRuns` (two-pane diff
+  via `vscode.diff`).
+- **Activity-bar view container** with two trees:
+  **Templates** (live from the configured backend, falls back to a
+  built-in list of six common slugs) and **Recent runs** (in-memory,
+  this session — clickable to open the report).
+- **Status bar item** showing transport availability —
+  `Orchestra · local` / `Orchestra · remote` / `Orchestra · offline`
+  — with a click-through to the dashboard. Polled every 30 s.
+- **Side-panel debate webview** (React 18 + esbuild bundle, ~30 KB
+  gzipped). Three role lanes (Harper / Benjamin / Grok) plus the
+  Lucas judge bench. Inline styles using VS Code theme tokens —
+  no Tailwind, no shadcn, inherits the editor theme automatically.
+- **Two transports, auto-detected** (mirrors the Claude Skill from
+  Prompt 17):
+  - **Local CLI** (preferred when `grok-orchestra` is on `PATH`):
+    `child_process.spawn` with line-buffered stderr drain → progress
+    line per stderr line.
+  - **Remote HTTP**: `POST /api/run` → poll `GET /api/runs/{id}` →
+    fetch `report.md`. Bearer token via `agentOrchestra.remoteToken`
+    matches the backend's `GROK_ORCHESTRA_AUTH_PASSWORD`.
+  - Force one or the other via `agentOrchestra.localCli.enabled`.
+- **Schema-aware YAML completions + diagnostics** for
+  `*.orchestra.yaml` / `*.orchestra.yml` via the bundled
+  `extensions/vscode/schemas/orchestra.schema.json` (covers
+  `name`, `goal`, `workflow: deep_research`, `orchestra.*`,
+  `sources[].type`, `publisher.images.*`, `safety.*`, `deploy.*`,
+  the four canonical role names, the five canonical patterns).
+- **Snippets** for the canonical patterns — `orchestra:native`,
+  `orchestra:debate-loop`, `orchestra:deep-research`,
+  `orchestra:web`, `orchestra:mcp`, `orchestra:veto`.
+- **5 contributed settings**: `serverUrl`, `localCli.enabled`,
+  `defaultTemplate`, `remoteToken` (machine-scoped),
+  `workspacePath`.
+- **Marketplace assets** — SVG sources for `icon.svg` (128×128
+  Grok-orange tile with the four-role dot motif) and
+  `banner.svg` (1280×640 gallery banner). PNG regeneration steps
+  documented in `media/README.md`. Activity-bar glyph is
+  monochrome `currentColor`-aware so it inherits the active theme.
+- **CI** — new `.github/workflows/vscode-extension.yml`. Path-
+  filtered to `extensions/vscode/**`. Lint + typecheck + esbuild
+  bundle + `vsce package` on every PR; auto-publishes to the
+  Marketplace via `vsce publish` on `vscode-v*` tags using
+  the `VSCE_PAT` secret (setup documented in
+  `docs/integrations/vscode.md`).
+- **Smoke test** (`extensions/vscode/test/extension.test.ts`) —
+  registers all five commands, contributes the
+  `agentOrchestra` activity-bar view container, contributes the
+  YAML schema for the right file pattern, activation succeeds.
+- **`docs/integrations/vscode.md`** — full setup guide (transports,
+  settings, commands, auth, marketplace publishing). Added to the
+  docs-site Integrations nav next to `claude-skill.md`.
+- **README** — new "Use in VS Code" section between the existing
+  "Use from Claude" section and the Quickstart; comparison-table
+  row added (✅ vs ❌ for gpt-researcher).
+- **Hand-off** — `extensions/vscode/src/client/remoteClient.ts`
+  shares the wire contract with `skills/agent-orchestra/scripts/remote_run.py`
+  from Prompt 17. Both produce the canonical `RESULT_JSON` shape
+  (`mode` / `runId` / `reportPath` / `reportUrl` / `vetoReport` /
+  `exitCode`). Prompt 19's benchmark harness can drive both
+  surfaces transparently.
+
 ### Added — Claude Skill integration (Prompt 17)
 
 - **`skills/agent-orchestra/` — self-contained Claude Skill.** Drop

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Activity-bar icons must be monochrome and use currentColor so VS Code
+       can re-tint them to match the active theme. -->
+  <circle cx="12" cy="6" r="2" fill="currentColor"/>
+  <circle cx="6" cy="16" r="2" fill="currentColor"/>
+  <circle cx="18" cy="16" r="2" fill="currentColor"/>
+  <circle cx="12" cy="13" r="3" fill="currentColor"/>
+  <path d="M12 8.5v1.5M7.6 14.6l1.2-1.2M16.4 14.6l-1.2-1.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

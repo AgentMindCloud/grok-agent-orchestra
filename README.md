@@ -83,6 +83,7 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
 | MCP (Model Context Protocol) client | ✅ stdio + HTTP transports, read-only gate | ❌ |
 | Claude Skill | ✅ ships at `skills/agent-orchestra/` (local + remote) | ❌ |
+| VS Code extension | ✅ Full extension with live debate panel | ❌ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
@@ -117,6 +118,32 @@ Inside Claude, just describe the task:
 > "Summarise this arXiv paper: <link>"
 
 Full setup guide: **[docs/integrations/claude-skill.md](docs/integrations/claude-skill.md)**.
+
+## Use in VS Code
+
+A first-party [VS Code extension](extensions/vscode/) lives at
+`extensions/vscode/`. Right-click any YAML, run **Agent Orchestra: Run
+current YAML**, and watch the role-coloured debate stream in a
+side-panel webview while the Lucas judge bench tracks the verdict.
+
+```bash
+# Build + install locally (until the Marketplace listing lands)
+cd extensions/vscode
+npm install
+npm run package
+npm run vsce:package          # → agent-orchestra.vsix
+code --install-extension agent-orchestra.vsix
+```
+
+The extension shares the wire contract with the Claude Skill. It
+auto-detects `grok-orchestra` on PATH (preferred) or falls back to
+the FastAPI at `agentOrchestra.serverUrl`. Schema-aware completions
+trigger inside `*.orchestra.yaml`; bundled snippets cover the canonical
+patterns (`orchestra:native`, `orchestra:debate-loop`,
+`orchestra:deep-research`, `orchestra:web`, `orchestra:mcp`,
+`orchestra:veto`).
+
+Full guide: **[docs/integrations/vscode.md](docs/integrations/vscode.md)**.
 
 ## Quickstart
 

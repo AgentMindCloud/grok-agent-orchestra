@@ -19,6 +19,8 @@ feature line-up so you can pick the right tool.
 | **Report formats** | ✅ MD + PDF (WeasyPrint) + DOCX | ✅ MD + PDF + DOCX |
 | **Inline images** | ✅ Flux + Grok + SD providers, cached | ❌ |
 | **MCP (Model Context Protocol) client** | ✅ stdio + HTTP transports, read-only gate, env interpolation | ❌ |
+| **Claude Skill** | ✅ ships at `skills/agent-orchestra/` | ❌ |
+| **VS Code extension** | ✅ Full extension with live debate panel | ❌ |
 | **Tracing** | ✅ LangSmith / Langfuse / OTLP, opt-in | ✅ LangSmith |
 | **Templates** | ✅ 18 certified, YAML-first | 🟡 Report types only |
 | **Three-tier deploy** | ✅ Demo / Local Ollama / Cloud BYOK | ✅ Local / Cloud |

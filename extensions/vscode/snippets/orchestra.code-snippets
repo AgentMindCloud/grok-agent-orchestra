@@ -1,0 +1,121 @@
+{
+  "Orchestra: minimal native run": {
+    "scope": "yaml",
+    "prefix": ["orchestra:native", "orch:native"],
+    "description": "Minimal native 4-agent run — Grok / Harper / Benjamin / Lucas with the standard veto.",
+    "body": [
+      "name: ${1:my-run}",
+      "goal: |",
+      "  ${2:Describe the research / debate / red-team task here.}",
+      "",
+      "orchestra:",
+      "  mode: native",
+      "  agent_count: 4",
+      "  reasoning_effort: medium",
+      "  debate_rounds: ${3:3}",
+      "  orchestration: {pattern: native, config: {}}",
+      "  agents:",
+      "    - {name: Grok, role: coordinator}",
+      "    - {name: Harper, role: researcher}",
+      "    - {name: Benjamin, role: logician}",
+      "    - {name: Lucas, role: contrarian}",
+      "",
+      "safety: {lucas_veto_enabled: true, confidence_threshold: 0.75}",
+      "deploy: {target: stdout}",
+      ""
+    ]
+  },
+  "Orchestra: debate-loop with mid-loop veto": {
+    "scope": "yaml",
+    "prefix": ["orchestra:debate-loop", "orch:loop"],
+    "description": "Iterate until consensus with a Lucas mid-loop veto each round.",
+    "body": [
+      "name: ${1:policy-debate}",
+      "goal: |",
+      "  ${2:Iterate toward a balanced answer. Lucas vetoes hype mid-loop.}",
+      "",
+      "orchestra:",
+      "  mode: simulated",
+      "  agent_count: 4",
+      "  reasoning_effort: medium",
+      "  debate_rounds: 1",
+      "  orchestration:",
+      "    pattern: debate-loop",
+      "    config:",
+      "      iterations: ${3:5}",
+      "      consensus_threshold: ${4:0.80}",
+      "      max_rounds: 1",
+      "  agents:",
+      "    - {name: Grok, role: coordinator}",
+      "    - {name: Harper, role: researcher}",
+      "    - {name: Benjamin, role: logician}",
+      "    - {name: Lucas, role: contrarian}",
+      "",
+      "safety: {lucas_veto_enabled: true, confidence_threshold: 0.80}",
+      "deploy: {target: stdout}",
+      ""
+    ]
+  },
+  "Orchestra: deep_research workflow": {
+    "scope": "yaml",
+    "prefix": ["orchestra:deep-research", "orch:dr"],
+    "description": "Recursive sub-question planner with web + local-docs sources.",
+    "body": [
+      "workflow: deep_research",
+      "name: ${1:agent-frameworks-2026}",
+      "goal: |",
+      "  ${2:What are the most promising agentic AI frameworks in 2026, and how do they compare?}",
+      "max_depth: ${3:3}",
+      "max_sub_questions_per_level: ${4:5}",
+      "priority_threshold: ${5:0.4}",
+      "sources:",
+      "  - {type: web}",
+      "  - {type: local, path: ${6:./workspace/docs}}",
+      ""
+    ]
+  },
+  "Orchestra: lucas-veto block": {
+    "scope": "yaml",
+    "prefix": ["orchestra:veto", "orch:veto"],
+    "description": "Standalone safety block — drop into any spec.",
+    "body": [
+      "safety:",
+      "  lucas_veto_enabled: true",
+      "  confidence_threshold: ${1:0.75}",
+      ""
+    ]
+  },
+  "Orchestra: web search source": {
+    "scope": "yaml",
+    "prefix": ["orchestra:web", "orch:web"],
+    "description": "Add Tavily-backed web research with a budget cap.",
+    "body": [
+      "sources:",
+      "  - type: web",
+      "    backend: ${1|tavily,serpapi|}",
+      "    max_queries_per_run: ${2:12}",
+      "    cache_ttl_hours: ${3:24}",
+      "    respect_robots: true",
+      ""
+    ]
+  },
+  "Orchestra: MCP source (read-only)": {
+    "scope": "yaml",
+    "prefix": ["orchestra:mcp", "orch:mcp"],
+    "description": "Wire an MCP server (default: read-only).",
+    "body": [
+      "sources:",
+      "  - type: mcp",
+      "    allow_mutations: false",
+      "    allowed_roles: [Harper]",
+      "    servers:",
+      "      - name: ${1:github}",
+      "        transport: stdio",
+      "        command: npx",
+      "        args: [\"-y\", \"@modelcontextprotocol/server-github\"]",
+      "        env:",
+      "          GITHUB_PERSONAL_ACCESS_TOKEN: \\${GITHUB_TOKEN}",
+      ""
+    ]
+  }
+}

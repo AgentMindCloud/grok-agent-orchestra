@@ -1,0 +1,201 @@
+{
+  "name": "agent-orchestra",
+  "displayName": "Agent Orchestra",
+  "description": "Run multi-agent research orchestrations from your editor — visible debate, Lucas safety veto, citation-rich reports.",
+  "version": "0.1.0",
+  "publisher": "agentmindcloud",
+  "private": false,
+  "license": "Apache-2.0",
+  "author": "AgentMindCloud",
+  "homepage": "https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/extensions/vscode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentmindcloud/grok-agent-orchestra.git",
+    "directory": "extensions/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/agentmindcloud/grok-agent-orchestra/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["AI", "Other", "Snippets"],
+  "keywords": [
+    "ai",
+    "agents",
+    "multi-agent",
+    "grok",
+    "research",
+    "yaml",
+    "orchestration"
+  ],
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0d0d0d",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onLanguage:yaml",
+    "onCommand:agentOrchestra.runCurrentFile",
+    "onCommand:agentOrchestra.runTemplate",
+    "onCommand:agentOrchestra.openDashboard",
+    "onCommand:agentOrchestra.viewLastReport",
+    "onCommand:agentOrchestra.compareRuns",
+    "onView:agentOrchestra.templates",
+    "onView:agentOrchestra.recentRuns"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentOrchestra.runCurrentFile",
+        "title": "Agent Orchestra: Run current YAML",
+        "category": "Agent Orchestra",
+        "icon": "$(play)"
+      },
+      {
+        "command": "agentOrchestra.runTemplate",
+        "title": "Agent Orchestra: Run a template…",
+        "category": "Agent Orchestra"
+      },
+      {
+        "command": "agentOrchestra.openDashboard",
+        "title": "Agent Orchestra: Open dashboard",
+        "category": "Agent Orchestra"
+      },
+      {
+        "command": "agentOrchestra.viewLastReport",
+        "title": "Agent Orchestra: View last report",
+        "category": "Agent Orchestra"
+      },
+      {
+        "command": "agentOrchestra.compareRuns",
+        "title": "Agent Orchestra: Compare two runs…",
+        "category": "Agent Orchestra"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "agentOrchestra.runCurrentFile",
+          "when": "resourceLangId == yaml && resourceFilename =~ /\\.orchestra\\.(yaml|yml)$/",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "agentOrchestra.runCurrentFile",
+          "when": "resourceLangId == yaml",
+          "group": "agent-orchestra@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "agentOrchestra.runCurrentFile",
+          "when": "resourceLangId == yaml",
+          "group": "agent-orchestra@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Agent Orchestra",
+      "properties": {
+        "agentOrchestra.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Base URL of the Agent Orchestra FastAPI backend (used when the local CLI is unavailable)."
+        },
+        "agentOrchestra.localCli.enabled": {
+          "type": "string",
+          "enum": ["auto", "always", "never"],
+          "default": "auto",
+          "markdownDescription": "Whether to spawn the local `grok-orchestra` CLI when present. `auto` prefers local-then-remote; `always` requires the CLI; `never` forces remote."
+        },
+        "agentOrchestra.defaultTemplate": {
+          "type": "string",
+          "default": "red-team-the-plan",
+          "description": "Template used by the `Run a template…` quick-pick when no other choice is made."
+        },
+        "agentOrchestra.remoteToken": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Bearer token for the FastAPI backend. Leave empty when the backend has no auth gate. Equivalent to the env var `AGENT_ORCHESTRA_REMOTE_TOKEN`.",
+          "scope": "machine"
+        },
+        "agentOrchestra.workspacePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override `GROK_ORCHESTRA_WORKSPACE` for local-CLI runs. Leave empty to default to `${workspaceFolder}/.agent-orchestra-workspace`."
+        }
+      }
+    },
+    "yamlValidation": [
+      {
+        "fileMatch": ["**/*.orchestra.yaml", "**/*.orchestra.yml"],
+        "url": "./schemas/orchestra.schema.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "yaml",
+        "filenamePatterns": ["*.orchestra.yaml", "*.orchestra.yml"]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yaml",
+        "path": "./snippets/orchestra.code-snippets"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agentOrchestra",
+          "title": "Agent Orchestra",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "agentOrchestra": [
+        {
+          "id": "agentOrchestra.templates",
+          "name": "Templates",
+          "icon": "$(book)"
+        },
+        {
+          "id": "agentOrchestra.recentRuns",
+          "name": "Recent runs",
+          "icon": "$(history)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "package": "node esbuild.config.mjs --production",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit",
+    "test": "vscode-test",
+    "vsce:package": "vsce package --no-yarn --out agent-orchestra.vsix",
+    "vsce:publish": "vsce publish --no-yarn"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.23.1",
+    "eslint": "^8.57.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.4"
+  }
+}

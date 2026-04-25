@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agentmindcloud/grok-agent-orchestra/extensions/vscode/schemas/orchestra.schema.json",
+  "title": "Agent Orchestra spec",
+  "description": "YAML spec consumed by `grok-orchestra run` and `POST /api/run`. Mirrors `grok_orchestra.parser` and the canonical bundled templates.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "goal"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Slug-safe run identifier."
+    },
+    "goal": {
+      "type": "string",
+      "description": "Free-text task description handed to the orchestrator."
+    },
+    "workflow": {
+      "type": "string",
+      "enum": ["deep_research"],
+      "description": "Optional top-level workflow override. Today only `deep_research` is recognised; absent → orchestra.* is read directly."
+    },
+    "max_depth": { "type": "integer", "minimum": 1, "maximum": 6 },
+    "max_sub_questions_per_level": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "priority_threshold": { "type": "number", "minimum": 0.0, "maximum": 0.99 },
+    "combined": { "type": "boolean" },
+    "orchestra": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": { "type": "string", "enum": ["native", "simulated", "auto"] },
+        "agent_count": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "reasoning_effort": { "type": "string", "enum": ["low", "medium", "high"] },
+        "debate_rounds": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "orchestration": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "enum": [
+                "native",
+                "hierarchical",
+                "dynamic-spawn",
+                "debate-loop",
+                "parallel-tools",
+                "recovery"
+              ]
+            },
+            "config": { "type": "object", "additionalProperties": true }
+          },
+          "required": ["pattern"]
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "role"],
+            "properties": {
+              "name": { "type": "string", "enum": ["Grok", "Harper", "Benjamin", "Lucas"] },
+              "role": { "type": "string", "enum": ["coordinator", "researcher", "logician", "contrarian"] }
+            }
+          },
+          "minItems": 4
+        },
+        "llm": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "default": { "$ref": "#/definitions/llmRef" },
+            "role_overrides": {
+              "type": "object",
+              "patternProperties": { "^[A-Z][a-zA-Z]*$": { "$ref": "#/definitions/llmRef" } },
+              "additionalProperties": false
+            },
+            "aliases": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/definitions/llmRef" }
+            }
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["web", "local", "mcp"] }
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "images": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "provider": { "type": "string", "enum": ["grok", "flux", "stable_diffusion", "stub"] },
+            "budget": { "type": "integer", "minimum": 0 },
+            "cover": { "type": "boolean" },
+            "section_illustrations": { "type": "integer", "minimum": 0 },
+            "style": { "type": "string" }
+          }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "lucas_veto_enabled": { "type": "boolean" },
+        "confidence_threshold": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "properties": {
+        "target": { "type": "string", "enum": ["stdout", "file", "x", "discord", "slack"] }
+      }
+    }
+  },
+  "definitions": {
+    "llmRef": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["xai", "openai", "anthropic", "ollama", "mistral", "groq", "together", "bedrock", "azure"]
+        },
+        "model": { "type": "string" },
+        "base_url": { "type": "string", "format": "uri" }
+      },
+      "required": ["provider", "model"]
+    }
+  }
+}

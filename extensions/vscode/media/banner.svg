@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d0d0d"/>
+      <stop offset="0.6" stop-color="#1a0d05"/>
+      <stop offset="1" stop-color="#ff6b35"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <g transform="translate(120, 200)" font-family="Inter, system-ui, sans-serif" fill="#fff7ec">
+    <text x="0" y="0" font-size="86" font-weight="700">Agent Orchestra</text>
+    <text x="0" y="56" font-size="32" opacity="0.85">Multi-agent research, visible debate, enforceable veto.</text>
+    <text x="0" y="180" font-size="22" opacity="0.7" font-family="JetBrains Mono, ui-monospace, monospace">grok · harper · benjamin · lucas</text>
+  </g>
+  <g transform="translate(950, 200)">
+    <circle cx="0" cy="0" r="18" fill="#5fb3d4"/>
+    <circle cx="-90" cy="120" r="18" fill="#d3a04a"/>
+    <circle cx="90" cy="120" r="18" fill="#e85a5a"/>
+    <circle cx="0" cy="60" r="26" fill="#ff6b35"/>
+  </g>
+</svg>

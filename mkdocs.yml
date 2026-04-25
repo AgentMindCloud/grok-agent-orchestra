@@ -221,6 +221,7 @@ nav:
     - Fly.io: deploy/fly.md
   - Integrations:
     - Claude Skill: integrations/claude-skill.md
+    - VS Code extension: integrations/vscode.md
   - Contributing:
     - Overview: contributing/index.md
     - Code of conduct: contributing/code-of-conduct.md

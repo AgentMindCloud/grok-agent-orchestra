@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d0d0d"/>
+      <stop offset="0.6" stop-color="#1a0d05"/>
+      <stop offset="1" stop-color="#ff6b35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="64" cy="64" r="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff6b35" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ff6b35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="22" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="50" fill="url(#glow)"/>
+  <!-- Four role dots arranged like the Orchestra cast: Grok (centre, biggest), Harper, Benjamin, Lucas -->
+  <circle cx="64" cy="40" r="9" fill="#5fb3d4"/>
+  <circle cx="40" cy="80" r="9" fill="#d3a04a"/>
+  <circle cx="88" cy="80" r="9" fill="#e85a5a"/>
+  <circle cx="64" cy="64" r="13" fill="#ff6b35"/>
+</svg>
