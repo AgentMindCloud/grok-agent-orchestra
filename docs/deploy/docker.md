@@ -1,0 +1,74 @@
+# Docker
+
+The fastest path to a working dashboard — no Python install on the
+host. Pre-built multi-arch images (`linux/amd64` + `linux/arm64`) ship
+to **GitHub Container Registry** on every release.
+
+## Pull and run
+
+```bash
+docker pull ghcr.io/agentmindcloud/grok-agent-orchestra:latest
+docker run --rm -p 8000:8000 \
+  -e XAI_API_KEY=<your-key> \
+  ghcr.io/agentmindcloud/grok-agent-orchestra:latest
+# → http://localhost:8000
+```
+
+The image binds to `0.0.0.0:8000` by default, runs as the unprivileged
+`orchestra` user, and ships a `/api/health` HEALTHCHECK so `docker ps`
+reports container readiness.
+
+!!! warning "Pin a tag in production"
+    `:latest` is fine for evals, but production should track an
+    explicit `:v0.1.0` (or `:0.1`) tag so the image you ship in CI
+    matches what you smoke-tested.
+
+## Build from source
+
+```bash
+git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
+cd grok-agent-orchestra
+cp .env.example .env                # paste XAI_API_KEY (optional for simulated runs)
+docker compose up --build
+```
+
+Hot-reload during development:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+Smoke-test:
+
+```bash
+./scripts/docker-smoke-test.sh           # macOS / Linux
+.\scripts\docker-smoke-test.ps1          # Windows
+```
+
+## Environment variables
+
+| Var | Required | Notes |
+| --- | --- | --- |
+| `XAI_API_KEY` | for cloud tier | Bring your own key. |
+| `OPENAI_API_KEY` | optional | Per-role override. |
+| `ANTHROPIC_API_KEY` | optional | Per-role override. |
+| `TAVILY_API_KEY` | optional | Web search. |
+| `REPLICATE_API_TOKEN` | optional | Flux image generation. |
+| `LANGSMITH_API_KEY` / `LANGFUSE_*` / `OTEL_*` | optional | Tracing. |
+| `GROK_ORCHESTRA_WORKSPACE` | optional | Where runs/reports/cache land. Default `~/.grok-orchestra`. |
+
+## Persistence
+
+Mount a volume to keep workspace state across container restarts:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e XAI_API_KEY=<your-key> \
+  -v orchestra-ws:/home/orchestra/.grok-orchestra \
+  ghcr.io/agentmindcloud/grok-agent-orchestra:latest
+```
+
+## See also
+
+- [Render](render.md) — managed deploy.
+- [Fly.io](fly.md) — global edge deploy.

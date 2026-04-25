@@ -9,6 +9,7 @@
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-00C2A8?style=flat-square" /></a>
   <a href="#"><img alt="Docker pulls" src="https://img.shields.io/badge/docker-coming%20soon-2496ED?style=flat-square&logo=docker&logoColor=white" /></a>
+  <a href="https://agentmindcloud.github.io/grok-agent-orchestra/"><img alt="Docs" src="https://img.shields.io/badge/docs-mkdocs--material-FF6B35?style=flat-square&logo=read-the-docs&logoColor=white" /></a>
   <a href="#"><img alt="Discord" src="https://img.shields.io/badge/discord-coming%20soon-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
   <a href="https://github.com/agentmindcloud/grok-agent-orchestra/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/agentmindcloud/grok-agent-orchestra?style=flat-square&logo=github" /></a>
 </p>
@@ -513,13 +514,39 @@ Grouped by theme. Status emojis: ✅ shipped · 🟡 in progress · ⏳ planned.
 
 The 18-item improvement roster lives in [`docs/`](docs/) — each item resolves into one of the themes above.
 
+## Documentation
+
+Full docs ship at **<https://agentmindcloud.github.io/grok-agent-orchestra/>** —
+MkDocs Material with versioned slots, auto-deployed by `.github/workflows/docs.yml`:
+
+- `/latest/` — most recent release tag.
+- `/dev/` — rolling, refreshed on every push to `main`.
+- `/<vX.Y.Z>/` — archived per-version slots.
+
+Local preview:
+
+```bash
+pip install -e ".[docs-build]"
+mkdocs serve
+# → http://127.0.0.1:8000
+```
+
+Highlights:
+[Quickstart](https://agentmindcloud.github.io/grok-agent-orchestra/getting-started/quickstart/) ·
+[Templates](https://agentmindcloud.github.io/grok-agent-orchestra/guides/templates/) ·
+[Architecture](https://agentmindcloud.github.io/grok-agent-orchestra/architecture/overview/) ·
+[Lucas veto](https://agentmindcloud.github.io/grok-agent-orchestra/concepts/lucas-veto/) ·
+[CLI reference](https://agentmindcloud.github.io/grok-agent-orchestra/reference/cli/).
+
 ## Contributing
 
-Issues, PRs, and template submissions welcome. The flow:
+Issues, PRs, and template submissions welcome. See the
+[Contributing guide](https://agentmindcloud.github.io/grok-agent-orchestra/contributing/)
+for the full flow. Short version:
 
-1. Read [`docs/getting-started.md`](docs/getting-started.md) and the (placeholder) `CONTRIBUTING.md` — TODO: write the formal contributor guide.
-2. Open an issue before large changes so we can sanity-check the design against the veto invariants.
-3. Run `pytest` and `ruff check .` before pushing — CI enforces ≥85% coverage and the lint suite.
+1. Open an issue before large changes so we can sanity-check the design against the veto invariants.
+2. Run `pytest` and `ruff check .` before pushing — CI enforces ≥85% coverage and the lint suite.
+3. New CLI flags? Re-run `python scripts/gen_cli_docs.py` so the docs site stays current.
 
 ## License & Attribution
 

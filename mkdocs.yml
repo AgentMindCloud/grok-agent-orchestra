@@ -1,0 +1,225 @@
+# -----------------------------------------------------------------------------
+# Agent Orchestra — documentation site config.
+#
+# Local dev:
+#   pip install -e ".[docs-build]"
+#   python scripts/gen_cli_docs.py        # refresh docs/reference/cli.md
+#   mkdocs serve                          # → http://127.0.0.1:8000
+#
+# CI:
+#   .github/workflows/docs.yml builds and publishes via `mike` so every
+#   tag becomes a versioned slot under /<version>/ with /latest/ alias,
+#   and main pushes refresh /dev/.
+# -----------------------------------------------------------------------------
+
+site_name: Agent Orchestra
+site_url: https://agentmindcloud.github.io/grok-agent-orchestra/
+site_description: >-
+  Multi-agent research with visible debate and enforceable safety vetoes —
+  powered by Grok.
+site_author: AgentMindCloud
+
+repo_url: https://github.com/agentmindcloud/grok-agent-orchestra
+repo_name: agentmindcloud/grok-agent-orchestra
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2026 AgentMindCloud · Apache-2.0
+
+# Legacy reference files that pre-date the MkDocs site. Kept on disk for
+# include-markdown sources (RELEASING.md, observability.md) and historical
+# reference, but explicitly NOT linked from `nav:`.
+not_in_nav: |
+  /RELEASING.md
+  /getting-started.md
+  /marketplace-v2.md
+  /observability.md
+  /orchestra.md
+  /playground.md
+  /vscode-orchestra.md
+  /images/README.md
+
+# Validation — strict on the links we control, lenient on cross-repo paths
+# (e.g. transcluded CHANGELOG entries linking to SECURITY.md or source files).
+validation:
+  nav:
+    omitted_files: ignore
+    not_found: warn
+  links:
+    not_found: ignore
+    absolute_links: ignore
+    unrecognized_links: ignore
+    anchors: ignore
+
+# --------------------------------------------------------------------------- #
+# Theme.
+# --------------------------------------------------------------------------- #
+
+theme:
+  name: material
+  language: en
+  font:
+    text: Inter
+    code: JetBrains Mono
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/file-edit-outline
+    view: material/file-eye-outline
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - search.suggest
+    - search.share
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - content.action.view
+    - toc.follow
+    - announce.dismiss
+
+extra_css:
+  - stylesheets/extra.css
+
+# --------------------------------------------------------------------------- #
+# Plugins.
+# --------------------------------------------------------------------------- #
+
+plugins:
+  - search
+  - include-markdown
+  - mermaid2:
+      version: 10.9.0
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: false
+            show_root_heading: true
+            heading_level: 3
+            members_order: source
+            separate_signature: true
+            line_length: 80
+            merge_init_into_class: true
+            show_signature_annotations: true
+
+# --------------------------------------------------------------------------- #
+# Markdown extensions.
+# --------------------------------------------------------------------------- #
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/agentmindcloud/grok-agent-orchestra
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/grok-agent-orchestra/
+  version:
+    provider: mike
+    default: latest
+
+# --------------------------------------------------------------------------- #
+# Navigation — explicit so reorderings stay obvious.
+# --------------------------------------------------------------------------- #
+
+nav:
+  - Home: index.md
+  - Getting started:
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Your first orchestration: getting-started/first-orchestration.md
+  - Concepts:
+    - Four roles: concepts/four-roles.md
+    - Lucas veto: concepts/lucas-veto.md
+    - Debate loop: concepts/debate-loop.md
+    - Dynamic spawn: concepts/dynamic-spawn.md
+  - Guides:
+    - Templates: guides/templates.md
+    - Local docs: guides/local-docs.md
+    - Web search: guides/web-search.md
+    - Multi-provider LLM: guides/multi-provider-llm.md
+    - Reports & export: guides/reports-and-export.md
+    - Image generation: guides/image-generation.md
+    - Tracing: guides/tracing.md
+  - Reference:
+    - CLI: reference/cli.md
+    - YAML schema: reference/yaml-schema.md
+    - Python API: reference/python-api.md
+    - Events: reference/events.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Extending: architecture/extending.md
+    - Comparison: architecture/comparison.md
+  - Deploy:
+    - Docker: deploy/docker.md
+    - Render: deploy/render.md
+    - Fly.io: deploy/fly.md
+  - Contributing:
+    - Overview: contributing/index.md
+    - Code of conduct: contributing/code-of-conduct.md
+    - Releasing: contributing/releasing.md
+  - Changelog: changelog.md

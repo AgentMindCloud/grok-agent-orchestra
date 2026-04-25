@@ -133,6 +133,16 @@ images = [
 js = [
     "playwright>=1.42,<2",
 ]
+# Docs site build deps. Default-OFF: only the GitHub Pages workflow + the
+# `mkdocs serve` development loop need these. End users never install them.
+docs-build = [
+    "mkdocs>=1.5,<2",
+    "mkdocs-material>=9.5,<10",
+    "mkdocs-include-markdown-plugin>=6,<8",
+    "mkdocs-mermaid2-plugin>=1.1,<2",
+    "mkdocstrings[python]>=0.24,<1",
+    "mike>=2,<3",
+]
 docs = []
 
 [project.urls]

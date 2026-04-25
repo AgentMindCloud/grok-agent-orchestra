@@ -10,6 +10,43 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Full documentation site (MkDocs Material, versioned).**
+  - New ``[docs-build]`` extra: ``mkdocs``, ``mkdocs-material``,
+    ``mkdocs-include-markdown-plugin``, ``mkdocs-mermaid2-plugin``,
+    ``mkdocstrings[python]``, ``mike``.
+  - ``mkdocs.yml`` at repo root — deep-orange (Grok) palette with
+    light/dark toggle, JetBrains Mono code, navigation tabs +
+    sections, search suggest/share/highlight, Mermaid via
+    ``mermaid2``, Python auto-docs via ``mkdocstrings``, mike
+    versioning provider.
+  - ``docs/`` site under: ``index.md`` hero · ``getting-started/``
+    (installation, quickstart, your first orchestration) ·
+    ``concepts/`` (four roles, Lucas veto with Mermaid, debate
+    loop with two Mermaid diagrams, dynamic spawn with Mermaid) ·
+    ``guides/`` (templates, local docs with Mermaid, web search,
+    multi-provider LLM, reports & export, image generation,
+    tracing — re-using ``docs/observability.md`` via include-
+    markdown) · ``reference/`` (CLI, YAML schema, Python API
+    via mkdocstrings on Source/LLMClient/ImageProvider/Tracer/
+    Publisher, events) · ``architecture/`` (overview with main
+    Mermaid diagram, extending, comparison) · ``deploy/``
+    (Docker, Render, Fly.io) · ``contributing/`` (overview, code
+    of conduct, releasing — include-markdown from
+    ``docs/RELEASING.md``) · ``changelog.md`` (include-markdown
+    from this file).
+  - ``scripts/gen_cli_docs.py`` regenerates ``docs/reference/cli.md``
+    by invoking ``grok-orchestra <cmd> --help`` so the docs always
+    track the live CLI surface.
+  - ``docs/stylesheets/extra.css`` — Grok-orange theme tweaks,
+    hero card grid, Mermaid SVG transparency.
+  - ``docs/assets/{logo,favicon}.svg`` — orange-gradient marks
+    with four dots representing the four roles.
+  - ``.github/workflows/docs.yml`` — ``mike``-based versioned
+    deploy: ``main`` → ``/dev/`` rolling, ``v*`` tag →
+    ``/<version>/`` plus ``/latest`` alias and default. PRs run
+    ``mkdocs build --strict`` only (no publish).
+  - README — added docs badge + Documentation section linking the
+    Pages URL and key pages.
 - **Inline images in reports (BYOK, off by default).** New
   ``grok_orchestra.images`` package + ``grok_orchestra.images_runner``
   glue mints a cover + section illustrations during the publisher

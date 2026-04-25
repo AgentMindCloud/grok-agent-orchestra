@@ -1,0 +1,76 @@
+# -----------------------------------------------------------------------------
+# Build the MkDocs Material site and publish to GitHub Pages via `mike`.
+#
+#   - main push  → /dev/  (rolling)
+#   - tag push   → /<vX.Y.Z>/  AND aliases /latest
+#   - PR         → build only, no publish (catches drift early)
+# -----------------------------------------------------------------------------
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write    # mike pushes to gh-pages
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # mike needs full history to manage gh-pages tags + aliases.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install package + docs extras
+        run: |
+          # grok-build-bridge isn't on PyPI yet; install in stub mode so
+          # mkdocstrings can import grok_orchestra.* without the real
+          # bridge dependency. The conftest.py pattern from tests/ does
+          # this for the test runner; here we install a tiny shim.
+          python -m pip install --upgrade pip
+          pip install -e ".[docs-build,adapters,publish,images,tracing,web,search]" || \
+            pip install -e ".[docs-build]"
+
+      - name: Configure git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name  "github-actions[bot]"
+
+      - name: Build (PR or workflow_dispatch — no deploy)
+        if: github.event_name == 'pull_request'
+        run: mkdocs build --strict
+
+      - name: Refresh CLI reference
+        if: github.event_name != 'pull_request'
+        run: |
+          # The script invokes `grok-orchestra <cmd> --help` so the
+          # docs always match the installed package.
+          python scripts/gen_cli_docs.py || true
+
+      - name: Deploy /dev/  (main push)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mike deploy --push --update-aliases dev
+
+      - name: Deploy /<version>/ + /latest  (tag push)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          mike deploy --push --update-aliases "$VERSION" latest
+          mike set-default --push latest
