@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, Field
 
@@ -97,17 +100,61 @@ def create_app() -> FastAPI:
         ),
     )
     app.state.registry = RunRegistry()
+
+    # CORS — enabled for the Next.js dev origin (16a) and any extra
+    # origins listed in GROK_ORCHESTRA_CORS_ORIGINS (comma-separated).
+    # In production the Next.js export is served from this same FastAPI
+    # process, so cross-origin is only relevant in dev.
+    default_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    extra = os.environ.get("GROK_ORCHESTRA_CORS_ORIGINS", "").strip()
+    extra_origins = [o.strip() for o in extra.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=default_origins + extra_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     jinja = Environment(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
         autoescape=select_autoescape(["html"]),
     )
 
     # ------------------------------------------------------------------ #
-    # GET /  →  Jinja2 dashboard.
+    # GET /classic — the v1 single-file Jinja dashboard. Always
+    # available regardless of whether the Next.js export is mounted.
     # ------------------------------------------------------------------ #
+
+    @app.get("/classic", response_class=HTMLResponse)
+    @app.get("/classic/", response_class=HTMLResponse)
+    async def classic(request: Request) -> HTMLResponse:  # noqa: ARG001
+        bootstrap = templates_json_payload(primary_category=_category_for)
+        body = jinja.get_template("index.html").render(
+            version=__version__,
+            bootstrap_json=json.dumps(bootstrap),
+        )
+        return HTMLResponse(body)
+
+    # ------------------------------------------------------------------ #
+    # GET /  →  Next.js static export when present; v1 dashboard otherwise.
+    # `_static_root()` honours the GROK_ORCHESTRA_STATIC_DIR env override
+    # so docker / dev can point at a different out/ directory without a
+    # rebuild. The mount lives at the END of the route table so it
+    # doesn't shadow /api/* or /ws/*.
+    # ------------------------------------------------------------------ #
+
+    static_root = _static_root()
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request) -> HTMLResponse:  # noqa: ARG001
+        if static_root is not None:
+            index_html = static_root / "index.html"
+            if index_html.exists():
+                return HTMLResponse(index_html.read_text(encoding="utf-8"))
         bootstrap = templates_json_payload(primary_category=_category_for)
         body = jinja.get_template("index.html").render(
             version=__version__,
@@ -297,7 +344,6 @@ def create_app() -> FastAPI:
 
     @app.get("/api/runs/{run_id}/report.pdf")
     async def run_report_pdf(run_id: str) -> Any:
-        from fastapi.responses import FileResponse
 
         from grok_orchestra.publisher import (
             Publisher,
@@ -348,7 +394,6 @@ def create_app() -> FastAPI:
 
     @app.get("/api/runs/{run_id}/images/{image_name}")
     async def run_image_get(run_id: str, image_name: str) -> Any:
-        from fastapi.responses import FileResponse
 
         from grok_orchestra.publisher import run_report_dir
 
@@ -369,7 +414,6 @@ def create_app() -> FastAPI:
 
     @app.get("/api/runs/{run_id}/report.docx")
     async def run_report_docx(run_id: str) -> Any:
-        from fastapi.responses import FileResponse
 
         from grok_orchestra.publisher import (
             Publisher,
@@ -463,7 +507,43 @@ def create_app() -> FastAPI:
         await ws.send_json({"type": "close"})
         await ws.close(code=1000)
 
+    # Mount the Next.js static export AFTER all API + WS routes so it
+    # only ever serves the SPA fallback. Optional — if no `out/` dir
+    # exists (dev install without a frontend build), this is a no-op.
+    if static_root is not None and static_root.exists():
+        app.mount(
+            "/_next",
+            StaticFiles(directory=static_root / "_next"),
+            name="next-assets",
+        )
+        # Top-level static assets (favicon, public/) — also available
+        # one path-component below "/".
+        app.mount(
+            "/static",
+            StaticFiles(directory=static_root, check_dir=False),
+            name="next-static",
+        )
+
     return app
+
+
+def _static_root() -> Path | None:
+    """Resolve the directory holding the Next.js static export.
+
+    Order: ``GROK_ORCHESTRA_STATIC_DIR`` env override → ``/app/static``
+    (the Dockerfile path) → ``frontend/out`` (local pnpm build).
+    Returns ``None`` if none exist.
+    """
+    explicit = os.environ.get("GROK_ORCHESTRA_STATIC_DIR")
+    candidates = [
+        Path(explicit) if explicit else None,
+        Path("/app/static"),
+        Path(__file__).resolve().parents[2] / "frontend" / "out",
+    ]
+    for c in candidates:
+        if c is not None and c.exists():
+            return c
+    return None
 
 
 app = create_app()

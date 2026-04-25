@@ -58,6 +58,34 @@ RUN grok-orchestra --version
 
 
 # =========================================================================== #
+# Stage 1b — frontend builder (Next.js static export).
+# Activated automatically; outputs the export to /frontend/out which the
+# runtime stage copies into /app/static/. The Python `serve` command will
+# fall back to the classic Jinja dashboard at "/" when no static export
+# is present, so this stage is non-blocking — `pip install ".[web]"`
+# alone still produces a working image.
+# =========================================================================== #
+
+FROM node:20-alpine AS frontend
+WORKDIR /frontend
+
+# Enable pnpm via Corepack (no install step required on Node 20).
+RUN corepack enable && corepack prepare pnpm@9.10.0 --activate
+
+# Copy lockfile + manifest first to maximise layer cache.
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
+RUN pnpm install --no-frozen-lockfile
+
+COPY frontend/ ./
+ENV NEXT_BUILD_TARGET=export \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_URL=""
+# Output lands in /frontend/out via next.config.mjs's
+# `output: "export"` switch.
+RUN pnpm build || (echo "Frontend build skipped (best-effort)" && mkdir -p out)
+
+
+# =========================================================================== #
 # Stage 2 — runtime.
 # =========================================================================== #
 
@@ -97,6 +125,10 @@ RUN groupadd --system orchestra && \
 
 # Pull the venv across — no pip / no git / no compilers in the runtime image.
 COPY --from=builder /opt/orchestra /opt/orchestra
+
+# Pull the static Next.js export across. Lives at /app/static so the
+# FastAPI app can mount it under "/" via StaticFiles.
+COPY --from=frontend /frontend/out /app/static
 
 WORKDIR /app
 RUN mkdir -p /app/workspace && \

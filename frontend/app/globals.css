@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* shadcn-conventional CSS variable layer.
+ * Light + dark palettes — Grok-orange accent in both.
+ * Per-role lane colours referenced by Tailwind in `tailwind.config.ts`.
+ */
+@layer base {
+  :root {
+    --background: 30 40% 99%;
+    --foreground: 24 10% 8%;
+
+    --muted: 30 10% 94%;
+    --muted-foreground: 24 6% 38%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 8%;
+
+    --border: 24 10% 90%;
+    --input: 24 10% 90%;
+
+    --primary: 18 100% 52%;            /* Grok orange */
+    --primary-foreground: 30 40% 99%;
+
+    --secondary: 30 10% 96%;
+    --secondary-foreground: 24 10% 14%;
+
+    --accent: 18 100% 52%;
+    --accent-foreground: 30 40% 99%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: 18 100% 52%;
+    --radius: 0.625rem;
+
+    /* Per-role lane palette. */
+    --role-grok: 18 100% 52%;          /* deep orange */
+    --role-harper: 195 80% 42%;        /* cyan */
+    --role-benjamin: 38 90% 48%;       /* amber */
+    --role-lucas: 0 72% 50%;           /* judge red */
+  }
+
+  .dark {
+    --background: 24 12% 6%;
+    --foreground: 30 20% 96%;
+
+    --muted: 24 6% 14%;
+    --muted-foreground: 24 6% 62%;
+
+    --card: 24 12% 8%;
+    --card-foreground: 30 20% 96%;
+
+    --border: 24 6% 18%;
+    --input: 24 6% 18%;
+
+    --primary: 18 100% 56%;
+    --primary-foreground: 24 12% 6%;
+
+    --secondary: 24 6% 14%;
+    --secondary-foreground: 30 20% 96%;
+
+    --accent: 18 100% 56%;
+    --accent-foreground: 24 12% 6%;
+
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: 18 100% 56%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { font-family: theme('fontFamily.sans'); }
+  body { @apply bg-background text-foreground antialiased; }
+  pre, code, kbd { font-family: theme('fontFamily.mono'); }
+}

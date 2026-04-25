@@ -1,0 +1,20 @@
+# Dev-mode Next.js image. Used by docker-compose.dev.yml.
+# Production builds bake the static export into the main orchestra
+# image (see /Dockerfile, frontend stage).
+
+FROM node:20-alpine
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@9.10.0 --activate
+
+# Copy lockfile first for layer caching. Bind-mount in compose
+# overrides node_modules anyway.
+COPY package.json ./
+COPY pnpm-lock.yaml* ./
+RUN pnpm install --no-frozen-lockfile || true
+
+COPY . .
+
+ENV NODE_ENV=development
+EXPOSE 3000
+CMD ["pnpm", "dev"]

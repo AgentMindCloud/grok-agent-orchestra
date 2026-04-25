@@ -1,3 +1,12 @@
+# Workspace — test runs, image cache, web cache. Never commit.
+workspace/
+
+# Next.js build artefacts (also covered in frontend/.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/types/api.generated.ts
+
 # Python
 __pycache__/
 *.py[cod]

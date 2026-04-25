@@ -1,0 +1,26 @@
+# Next.js + Node
+node_modules/
+.next/
+out/
+.swc/
+
+# Env (never commit)
+.env
+.env.local
+.env.*.local
+
+# OpenAPI generated client (regenerated on demand)
+types/api.generated.ts
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Vitest coverage
+coverage/
+
+# Build artefacts
+dist/
+build/

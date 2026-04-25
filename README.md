@@ -69,7 +69,8 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Native Grok multi-agent endpoint | ✅ | ❌ |
 | Runs free on your laptop (Ollama, no keys) | ✅ Documented + smoke-tested | 🟡 Possible, not surfaced |
 | Local docs ingest | 🟡 Roadmap | ✅ |
-| Web UI | ✅ Live debate stream | ✅ |
+| Web UI | ✅ Live debate stream + Next.js 14 dashboard | ✅ |
+| Typed frontend client (TS) | ✅ `frontend/lib/api-client.ts` + WS hook | 🟡 |
 | Live web research | ✅ Tavily + cited findings | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
@@ -378,6 +379,29 @@ Pick a template from the left rail, leave **Simulated** on for an offline demo, 
 ![Web UI dashboard](docs/images/web-ui.png)
 
 The dashboard exposes a small JSON API (`/api/templates`, `/api/run`, `/api/runs/{id}`, `/ws/runs/{id}`); see [`grok_orchestra/web/main.py`](grok_orchestra/web/main.py) for the contract. State is in-memory and the server binds to `127.0.0.1` by default — production needs persistence (Redis/SQLite) and auth, neither of which ships in v1.
+
+#### Modern frontend (Next.js 14)
+
+A production-grade dashboard lives under [`frontend/`](frontend/) — Next.js 14 (App Router) + Tailwind + shadcn/ui, with a typed API client and a WebSocket hook with auto-reconnect. The classic single-file dashboard remains available at `/classic/` as a fallback.
+
+```bash
+cd frontend
+cp .env.example .env.local
+pnpm install
+pnpm dev                      # → http://localhost:3000
+```
+
+In a separate terminal, run the FastAPI backend (`grok-orchestra serve --no-browser`). CORS for `http://localhost:3000` is on by default; override with `GROK_ORCHESTRA_CORS_ORIGINS=...`.
+
+For Docker, the main `docker compose up` continues to expose port 8000 with the v1 dashboard. To run the Next.js dev server alongside, use the dev overlay:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# → http://localhost:8000  (FastAPI)
+# → http://localhost:3000  (Next.js dev)
+```
+
+A future production image will ship the Next.js static export pre-baked at `/`. _Screenshot placeholder: `docs/images/web-ui-modern.png` (lands with 16b)._
 
 ## Run your first orchestration
 

@@ -34,3 +34,11 @@ services:
       # Force-flush logs so `docker compose logs -f` shows debate stream output.
       PYTHONUNBUFFERED: "1"
       LOG_LEVEL: "DEBUG"
+      # Allow the Next.js dev origin without restarting the backend.
+      GROK_ORCHESTRA_CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+
+  # Activate the optional frontend service in dev so a single
+  # `docker compose -f docker-compose.yml -f docker-compose.dev.yml up`
+  # boots both panes.
+  frontend:
+    profiles: []                # clear the prod-only profile gate

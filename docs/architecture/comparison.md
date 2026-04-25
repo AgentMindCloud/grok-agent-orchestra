@@ -15,7 +15,7 @@ feature line-up so you can pick the right tool.
 | **Multi-provider LLM** | ✅ LiteLLM (xAI / OpenAI / Anthropic / Ollama / …) | ✅ OpenAI / Anthropic / Ollama |
 | **Local docs** | ✅ PDF + Markdown + TXT, BM25, no upload | ✅ PDF |
 | **Web search** | ✅ Tavily (cache + robots.txt) | ✅ Tavily / Bing / Serper |
-| **Web UI** | ✅ FastAPI + WebSocket dashboard | ✅ Next.js dashboard |
+| **Web UI** | ✅ FastAPI + WebSocket dashboard, plus Next.js 14 frontend in `frontend/` | ✅ Next.js dashboard |
 | **Report formats** | ✅ MD + PDF (WeasyPrint) + DOCX | ✅ MD + PDF + DOCX |
 | **Inline images** | ✅ Flux + Grok + SD providers, cached | ❌ |
 | **MCP (Model Context Protocol) client** | ✅ stdio + HTTP transports, read-only gate, env interpolation | ❌ |

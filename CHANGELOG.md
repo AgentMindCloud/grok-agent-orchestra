@@ -10,6 +10,83 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Modern frontend — Next.js 14 + Tailwind + shadcn/ui (Prompt 16a / 4).**
+  Production-grade dashboard in a sibling ``frontend/`` package.
+  Reaches parity with the v1 single-file Jinja dashboard (which now
+  ships at ``/classic/`` as a fallback). Rich debate visualisation
+  lands in 16b.
+  - **App Router** with four routes:
+    ``/`` (template picker + run trigger + recent runs),
+    ``/runs/[runId]`` (live debate stream + final output + Lucas
+    verdict + Markdown/PDF/DOCX download buttons),
+    ``/templates`` (browser with YAML preview),
+    ``/settings`` (per-browser API base URL override stored in
+    localStorage).
+  - **Typed API client** (``frontend/lib/api-client.ts``). Wraps
+    ``fetch`` with a ``ApiError`` class carrying ``status`` +
+    ``detail``. ``resolveBaseUrl`` honours
+    ``NEXT_PUBLIC_API_URL``; ``resolveWsUrl`` swaps ``http`` →
+    ``ws`` automatically. ``api.reportUrl(id, fmt)`` and
+    ``api.wsUrl(id)`` compose the right endpoints without
+    rebuilding URLs in components.
+  - **``useRunStream(runId)`` hook** (``frontend/lib/use-run-stream.ts``).
+    Subscribes to ``/ws/runs/{id}``, replays the snapshot, then
+    tails live events. Exponential backoff reconnect (1s → 16s),
+    seq-based dedup so reconnect mid-stream doesn't double-render,
+    bounded buffer (default 5000 events). WebSocket constructor
+    is injectable for tests.
+  - **Per-role lane visualisation** (``DebateStream``). Builds
+    streaming bubbles per ``role_started`` → token-stream →
+    ``role_completed`` window with a stable colour map (Grok
+    deep-orange, Harper cyan, Benjamin amber, Lucas judge-red).
+  - **Selection store** (``frontend/lib/selection-store.ts``).
+    ``useSyncExternalStore``-based active-template state — no
+    Zustand / Jotai dependency for one piece of cross-component
+    state.
+  - **shadcn/new-york primitives** copied in (``button``, ``card``,
+    ``badge``, ``separator``) — no codegen step. Inter for UI,
+    JetBrains Mono for the debate stream + final-output pre.
+  - **Dark mode default** with light-mode toggle via ``next-themes``.
+    Grok-orange accent reads consistently against the
+    ``mkdocs-material`` docs site.
+  - **Tests (vitest + happy-dom)**: ``__tests__/api-client.test.ts``
+    (URL resolution, GET/POST happy paths, ``ApiError`` shape) +
+    ``__tests__/use-run-stream.test.ts`` (FakeWebSocket fixture
+    drives connection → events → terminal frame; seq dedup;
+    null-runId no-op).
+
+  Backend changes:
+  - ``grok_orchestra/web/main.py`` — added ``CORSMiddleware`` with
+    ``http://localhost:3000`` allowed by default, plus optional
+    ``GROK_ORCHESTRA_CORS_ORIGINS`` (comma-separated extras).
+  - The v1 Jinja dashboard moved to ``/classic`` and ``/classic/``.
+    ``GET /`` now serves the Next.js static export from
+    ``GROK_ORCHESTRA_STATIC_DIR`` / ``/app/static`` /
+    ``frontend/out`` (first-found), falling back to the v1
+    dashboard when no export is present. ``/_next/*`` and
+    ``/static/*`` mount the export's assets — both mounts live
+    AFTER the API + WS routes so they never shadow them.
+  - ``Dockerfile`` — new ``frontend`` build stage runs
+    ``pnpm build`` with ``NEXT_BUILD_TARGET=export`` and the
+    runtime stage copies the result into ``/app/static``.
+    ``pnpm build`` failure is non-blocking — the v1 dashboard
+    still ships if the Node build hiccups.
+  - ``docker-compose.yml`` — new optional ``frontend`` service
+    (``profiles: ["dev-ui"]`` so ``docker compose up`` alone is
+    unchanged); ``docker-compose.dev.yml`` clears the profile
+    gate so dev developers boot both panes with one command.
+  - ``frontend/Dockerfile.dev`` — Node 20 + pnpm 9 + ``pnpm dev``.
+
+  README + docs comparison tables: Web UI row updated; new
+  "Typed frontend client (TS)" row added (✅ vs 🟡 for
+  gpt-researcher).
+
+  Hand-off (16b): the frontend is at parity with the v1
+  dashboard. Next session adds the rich debate visualisation —
+  per-turn token velocity, tool-call timeline, sticky
+  Lucas-verdict drawer, share-link generator. The
+  ``DebateStream`` component is the entry point; all other
+  components stay the same shape.
 - **Deep Research workflow — recursive sub-question planner (Prompt 15a / 4).**
   First piece of the GPT-Researcher-style deep-research surface; pairs
   the recursive planner with this project's visible-debate +
