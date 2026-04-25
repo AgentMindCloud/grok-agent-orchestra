@@ -10,6 +10,108 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Courtroom-style debate visualization (Prompt 16b / 4).**
+  Replaces the parity-with-v1 grid from 16a with a layout that
+  treats the run page like a writers' room: three role lanes
+  (Harper / Benjamin / Grok) in horizontal flight, Lucas's judge
+  bench pinned to the right (sticky-bottom drawer on mobile), final
+  synthesis card lands when the run completes.
+  - **New stream model** (``frontend/lib/use-stream-model.ts``).
+    Single reducer turns the raw ``WireEvent[]`` into a structured
+    ``StreamModel`` with ``lanes`` (per-role messages, open-message
+    id, citation totals, tool calls), ``lucas`` (status + confidence
+    + verdict log + vetoed-message ids), ``round``, ``finalOutput``,
+    ``failureReason``. Components read slices instead of re-deriving
+    on every render. Reducer is pure + exported as ``buildModel``
+    so the vitest suite covers it directly.
+  - **60fps batching hook** (``frontend/lib/use-batched-events.ts``).
+    Coalesces high-frequency token bursts into one
+    ``requestAnimationFrame`` per paint to keep the lane scroll
+    buttery on hot prompts. Falls back to ``setTimeout(0)`` outside
+    the browser.
+  - **Citation extractor** (``frontend/lib/citations.ts``). Parses
+    ``[web:host]`` / ``[file:path]`` / ``[doc:id]`` / ``[mcp:tool]``
+    markers out of agent text and returns alternating
+    text + citation segments so the renderer can swap in hover
+    popovers without regex on every render.
+  - **Per-role meta single-source-of-truth**
+    (``frontend/lib/role-meta.ts``). Avatar glyph, lane class,
+    one-line tooltip, ring + text colour all live in one map.
+    Lucas is canonically the judge bench, not a lane —
+    ``LANE_ROLES`` lists Harper / Benjamin / Grok.
+  - **Components**:
+    - ``RoleLane`` — header with avatar / status badge / citation
+      count, scroll area with bounded window (``windowSize=80``,
+      "+N earlier" header for older messages), auto-scrolls only
+      when the user is near the bottom (no scroll-jacking when
+      reading older messages). framer-motion entry animation.
+    - ``RoleMessage`` — memoised bubble with streaming caret
+      (CSS-only ``@keyframes caret-blink``, paused under
+      ``prefers-reduced-motion``), inline tool-call cards, citation
+      segments rendered as ``CitationPopover`` triggers, vetoed
+      messages get a destructive-tone ring + ``ShieldAlert`` badge.
+    - ``RoleToolCall`` — colour-tinted by status (calling / ok /
+      error), Popover with full tool args + result.
+    - ``CitationPopover`` — Globe / FileText / Plug icon by scheme,
+      "Open" link for web citations.
+    - ``RoleAvatar`` — Tooltip-wrapped initial-glyph circle with
+      role description; pulses when speaking.
+    - ``LucasPanel`` — judge-bench treatment with status pill
+      (idle / observing / passed / vetoed), animated confidence
+      meter, verdict log (vetoes are red cards with
+      "Show blocked content" details, passes are subtle emerald
+      check-marks), sr-only live region announces vetoes for
+      assistive tech.
+    - ``RunHeader`` — title + simulated/live/status badges,
+      duration / cost / round / mode stat row, stream-status pill,
+      Replay button when finished.
+    - ``FinalOutputPanel`` — gradient emerald card with copy +
+      MD/PDF/DOCX download buttons; failure variant uses
+      destructive tone.
+    - ``SkeletonLanes`` — three role-tinted shells while waiting
+      for the first event.
+    - ``DebateStream`` — composes the three lanes for desktop
+      (3-up grid), collapses to a Tabs switcher on mobile with
+      avatars in the tab triggers; defaults the active tab to
+      whichever lane is currently speaking.
+    - ``RunDetailView`` rewritten as the orchestrator:
+      ``RunHeader`` → 3-up lanes + sticky Lucas right-rail
+      (desktop) / sticky-bottom Lucas drawer (mobile, auto-opens
+      on veto) → ``FinalOutputPanel``. SWR snapshot fetcher +
+      WebSocket stream hook compose; replay button reuses
+      ``useRunStream.reconnect``. Falls back to ``SkeletonLanes``
+      until the first event lands.
+  - **shadcn primitives** copied in: Tooltip, Popover, Tabs,
+    Skeleton, ScrollArea (Radix-based).
+  - **Globals.css**: ``@keyframes caret-blink`` + ``.judge-bench``
+    radial-gradient accent + global ``prefers-reduced-motion``
+    overrides for the caret.
+  - **Deps**: ``framer-motion@^11`` for entry / verdict-log
+    animations, ``@radix-ui/react-{popover,tabs,tooltip,scroll-area}``.
+  - **Vitest** (``__tests__/use-stream-model.test.ts``): nine cases
+    covering token accumulation, role_completed text + citation
+    counting, tool call/result chaining, implicit-start
+    synthesis, Lucas pass + veto + vetoed-message highlighting,
+    empty-event safety, terminal final_output capture, run_failed
+    failure reason, debate-round high-water mark.
+  - **Demo capture** (``scripts/capture-demo.mjs``): Playwright-
+    driven 30s GIF/MP4 recorder that drives a real browser through
+    the dev compose stack and writes ``docs/images/web-ui-debate.{gif,mp4}``.
+    CI does NOT run it — capture once locally per release. Stub
+    asks for ``playwright`` + ``gifski`` only when invoked.
+  - **Acceptance vs spec**: lanes don't auto-scroll if the user is
+    reading older messages (80px threshold); long runs collapse
+    older messages into a "+N earlier" header instead of unbounded
+    DOM growth; vetoes bubble up to a polite ARIA live region;
+    framer-motion entries respect ``prefers-reduced-motion``;
+    Lucas judge bench has a visually distinct treatment from the
+    role lanes (gradient bg + sticky placement on desktop).
+  - **Hand-off (16c)** — the deep-research tree view will live in
+    a sibling component that reads from the same ``StreamModel``
+    once 15c starts emitting ``planner_*`` and ``sub_question_*``
+    events. The lane view stays as-is — the tree complements it,
+    doesn't replace it.
+
 - **Modern frontend — Next.js 14 + Tailwind + shadcn/ui (Prompt 16a / 4).**
   Production-grade dashboard in a sibling ``frontend/`` package.
   Reaches parity with the v1 single-file Jinja dashboard (which now

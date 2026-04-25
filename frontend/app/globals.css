@@ -77,3 +77,42 @@
   body { @apply bg-background text-foreground antialiased; }
   pre, code, kbd { font-family: theme('fontFamily.mono'); }
 }
+
+/* ------------------------------------------------------------------ */
+/* Streaming caret + entry effects.
+ * Tailwind keyframes + reduced-motion overrides live here so the
+ * Tailwind config stays minimal. The caret uses the role's CSS var
+ * via `bg-role-*` utility classes set in tailwind.config.ts.        */
+/* ------------------------------------------------------------------ */
+
+@keyframes caret-blink {
+  0%, 100% { opacity: 0.05; }
+  50%      { opacity: 1; }
+}
+
+@layer utilities {
+  .animate-caret-blink {
+    animation: caret-blink 1.05s steps(2, end) infinite;
+  }
+}
+
+/* Lucas judge bench accent — subtle inset highlight along the top
+ * border. Built as a layered radial so it doesn't depend on box-shadow
+ * filters that can cost frame budget in dense scrolls. */
+.judge-bench {
+  background-image: radial-gradient(
+    120% 60% at 50% -20%,
+    hsl(var(--role-lucas) / 0.15) 0%,
+    transparent 60%
+  );
+}
+
+/* Respect reduced-motion across our framer-motion entries + the caret.
+ * framer-motion has its own respect-helper but we stop the caret here
+ * for users who explicitly disabled motion at the OS level. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret-blink {
+    animation: none;
+    opacity: 0.6;
+  }
+}

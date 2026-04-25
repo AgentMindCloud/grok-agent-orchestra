@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "generate:types": "openapi-typescript $NEXT_PUBLIC_API_URL/openapi.json --output types/api.generated.ts"
+    "generate:types": "openapi-typescript $NEXT_PUBLIC_API_URL/openapi.json --output types/api.generated.ts",
+    "capture:demo": "node ../scripts/capture-demo.mjs"
   },
   "dependencies": {
     "next": "^14.2.5",
@@ -19,11 +20,16 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "swr": "^2.2.5",
-    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-scroll-area": "^1.2.0",
     "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^11.5.4",
     "lucide-react": "^0.468.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
