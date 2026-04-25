@@ -23,7 +23,39 @@
 
 - **Visible debate, not a black box.** Four named roles (Grok, Harper, Benjamin, Lucas) argue on screen. Every turn, every tool call, every reasoning gauge streams into a Rich TUI you can actually read while it happens.
 - **Lucas veto = enforceable quality / safety gate.** A separate `grok-4.20-0309` pass with strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed, low-confidence, or timed-out → exit code 4 → nothing ships.
-- **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4.20-multi-agent-0309` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Roadmap: a provider-adapter layer so you can swap engines without touching specs.
+- **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4.20-multi-agent-0309` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Bring your own key from any provider via the LiteLLM adapter — same orchestration, your choice of engine.
+
+> **Multi-agent research that runs free on your laptop OR scales up with your favorite cloud LLM.**
+
+## Three-tier capability matrix
+
+Pick the tier that matches what you have on hand right now. `grok-orchestra doctor` will tell you which tiers your machine has configured.
+
+| Tier | Setup | Cost | Quality | Best for |
+| --- | --- | --- | --- | --- |
+| **Demo mode** | None — works on a fresh `pip install` | $0 | Pre-canned, deterministic | First five minutes; demos; the README hero GIF |
+| **Local mode** (Ollama) | `ollama pull llama3.1:8b` + `pip install 'grok-agent-orchestra[adapters]'` | $0 | Solid for drafts; below cloud frontier | Privacy-sensitive runs; offline laptops; CI without keys |
+| **Cloud mode** (BYOK) | Set `XAI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Pay-as-you-go (your invoice) | Ship-grade | Production research, customer-facing reports |
+
+Capabilities by tier:
+
+| Capability | Demo | Local | Cloud |
+| --- | :---: | :---: | :---: |
+| Visible 4-role debate (Grok / Harper / Benjamin / Lucas) | ✅ canned | ✅ real | ✅ real |
+| Live debate streaming in the TUI / web UI | ✅ | ✅ | ✅ |
+| Lucas veto (fail-closed safety gate) | ✅ canned verdicts | ✅ runs on local LLM | ✅ runs on Grok / Claude |
+| Per-role model overrides (`agents[].model`) | n/a | ✅ Ollama pins | ✅ any provider |
+| Live web research via Tavily | n/a | 🟡 BYOK Tavily key | ✅ |
+| Native Grok multi-agent endpoint (one streamed call) | n/a | n/a | ✅ Grok-only runs |
+| Citations + Markdown / PDF / DOCX export | ✅ | ✅ | ✅ |
+
+Honest tradeoffs:
+
+- **Demo mode** uses pre-canned event streams. It's the right path to learn the framework's vocabulary in five minutes, but it won't answer real research questions — every run produces the same canned text shape.
+- **Local mode** swaps in a real LLM, but `llama3.1:8b` is materially below `claude-3-5-sonnet` / `grok-4.20` on long-context synthesis. The visible debate + Lucas veto still keep failure modes loud — the *reasoning quality* tracks the model.
+- **Cloud mode** is the production path. Mixing a cloud-grade Lucas with a local Harper is a pragmatic middle ground (`mode_label="mixed"` in the run summary).
+
+Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 
 ## Compared to GPT-Researcher
 
@@ -34,6 +66,7 @@
 | Multi-agent debate | ✅ Visible & streamed | ❌ Hidden |
 | Safety veto layer | ✅ Lucas (fail-closed) | ❌ |
 | Native Grok multi-agent endpoint | ✅ | ❌ |
+| Runs free on your laptop (Ollama, no keys) | ✅ Documented + smoke-tested | 🟡 Possible, not surfaced |
 | Local docs ingest | 🟡 Roadmap | ✅ |
 | Web UI | ✅ Live debate stream | ✅ |
 | Live web research | ✅ Tavily + cited findings | ✅ |

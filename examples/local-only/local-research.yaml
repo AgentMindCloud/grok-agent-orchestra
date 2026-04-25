@@ -1,0 +1,89 @@
+# -----------------------------------------------------------------------------
+# local-research.yaml — runs entirely on Ollama. Zero cloud cost. Zero keys.
+#
+# Prerequisites
+#   1. Install Ollama:           https://ollama.com/download
+#   2. Pull a small-but-capable model:
+#          ollama pull llama3.1:8b
+#   3. Install the orchestra adapter extra:
+#          pip install 'grok-agent-orchestra[adapters]'
+#   4. Verify the box is set up:
+#          grok-orchestra doctor
+#
+# Run
+#   grok-orchestra run examples/local-only/local-research.yaml
+#
+# Notes
+# - All four roles use `ollama/llama3.1:8b`. The dispatcher detects every
+#   role is non-Grok, so the run flows through the LiteLLM adapter (Mode
+#   = "adapter" on the run summary). No xAI / OpenAI / Anthropic keys
+#   are read, no network leaves your machine.
+# - Quality is materially below Grok / Claude / GPT-4 — that's the
+#   honest tradeoff of the local tier. For ship-grade output, swap any
+#   role to a cloud model (BYOK) and the rest of the pipeline is
+#   unchanged.
+# - To use a smaller / faster model, change `llama3.1:8b` to e.g.
+#   `phi3:mini` or `qwen2.5:3b`. Anything Ollama can run, this can.
+# -----------------------------------------------------------------------------
+
+name: local-research
+description: Local-only research run — every role on Ollama, no cloud calls.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, debate, local-only, fast]
+
+goal: |
+  Pick a topic you want a quick balanced summary on (e.g. "the trade-offs
+  of multi-agent vs single-agent LLM systems for research tasks") and
+  produce:
+
+    1. Three claims with one supporting reason each (Harper).
+    2. A logic check on those claims (Benjamin).
+    3. One devil's-advocate counter for each claim (Lucas).
+    4. A 200-word synthesis the reader could share verbatim (Grok).
+
+  Tone: rigorous, specific, no hype. No emoji.
+
+# Force every role onto the local Ollama model. Lucas stays local too —
+# it's the demo template; for ship-grade safety vetoes consider
+# swapping Lucas to a cloud model on a follow-up run.
+model: ollama/llama3.1:8b
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator, model: ollama/llama3.1:8b}
+    - {name: Harper,   role: researcher,  model: ollama/llama3.1:8b}
+    - {name: Benjamin, role: logician,    model: ollama/llama3.1:8b}
+    - {name: Lucas,    role: contrarian,  model: ollama/llama3.1:8b}
+  # No external tools — Ollama runs offline by default. To enable the
+  # Tavily-backed `sources:` block, set TAVILY_API_KEY and uncomment
+  # the block below.
+  tool_routing:
+    Grok:     []
+    Harper:   []
+    Benjamin: []
+    Lucas:    []
+
+# Uncomment for real web research (still local-LLM, BYOK Tavily key):
+# sources:
+#   - type: web
+#     provider: tavily
+#     max_results_per_query: 3
+#     blocked_domains: ["pinterest.com", "quora.com"]
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.70  # local models tend to lower-confidence verdicts
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

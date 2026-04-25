@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -715,6 +717,165 @@ def _models_test(
 
 
 app.add_typer(models_app, name="models")
+
+
+# --------------------------------------------------------------------------- #
+# `doctor` — environment self-check. Detects which of the three tiers
+# (Demo / Local Ollama / Cloud BYOK) is ready right now and prints a
+# friendly status. Network-light (a single 1-second GET to
+# localhost:11434), key-safe (only checks for env-var presence — never
+# reads or echoes a key value).
+# --------------------------------------------------------------------------- #
+
+
+@app.command()
+def doctor(
+    ctx: typer.Context,
+    ollama_url: Annotated[
+        str,
+        typer.Option(
+            "--ollama-url",
+            help="Override the Ollama probe target (default localhost:11434).",
+        ),
+    ] = "http://127.0.0.1:11434",
+    timeout: Annotated[
+        float,
+        typer.Option("--timeout", help="Seconds to wait for the Ollama probe."),
+    ] = 1.0,
+) -> None:
+    """Detect which of the three tiers is ready: Demo / Local / Cloud."""
+    state = _state(ctx)
+
+    demo = {"ready": True, "reason": "always available — no setup required"}
+    local = _probe_ollama(ollama_url, timeout=timeout)
+    cloud = _probe_cloud_keys()
+
+    if state.json:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": True,
+                    "modes": {"demo": demo, "local": local, "cloud": cloud},
+                }
+            )
+        )
+        return
+
+    body = Text()
+
+    body.append("✅  Demo mode ready", style="bold green")
+    body.append(f"  ·  {demo['reason']}\n", style="dim")
+
+    if local["ready"]:
+        body.append("✅  Local mode ready", style="bold green")
+        body.append(
+            f"  ·  Ollama at {local['endpoint']}", style="dim",
+        )
+        models = local.get("models") or []
+        if models:
+            shown = ", ".join(models[:5])
+            more = f" (+{len(models) - 5} more)" if len(models) > 5 else ""
+            body.append(f"\n     models: {shown}{more}\n", style="dim")
+        else:
+            body.append(
+                "\n     no models pulled yet — run `ollama pull llama3.1:8b`\n",
+                style="yellow",
+            )
+    else:
+        body.append("⚠️  Local mode unavailable", style="bold yellow")
+        body.append(
+            f"  ·  no Ollama at {local['endpoint']}\n", style="dim",
+        )
+        body.append(
+            "     install: https://ollama.com/download  ·  then `ollama pull llama3.1:8b`\n",
+            style="dim",
+        )
+
+    if cloud["ready"]:
+        body.append("✅  Cloud mode ready", style="bold green")
+        present = ", ".join(cloud["keys_present"])
+        body.append(f"  ·  {present}\n", style="dim")
+    else:
+        body.append("⚠️  No cloud keys detected", style="bold yellow")
+        body.append(
+            "  ·  set XAI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY for Cloud mode\n",
+            style="dim",
+        )
+
+    body.append("\nNext step:\n", style="bold")
+    if not (local["ready"] or cloud["ready"]):
+        body.append(
+            "  Demo mode: try `grok-orchestra dry-run red-team-the-plan`\n",
+            style="white",
+        )
+    if local["ready"]:
+        body.append(
+            "  Local mode: try `grok-orchestra run examples/local-only/local-research.yaml`\n",
+            style="white",
+        )
+    if cloud["ready"]:
+        body.append(
+            "  Cloud mode: try `grok-orchestra run weekly-news-digest`\n",
+            style="white",
+        )
+
+    state.console.print(
+        Panel(
+            body,
+            title="grok-orchestra · doctor",
+            border_style="#8B5CF6",
+            box=box.ROUNDED,
+        )
+    )
+
+
+def _probe_ollama(base_url: str, *, timeout: float) -> dict[str, Any]:
+    """Quick HTTP GET against ``{base}/api/tags``. Returns the model list on 200.
+
+    No third-party HTTP library — keeps the doctor command available
+    on a base CLI install without ``[search]`` / ``[adapters]`` extras.
+    """
+    base = base_url.rstrip("/")
+    url = f"{base}/api/tags"
+    try:
+        req = urllib.request.Request(
+            url, headers={"User-Agent": f"grok-orchestra/{__version__}"}
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 — local probe
+            payload = json.loads(resp.read().decode("utf-8") or "{}")
+    except (urllib.error.URLError, OSError, TimeoutError, json.JSONDecodeError):
+        return {"ready": False, "endpoint": base, "models": []}
+
+    models = []
+    for entry in payload.get("models") or []:
+        if isinstance(entry, dict) and entry.get("name"):
+            models.append(str(entry["name"]))
+    return {"ready": True, "endpoint": base, "models": models}
+
+
+def _probe_cloud_keys() -> dict[str, Any]:
+    """Report which cloud keys are *present* in the environment.
+
+    BYOK: we never read the value, only ``len(value) > 0`` to decide
+    presence. ``XAI_API_KEY`` is checked first because Grok is the
+    project's home base.
+    """
+    import os
+
+    candidates = (
+        "XAI_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY",
+        "GROQ_API_KEY",
+        "TOGETHER_API_KEY",
+    )
+    present = [name for name in candidates if (os.environ.get(name) or "").strip()]
+    return {
+        "ready": bool(present),
+        "keys_present": present,
+        "keys_missing": [n for n in candidates if n not in present],
+    }
 
 
 @app.command()

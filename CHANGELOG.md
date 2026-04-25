@@ -4,7 +4,35 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Headline for the next release:** *Multi-agent research that runs free on
+> your laptop OR scales up with your favorite cloud LLM.*
+
 ## [Unreleased]
+
+### Added
+- **Three-tier capability matrix in the README** (Demo / Local Ollama
+  / Cloud BYOK), with an honest tradeoffs section and a per-tier
+  capability checklist. The framework now markets the local Ollama
+  path explicitly — `grok-orchestra doctor` tells the user which
+  tiers their machine has live right now.
+- **`grok-orchestra doctor` CLI** — single-command environment
+  self-check. Probes `localhost:11434` (1-second timeout, stdlib
+  ``urllib.request`` so no `[search]` extra needed) for an Ollama
+  server and lists installed models; checks env-var presence (never
+  the value) for `XAI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+  / `MISTRAL_API_KEY` / `GROQ_API_KEY` / `TOGETHER_API_KEY`; prints
+  a Rich panel (or JSON via `--json`) with a "next step" prompt
+  matched to the available tiers.
+- **`examples/local-only/local-research.yaml`** — every role pinned to
+  `ollama/llama3.1:8b`, `mode: simulated`, hierarchical pattern, no
+  external tools. The "it works on your laptop with zero cloud cost"
+  demo template. Companion `examples/local-only/README.md` walks
+  through Ollama install + `ollama pull` + the adapter extra and
+  closes with the three-tier escape ladder (Demo → Local → Cloud,
+  including a mixed-mode middle ground).
+- **GPT-Researcher comparison row** highlighting "Runs free on your
+  laptop (Ollama, no keys)" — they technically support it; we
+  document and smoke-test it.
 
 ### Added
 - **Pluggable LLM providers via LiteLLM (BYOK).** New
