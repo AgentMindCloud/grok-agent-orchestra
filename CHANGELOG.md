@@ -7,6 +7,52 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Publisher / report export.** Every run that completes via the
+  dashboard now auto-writes a canonical `report.md` plus a
+  `run.json` snapshot to
+  `$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/`. The Publisher renders
+  three formats from the same source:
+  - `report.md` — frontmatter + Executive Summary / Findings /
+    Analysis / Stress Test / Synthesis / Lucas Verdict / Citations
+    / Appendix sections.
+  - `report.pdf` — WeasyPrint render with a cover page, confidence
+    gauge, page numbers, header + footer, and print-safe link
+    styling.
+  - `report.docx` — python-docx render using built-in `Heading 1`
+    / `List Number` styles so Word's TOC works.
+- **`/api/runs/{id}/report.md|pdf|docx`** endpoints — Markdown is
+  cached from the auto-export; PDF + DOCX render lazily in a worker
+  thread on first request and cache to disk. Endpoints set
+  `Content-Disposition: attachment; filename=report-<run-id>.<ext>`.
+- **`grok-orchestra export <run-id> --format=md|pdf|docx|all
+  [--output DIR]`** — CLI command that rebuilds reports from the
+  persisted `run.json` snapshot. Returns exit `0` and prints the
+  written paths (or a JSON payload under `--json`).
+- **`[publish]` extra** — `weasyprint`, `pydyf<0.11` (pinned for
+  WeasyPrint 62 compatibility), `python-docx`, `markdown`, `pygments`.
+  WeasyPrint requires Cairo + Pango on the host; the Docker image
+  apt-installs them.
+- **`Citation` and `ConfidenceScore` dataclasses** in
+  `grok_orchestra/publisher/__init__.py` — Prompts 7 (local docs)
+  and 8 (web search) will populate `Citation` directly via a future
+  `run.citations` field. The publisher also harvests URLs +
+  bracketed-domain refs from Harper's text as a best-effort
+  fallback.
+- **Frontend updates** — three download buttons (`.md` / `.pdf` /
+  `.docx`) appear on the run-results panel after `run_completed`,
+  plus a small SVG confidence meter beside the reasoning-token pill
+  that animates as soon as Lucas reports.
+- **`tests/test_publisher.py`** — 12 tests covering citation
+  extraction, Markdown frontmatter / section presence, blocked-verdict
+  rendering, DOCX validity (zip + `word/document.xml`), PDF
+  presence (skipped when WeasyPrint isn't importable), the
+  workspace path resolver, and the full
+  `runner → report.md + run.json + /api/.../report.md` round-trip.
+- **README "Reports" section** + system-deps install table for
+  Cairo/Pango on macOS / Debian / Fedora / Windows. Comparison-
+  table list grew with the report format claim.
+
+### Added
 - **Docker support.** New multi-stage `Dockerfile` (python:3.11-slim
   builder + slim runtime, venv-copy pattern so the runtime image
   carries no compilers / git), `.dockerignore` to keep the build

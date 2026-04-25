@@ -58,6 +58,15 @@ class RunBody(BaseModel):
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 
+def _require_run(app: Any, run_id: str) -> Any:
+    """Return the registered :class:`Run` or raise 404."""
+    registry: RunRegistry = app.state.registry
+    run = registry.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"no run {run_id!r}")
+    return run
+
+
 def _category_for(template: Any) -> str:
     # Mirror the CLI's category-bucket order without importing the CLI
     # (avoids circular imports between web and cli modules).
@@ -260,6 +269,91 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=f"no run {run_id!r}")
         return run.public_dict()
 
+    # ------------------------------------------------------------------ #
+    # Report export — Markdown is auto-generated; PDF + DOCX render lazily.
+    # ------------------------------------------------------------------ #
+
+    @app.get("/api/runs/{run_id}/report.md")
+    async def run_report_md(run_id: str) -> Any:
+        from fastapi.responses import PlainTextResponse
+
+        from grok_orchestra.publisher import Publisher, run_report_dir
+
+        run = _require_run(app, run_id)
+        path = run_report_dir(run_id) / "report.md"
+        if not path.exists():
+            try:
+                text = Publisher().build_markdown(run)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=500, detail=f"markdown render failed: {exc}") from exc
+            path.write_text(text, encoding="utf-8")
+        return PlainTextResponse(
+            path.read_text(encoding="utf-8"),
+            media_type="text/markdown; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="report-{run_id}.md"',
+            },
+        )
+
+    @app.get("/api/runs/{run_id}/report.pdf")
+    async def run_report_pdf(run_id: str) -> Any:
+        from fastapi.responses import FileResponse
+
+        from grok_orchestra.publisher import (
+            Publisher,
+            PublisherError,
+            run_report_dir,
+        )
+
+        run = _require_run(app, run_id)
+        path = run_report_dir(run_id) / "report.pdf"
+        if not path.exists():
+            try:
+                # Run the PDF render in a worker thread so the event
+                # loop stays responsive — large reports can take a few
+                # seconds to lay out.
+                await asyncio.to_thread(Publisher().build_pdf, run, path)
+            except PublisherError as exc:
+                raise HTTPException(
+                    status_code=501,
+                    detail=str(exc),
+                ) from exc
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=500, detail=f"pdf render failed: {exc}") from exc
+        return FileResponse(
+            path,
+            media_type="application/pdf",
+            filename=f"report-{run_id}.pdf",
+        )
+
+    @app.get("/api/runs/{run_id}/report.docx")
+    async def run_report_docx(run_id: str) -> Any:
+        from fastapi.responses import FileResponse
+
+        from grok_orchestra.publisher import (
+            Publisher,
+            PublisherError,
+            run_report_dir,
+        )
+
+        run = _require_run(app, run_id)
+        path = run_report_dir(run_id) / "report.docx"
+        if not path.exists():
+            try:
+                await asyncio.to_thread(Publisher().build_docx, run, path)
+            except PublisherError as exc:
+                raise HTTPException(status_code=501, detail=str(exc)) from exc
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=500, detail=f"docx render failed: {exc}") from exc
+        return FileResponse(
+            path,
+            media_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            ),
+            filename=f"report-{run_id}.docx",
+        )
+
     @app.websocket("/ws/runs/{run_id}")
     async def runs_ws(ws: WebSocket, run_id: str) -> None:
         import contextlib
@@ -285,15 +379,22 @@ def create_app() -> FastAPI:
             # 1) Snapshot replay — every event already buffered.
             await ws.send_json({"type": "snapshot_begin", "run": run.public_dict()})
             seen_seqs: set[int] = set()
+            saw_terminal_in_buffer = False
             for event in list(run.events):
                 seq = event.get("seq")
                 if isinstance(seq, int):
                     seen_seqs.add(seq)
+                if event.get("type") in ("run_completed", "run_failed"):
+                    saw_terminal_in_buffer = True
                 await ws.send_json(event)
             await ws.send_json({"type": "snapshot_end"})
 
-            # 2) If the run already finished, close immediately.
-            if run.status in ("completed", "failed"):
+            # 2) If the run finished — either status flipped or the
+            # buffer already contains run_completed/run_failed (the
+            # runner emits the terminal event before flipping status,
+            # so this guards against the race where a client connects
+            # in that window).
+            if run.status in ("completed", "failed") or saw_terminal_in_buffer:
                 await ws.send_json({"type": "close"})
                 await ws.close(code=1000)
                 return

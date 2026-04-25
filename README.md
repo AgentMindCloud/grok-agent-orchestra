@@ -118,6 +118,41 @@ Smoke-test a fresh build end-to-end (bash + PowerShell variants ship side by sid
 
 The image binds to `0.0.0.0:8000` by default, runs as the unprivileged `orchestra` user, and ships a `/api/health` HEALTHCHECK so `docker ps` reports container readiness.
 
+### Reports
+
+Every dashboard run auto-writes a structured Markdown report and a `run.json` snapshot to `$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/`. PDF and DOCX render lazily on first download. To enable PDF/DOCX install the `[publish]` extra:
+
+```bash
+pip install 'grok-agent-orchestra[publish]'
+```
+
+WeasyPrint (used for the PDF render) needs **Cairo** and **Pango** on the host. The Docker image bundles them. On bare-metal:
+
+| Host | Install |
+| --- | --- |
+| macOS | `brew install cairo pango libffi` |
+| Debian / Ubuntu | `sudo apt-get install libcairo2 libpango-1.0-0 libpangoft2-1.0-0 libffi8 libgdk-pixbuf-2.0-0 fonts-liberation` |
+| Fedora / RHEL | `sudo dnf install cairo pango libffi gdk-pixbuf2 liberation-fonts` |
+| Windows | Easiest path: use the Docker image. WeasyPrint also publishes [native instructions](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows). |
+
+Export from the CLI after a dashboard run completes:
+
+```bash
+grok-orchestra export <run-id> --format=all --output=./reports
+```
+
+Or pull straight from the running server:
+
+```bash
+curl -O http://localhost:8000/api/runs/<run-id>/report.md
+curl -O http://localhost:8000/api/runs/<run-id>/report.pdf
+curl -O http://localhost:8000/api/runs/<run-id>/report.docx
+```
+
+The PDF carries a cover page with a confidence meter (Lucas's verdict score) and footnoted citations. The DOCX uses Word's built-in `Heading 1` / `List Number` styles so the TOC field works without manual fixing.
+
+![Report sample](docs/images/report-sample.png)
+
 ### Web UI
 
 Optional dashboard with live WebSocket-streamed debates. Install the `[web]` extra and run:

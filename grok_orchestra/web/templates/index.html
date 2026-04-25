@@ -100,9 +100,14 @@
     </div>
 
     <div class="bg-ink-900 border border-ink-700 rounded-xl p-3">
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <h3 class="text-xs uppercase tracking-wider text-slate-400">Final output</h3>
-        <button id="copy" class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">copy</button>
+        <div class="flex items-center gap-1">
+          <button id="copy" class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">copy</button>
+          <a id="dl-md" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .md</a>
+          <a id="dl-pdf" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .pdf</a>
+          <a id="dl-docx" hidden download class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">⬇ .docx</a>
+        </div>
       </div>
       <pre id="final" class="text-sm whitespace-pre-wrap font-mono text-slate-200 min-h-[80px]">—</pre>
     </div>
@@ -110,9 +115,23 @@
 
   <!-- RIGHT: live debate stream -->
   <aside class="bg-ink-900 border border-ink-700 rounded-xl p-3 lg:sticky lg:top-[68px] h-fit">
-    <div class="flex items-center justify-between mb-2">
+    <div class="flex items-center justify-between mb-2 gap-2">
       <h2 class="text-xs uppercase tracking-wider text-slate-400">Live debate</h2>
-      <span id="reasoning-pill" class="text-[11px] px-2 py-0.5 rounded bg-ink-800 text-slate-300">0 reasoning tokens</span>
+      <div class="flex items-center gap-2">
+        <span id="reasoning-pill" class="text-[11px] px-2 py-0.5 rounded bg-ink-800 text-slate-300">0 reasoning tokens</span>
+        <div id="confidence-meter" title="Lucas confidence" class="hidden">
+          <svg viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"></circle>
+            <circle id="confidence-arc" cx="18" cy="18" r="15" fill="none"
+                    stroke="#22d3ee" stroke-width="3" stroke-linecap="round"
+                    stroke-dasharray="0 94.25"
+                    transform="rotate(-90 18 18)"></circle>
+            <text id="confidence-pct" x="18" y="20" text-anchor="middle"
+                  font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9"
+                  fill="#e2e8f0">—</text>
+          </svg>
+        </div>
+      </div>
     </div>
     <div id="lanes" class="grid gap-2 max-h-[70vh] overflow-y-auto pr-1">
       <!-- Lanes injected by JS. -->
@@ -260,15 +279,44 @@
       banner.className = "mt-3 rounded-md p-2 text-xs bg-red-500/10 border border-red-400/40 text-red-300";
       banner.textContent = `⛔ Lucas blocked: ${payload.reason || "unsafe"}`;
     }
+    drawConfidenceMeter(payload.confidence ?? (kind === "passed" ? 1.0 : 0.0), kind === "passed");
+  }
+
+  function drawConfidenceMeter(value, ok) {
+    const wrap = $("#confidence-meter");
+    const arc = $("#confidence-arc");
+    const text = $("#confidence-pct");
+    const pct = Math.max(0, Math.min(1, Number(value) || 0));
+    const circumference = 2 * Math.PI * 15;          // matches r=15 in the SVG
+    const filled = circumference * pct;
+    arc.setAttribute("stroke-dasharray", `${filled.toFixed(2)} ${(circumference - filled).toFixed(2)}`);
+    arc.setAttribute("stroke", ok ? "#22d3ee" : "#f87171");
+    text.textContent = `${Math.round(pct * 100)}`;
+    wrap.classList.remove("hidden");
   }
 
   function resetStream() {
     $("#lanes").innerHTML = "";
     $("#lucas-banner").classList.add("hidden");
+    $("#confidence-meter").classList.add("hidden");
     $("#final").textContent = "—";
     $("#reasoning-pill").textContent = "0 reasoning tokens";
     $("#reasoning-pill").dataset.total = "0";
+    for (const id of ["dl-md", "dl-pdf", "dl-docx"]) {
+      const el = document.getElementById(id);
+      el.hidden = true;
+      el.removeAttribute("href");
+    }
     for (const role of ROLE_ORDER) ensureLane(role);
+  }
+
+  function attachDownloads(runId) {
+    const map = { "dl-md": "report.md", "dl-pdf": "report.pdf", "dl-docx": "report.docx" };
+    for (const [id, name] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      el.href = `/api/runs/${encodeURIComponent(runId)}/${name}`;
+      el.hidden = false;
+    }
   }
 
   function setStatus(text, tone = "idle") {
@@ -319,6 +367,7 @@
       case "run_completed":
         setStatus("completed", "ok");
         $("#final").textContent = ev.final_output || "";
+        if (activeRunId) attachDownloads(activeRunId);
         return;
       case "run_failed":
         setStatus("failed", "fail");

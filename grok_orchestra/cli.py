@@ -565,6 +565,159 @@ def init(
 
 
 # --------------------------------------------------------------------------- #
+# `export` — render a finished run into Markdown / PDF / DOCX.
+# --------------------------------------------------------------------------- #
+
+
+@app.command()
+def export(
+    ctx: typer.Context,
+    run_id: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "ID of a finished run. Looks under "
+                "$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/ "
+                "(default ./workspace/runs)."
+            )
+        ),
+    ],
+    fmt: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format: md | pdf | docx | all.",
+        ),
+    ] = "all",
+    output: Annotated[
+        str | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help=(
+                "Destination directory. Defaults to the run's workspace dir. "
+                "Created if missing."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Export a run's report bundle to disk.
+
+    Reads the run's persisted state from
+    ``$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/`` (Markdown is auto-written
+    when the run completes via the FastAPI dashboard). PDF / DOCX render
+    on demand from the Markdown source.
+    """
+    from grok_orchestra.publisher import (
+        Publisher,
+        PublisherError,
+        run_report_dir,
+    )
+
+    state = _state(ctx)
+    fmts = {f.strip().lower() for f in fmt.split(",")}
+    if "all" in fmts:
+        fmts = {"md", "pdf", "docx"}
+    valid = {"md", "pdf", "docx"}
+    bad = fmts - valid
+    if bad:
+        _emit_error(
+            state,
+            ValueError(
+                f"unknown format(s): {sorted(bad)}; valid choices are {sorted(valid)} or 'all'"
+            ),
+            title="grok-orchestra · export",
+        )
+        raise typer.Exit(code=EXIT_CONFIG)
+
+    src_dir = run_report_dir(run_id)
+    md_path = src_dir / "report.md"
+    if not md_path.exists():
+        _emit_error(
+            state,
+            FileNotFoundError(
+                f"no report found at {md_path}. Did the run complete via the web "
+                "dashboard? Use `grok-orchestra serve` and rerun, then export."
+            ),
+            title="grok-orchestra · export",
+        )
+        raise typer.Exit(code=EXIT_CONFIG)
+
+    out_dir = Path(output) if output else src_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    publisher = Publisher()
+    # Build a minimal "run-like" mapping from the persisted markdown so
+    # PDF/DOCX renders share the same source. We use the markdown file
+    # itself as the canonical source by re-rendering when ``out_dir``
+    # differs from ``src_dir``; otherwise we just copy it.
+    written: list[Path] = []
+
+    if "md" in fmts:
+        target = out_dir / "report.md"
+        if target != md_path:
+            target.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+        written.append(target)
+
+    # PDF + DOCX rebuild from the persisted run.json snapshot. The
+    # web runner writes that file alongside report.md when a run
+    # completes via the dashboard.
+    if "pdf" in fmts or "docx" in fmts:
+        run_json_path = src_dir / "run.json"
+        if not run_json_path.exists():
+            _emit_error(
+                state,
+                FileNotFoundError(
+                    f"missing {run_json_path}. PDF/DOCX export rebuilds from the "
+                    "snapshot the dashboard writes when a run completes; export "
+                    "Markdown only (`--format md`) until you have one."
+                ),
+                title="grok-orchestra · export",
+            )
+            raise typer.Exit(code=EXIT_CONFIG)
+        run_proxy = json.loads(run_json_path.read_text(encoding="utf-8"))
+
+        if "pdf" in fmts:
+            try:
+                written.append(publisher.build_pdf(run_proxy, out_dir / "report.pdf"))
+            except PublisherError as exc:
+                _emit_error(state, exc, title="grok-orchestra · export")
+                raise typer.Exit(code=EXIT_CONFIG) from exc
+        if "docx" in fmts:
+            try:
+                written.append(publisher.build_docx(run_proxy, out_dir / "report.docx"))
+            except PublisherError as exc:
+                _emit_error(state, exc, title="grok-orchestra · export")
+                raise typer.Exit(code=EXIT_CONFIG) from exc
+
+    if state.json:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": True,
+                    "run_id": run_id,
+                    "written": [str(p) for p in written],
+                }
+            )
+        )
+        return
+
+    body = Text()
+    body.append(f"✓ exported run {run_id}\n", style="bold green")
+    for path in written:
+        body.append(f"  · {path}\n", style="white")
+    state.console.print(
+        Panel(
+            body,
+            title="grok-orchestra · export",
+            border_style="#8B5CF6",
+            box=box.ROUNDED,
+        )
+    )
+
+
+# --------------------------------------------------------------------------- #
 # `serve` — local web UI dashboard. Lazy-imports the [web] extras so users
 # without `pip install 'grok-agent-orchestra[web]'` don't pay any startup
 # cost on every other command.

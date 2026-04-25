@@ -51,7 +51,7 @@ COPY grok_orchestra ./grok_orchestra
 # 3) Install Orchestra with the [web] extra. Bridge is already in the venv,
 #    so the resolver leaves it alone.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install ".[web]"
+    pip install ".[web,publish]"
 
 # Sanity-check the entry point built correctly.
 RUN grok-orchestra --version
@@ -75,6 +75,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/orchestra/bin:$PATH" \
     GROK_ORCHESTRA_WORKSPACE=/app/workspace
+
+# WeasyPrint needs Cairo + Pango at runtime. Liberation gives us a
+# universally-licensed serif/sans/mono fallback so the report renders the
+# same on every host. fonts-dejavu-core is a tiny add for emoji-adjacent
+# glyphs (Unicode arrows in our templates).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcairo2 \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libffi8 \
+        libgdk-pixbuf-2.0-0 \
+        fonts-liberation \
+        fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
 # Non-root user "orchestra" (system uid/gid).
 RUN groupadd --system orchestra && \

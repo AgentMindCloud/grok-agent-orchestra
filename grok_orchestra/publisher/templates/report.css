@@ -1,0 +1,260 @@
+/* -----------------------------------------------------------------------------
+ * grok-agent-orchestra · report.css
+ *
+ * Print-quality typography for the PDF render. WeasyPrint reads `@page`
+ * rules so we get cover pages, headers, footers, and page numbers without
+ * any JS or post-processing.
+ * --------------------------------------------------------------------------- */
+
+@page {
+  size: A4;
+  margin: 22mm 20mm 24mm 20mm;
+  @top-left {
+    content: string(report-title);
+    font: 600 9pt "Liberation Sans", "Helvetica Neue", Arial, sans-serif;
+    color: #6b7280;
+  }
+  @top-right {
+    content: counter(page) " / " counter(pages);
+    font: 9pt "Liberation Mono", "DejaVu Sans Mono", monospace;
+    color: #6b7280;
+  }
+  @bottom-center {
+    content: element(footer);
+    font: 8pt "Liberation Mono", monospace;
+    color: #94a3b8;
+  }
+}
+
+/* Cover page never carries the running header/footer. */
+@page :first {
+  margin: 0;
+  @top-left  { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+
+footer.page-footer {
+  position: running(footer);
+}
+
+/* -------------------- typography baseline ----------------------------------- */
+
+html {
+  font-size: 11pt;
+  line-height: 1.55;
+}
+
+body {
+  margin: 0;
+  font-family: "Liberation Serif", "Times New Roman", Georgia, serif;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  string-set: report-title content();
+}
+
+/* Headings — sans for hierarchy contrast. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Liberation Sans", "Helvetica Neue", Arial, sans-serif;
+  color: #0b1220;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+  page-break-after: avoid;
+}
+
+h1 { font-size: 22pt; margin: 1.4em 0 0.4em; }
+h2 {
+  font-size: 14pt;
+  margin: 1.5em 0 0.5em;
+  padding-bottom: 4pt;
+  border-bottom: 0.5pt solid #e2e8f0;
+}
+h3 { font-size: 12pt; margin: 1.1em 0 0.4em; color: #1e293b; }
+
+p { margin: 0.55em 0; orphans: 3; widows: 3; }
+
+/* Lists. */
+ul, ol { margin: 0.55em 0 0.55em 1.4em; padding: 0; }
+li { margin: 0.18em 0; }
+
+/* Tables. */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0;
+  font-size: 10pt;
+}
+th, td {
+  border: 0.5pt solid #cbd5e1;
+  padding: 6pt 8pt;
+  vertical-align: top;
+}
+th {
+  background: #f1f5f9;
+  font-family: "Liberation Sans", sans-serif;
+  font-weight: 600;
+  text-align: left;
+  color: #0b1220;
+}
+
+/* Blockquotes — used for the Lucas verdict callout. */
+blockquote {
+  margin: 0.8em 0;
+  padding: 6pt 12pt;
+  border-left: 3pt solid #6366f1;
+  background: #f8fafc;
+  color: #1e293b;
+  font-style: normal;
+}
+
+/* Inline code + fenced blocks. */
+code {
+  font-family: "Liberation Mono", "DejaVu Sans Mono", monospace;
+  font-size: 9.5pt;
+  background: #f1f5f9;
+  padding: 1pt 4pt;
+  border-radius: 2pt;
+  color: #0f172a;
+}
+pre {
+  font-family: "Liberation Mono", "DejaVu Sans Mono", monospace;
+  font-size: 9pt;
+  line-height: 1.45;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 8pt 10pt;
+  border-radius: 4pt;
+  page-break-inside: avoid;
+  overflow: hidden;
+}
+pre code { background: transparent; padding: 0; color: inherit; }
+
+/* Print-safe link styling — readable on paper, still distinct. */
+a, a:visited {
+  color: #4338ca;
+  text-decoration: none;
+  border-bottom: 0.5pt solid #c7d2fe;
+}
+a[href^="http"]::after {
+  content: " (" attr(href) ")";
+  font-size: 8pt;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+/* Collapsible <details> in the appendix renders open in print — and
+   the marker still reads naturally. */
+details { margin: 0.8em 0; }
+details > summary {
+  font-family: "Liberation Sans", sans-serif;
+  font-weight: 600;
+  font-size: 10.5pt;
+  cursor: pointer;
+  margin-bottom: 0.4em;
+}
+details[open] > summary { color: #4338ca; }
+
+/* -------------------- cover page -------------------------------------------- */
+
+section.cover {
+  height: 297mm;            /* A4 height */
+  width: 210mm;
+  margin: 0;
+  padding: 32mm 22mm 22mm;
+  box-sizing: border-box;
+  background: linear-gradient(160deg, #0f1116 0%, #1a1d27 60%, #2a1d3f 100%);
+  color: #e9eaee;
+  page-break-after: always;
+  position: relative;
+}
+
+section.cover .brand {
+  font-family: "Liberation Mono", monospace;
+  font-size: 10pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+  margin-bottom: 60mm;
+}
+
+section.cover h1 {
+  font-size: 28pt;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 6mm;
+  letter-spacing: -0.01em;
+  border: none;
+}
+
+section.cover .run-id {
+  font-family: "Liberation Mono", monospace;
+  font-size: 10pt;
+  color: #94a3b8;
+  margin: 0 0 14mm;
+}
+
+section.cover .meter {
+  display: block;
+  text-align: center;
+  margin-top: 12mm;
+}
+
+section.cover .meter-pct {
+  font-family: "Liberation Sans", sans-serif;
+  font-size: 30pt;
+  font-weight: 700;
+  color: #f8fafc;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+section.cover .meter-track {
+  width: 70%;
+  margin: 8mm auto 4mm;
+  height: 6pt;
+  border-radius: 3pt;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+section.cover .meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3pt;
+}
+
+section.cover .meter-fill-ok   { background: #22d3ee; }
+section.cover .meter-fill-fail { background: #f87171; }
+
+section.cover .meter-label {
+  font-family: "Liberation Sans", sans-serif;
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  text-align: center;
+}
+
+section.cover .badge {
+  display: inline-block;
+  margin-top: 10mm;
+  padding: 5pt 12pt;
+  border-radius: 999pt;
+  font-family: "Liberation Sans", sans-serif;
+  font-size: 9pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+section.cover .badge-ok {
+  background: rgba(34, 211, 238, 0.12);
+  color: #22d3ee;
+  border: 0.5pt solid rgba(34, 211, 238, 0.45);
+}
+section.cover .badge-fail {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 0.5pt solid rgba(248, 113, 113, 0.45);
+}

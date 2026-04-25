@@ -103,12 +103,45 @@ def start_run(*, run: Run) -> threading.Thread:
             _publish({"type": "run_failed", "error": repr(exc), "traceback": tb_text})
             return
 
-        run.status = "completed"
-        run.finished_at = time.time()
+        # Populate result fields *before* writing the report so the
+        # publisher reads the same final_output / veto_report that the
+        # API surfaces. Hold the status flip until after the report has
+        # landed on disk — that way any client polling
+        # `/api/runs/{id}` for `status=="completed"` is guaranteed to
+        # find `report.md` already written.
         run.final_output = result.final_content
         run.veto_report = (
             dict(result.veto_report) if result.veto_report is not None else None
         )
+        run.finished_at = time.time()
+
+        try:
+            import json as _json
+
+            from grok_orchestra.publisher import Publisher, run_report_dir
+
+            out_dir = run_report_dir(run.id)
+            md_path = out_dir / "report.md"
+            md_path.write_text(Publisher().build_markdown(run), encoding="utf-8")
+            (out_dir / "run.json").write_text(
+                _json.dumps(
+                    {
+                        **run.public_dict(),
+                        "events": list(run.events),
+                        "yaml_text": run.yaml_text,
+                    },
+                    default=str,
+                ),
+                encoding="utf-8",
+            )
+        except Exception:  # noqa: BLE001 — never let report generation kill a run
+            import logging as _logging
+
+            _logging.getLogger(__name__).exception(
+                "report.md auto-export failed for run %s", run.id
+            )
+
+        run.status = "completed"
 
     thread = threading.Thread(target=_worker, name=f"run-{run.id[:8]}", daemon=True)
     thread.start()
