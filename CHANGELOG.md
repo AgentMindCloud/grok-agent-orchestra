@@ -9,6 +9,93 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Claude Skill integration (Prompt 17)
+
+- **`skills/agent-orchestra/` — self-contained Claude Skill.** Drop
+  the folder into ``~/.claude/skills/`` (personal) or
+  ``.claude/skills/`` (project-scoped) and Claude Code routes deep-
+  research / debate / red-team / due-diligence / competitor-brief /
+  paper-summary / news-digest requests through Agent Orchestra
+  instead of trying to do the work in one pass.
+- **Hybrid transport** — auto-detects two modes:
+  - **Local CLI** (preferred when ``pip install grok-agent-orchestra``
+    is on PATH) — spawns ``grok-orchestra run <slug> --json`` via
+    ``subprocess.Popen`` with line-buffered stderr drain.
+  - **Remote HTTP** — when ``AGENT_ORCHESTRA_REMOTE_URL`` is set,
+    ``POST /api/run`` then poll ``GET /api/runs/{id}`` every 3 s
+    until completion, fetch ``GET /api/runs/{id}/report.md`` for the
+    body. Stdlib ``urllib.request`` only — no ``httpx`` /
+    ``requests`` dep on the skill.
+  - Force one or the other with ``--force-local`` / ``--force-remote``.
+  - Auth: ``AGENT_ORCHESTRA_REMOTE_TOKEN`` env (matches the backend's
+    ``GROK_ORCHESTRA_AUTH_PASSWORD``) sent as
+    ``Authorization: Bearer <token>``. Off by default.
+- **Three bundled scripts**:
+  - ``scripts/choose_template.py`` — token-overlap heuristic over the
+    bundled INDEX.json (no network, no LLM, no ``pyyaml``); picks
+    the right template for free-text queries with a confidence score
+    + alternates so the SKILL prompt knows when to confirm.
+  - ``scripts/run_orchestration.py`` — hybrid-mode entry point.
+    Mode discovery → execute → emit single trailing
+    ``RESULT_JSON: {...}`` line. Defaults
+    ``GROK_ORCHESTRA_WORKSPACE`` to ``$PWD/.agent-orchestra-workspace``
+    so report paths are always absolute. ``--show <slug>`` dumps the
+    template YAML for pre-run inspection.
+  - ``scripts/remote_run.py`` — pure remote path; reused by
+    ``run_orchestration.py`` when the local CLI isn't installed.
+- **Bundled catalogue** — ``templates/INDEX.json`` (canonical, read
+  by ``choose_template.py``) + ``templates/INDEX.yaml`` (verbatim
+  copy of upstream for human inspection). CI test
+  ``tests/test_skill_index_in_sync.py`` enforces byte-equality.
+- **SKILL.md** — YAML frontmatter (``name``, ``description``,
+  ``when_to_use``, ``allowed-tools: Bash``; ~720 chars combined,
+  well under the 1 536 cap) + 7-section body (when to invoke,
+  mode discovery, template selection, confirm-with-user gate
+  for >30 000 estimated_tokens or <0.6 confidence, execute,
+  read result, failure handling).
+- **Cost transparency** — ``estimated_tokens`` from the catalogue
+  surfaces in the routing JSON; the SKILL prompt asks Claude to
+  confirm with the user when it exceeds 30 000. Lucas-veto (exit 4)
+  is treated as a hard stop — no retries.
+- **Output truncation** — UTF-8 byte-safe (never splits inside an
+  inline ``![alt](path)`` image link); 6 KB head + 1.5 KB tail with
+  ``(truncated; <N> bytes total)`` between, plus the absolute
+  ``report_path`` / ``report_url`` of the full version.
+- **Tests (29 cases, fully mocked, no network/subprocess)**:
+  ``tests/test_skill_choose_template.py`` (routing on canonical
+  phrasings + ambiguous-query alternates + ``--top-k`` + missing-
+  index + min-confidence gate),
+  ``tests/test_skill_local_mode.py`` (no-mode → exit 7, happy path,
+  ``--dry-run`` switches subcommand, exit 4 vetoed propagates,
+  ``--force-local`` / ``--force-remote`` config errors,
+  ``--show`` with + without CLI present, byte-safe truncation),
+  ``tests/test_skill_remote_mode.py`` (missing URL → exit 2, POST
+  + 2 polls → success, bearer header sent when env set, 401 →
+  exit 2 with ``AGENT_ORCHESTRA_REMOTE_TOKEN`` hint, network error
+  → exit 6, veto in final → exit 4),
+  ``tests/test_skill_index_in_sync.py`` (catalogue drift detector).
+- **`docs/integrations/claude-skill.md`** — full setup guide
+  (install paths, env-var matrix, auth, cost transparency,
+  truncation rules, manual-invocation snippets, troubleshooting,
+  marketplace-submission pointer). New ``Integrations`` section in
+  the docs nav.
+- **`skills/agent-orchestra/{README.md, SUBMISSION.md}`** — install
+  + usage docs for users browsing the folder directly, plus a
+  marketplace-submission checklist for whenever Anthropic ships a
+  public skills marketplace.
+- **README** — new "Use from Claude" section between the comparison
+  table and Quickstart; comparison-table row added (✅ vs ❌
+  for gpt-researcher).
+
+### Hand-off
+
+The skill ships in both transport modes. Promote in launch posts
+(`docs/community/launch-posts.md` from the community-scaffold pass).
+The remote-HTTP code path inside ``remote_run.py`` is a candidate to
+extract to a shared client when Prompt 18 builds the VS Code
+extension — the two surfaces share the same wire contract against
+``/api/run`` + ``/api/runs/{id}``.
+
 ### Added — Frontend launch polish (Prompt 16d / 4)
 
 - **Optional shared-password auth (off by default).** When the

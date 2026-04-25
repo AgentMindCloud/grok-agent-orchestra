@@ -219,6 +219,8 @@ nav:
     - Docker: deploy/docker.md
     - Render: deploy/render.md
     - Fly.io: deploy/fly.md
+  - Integrations:
+    - Claude Skill: integrations/claude-skill.md
   - Contributing:
     - Overview: contributing/index.md
     - Code of conduct: contributing/code-of-conduct.md

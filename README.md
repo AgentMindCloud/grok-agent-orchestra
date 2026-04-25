@@ -82,8 +82,41 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
 | Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
 | MCP (Model Context Protocol) client | ✅ stdio + HTTP transports, read-only gate | ❌ |
+| Claude Skill | ✅ ships at `skills/agent-orchestra/` (local + remote) | ❌ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
+
+## Use from Claude
+
+Agent Orchestra ships a [Claude Skill](https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/skills/agent-orchestra)
+at `skills/agent-orchestra/`. Drop it into Claude Code and Claude can
+invoke a multi-agent run when the user asks for deep research,
+debate, red-teaming, due diligence, competitor briefs, paper
+summaries, or news digests.
+
+```bash
+# Personal install (every project, every session)
+mkdir -p ~/.claude/skills && cp -R skills/agent-orchestra ~/.claude/skills/
+
+# Project-scoped install (commit alongside your code)
+mkdir -p .claude/skills && cp -R skills/agent-orchestra .claude/skills/
+```
+
+The skill auto-detects two transport modes: it spawns the local
+`grok-orchestra` CLI when `pip install grok-agent-orchestra` is
+present, or `POST`s to a remote FastAPI when
+`AGENT_ORCHESTRA_REMOTE_URL` is set. Local wins when both are
+available — no network, no auth, no token-budget surprises.
+
+Inside Claude, just describe the task:
+
+> "Do a deep competitive analysis of agent frameworks in 2026."
+>
+> "Red-team this product launch plan: …"
+>
+> "Summarise this arXiv paper: <link>"
+
+Full setup guide: **[docs/integrations/claude-skill.md](docs/integrations/claude-skill.md)**.
 
 ## Quickstart
 

@@ -1,0 +1,364 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "name": "Native 4-agent Daily Thread",
+      "slug": "orchestra-native-4",
+      "mode": "native",
+      "pattern": "native",
+      "combined": false,
+      "description": "Daily X thread on a trending topic via the xAI native multi-agent endpoint. Medium reasoning effort, 4 agents \u2014 the cost / quality sweet spot for day-to-day shipping.",
+      "categories": [
+        "daily",
+        "x-thread",
+        "trending",
+        "production-ready"
+      ],
+      "estimated_tokens": 8000,
+      "marketplace_badges": [
+        "fast",
+        "cheap",
+        "production-ready"
+      ]
+    },
+    {
+      "name": "Native 16-agent Weekly Research",
+      "slug": "orchestra-native-16",
+      "mode": "native",
+      "pattern": "native",
+      "combined": false,
+      "description": "Weekly deep-research thread. 16 agents at high reasoning effort \u2014 the setup Orchestra was designed for when the output has to be right. Auto-degrade on 429s.",
+      "categories": [
+        "weekly",
+        "x-thread",
+        "research",
+        "long-form",
+        "premium"
+      ],
+      "estimated_tokens": 32000,
+      "marketplace_badges": [
+        "premium",
+        "rigorous",
+        "cited"
+      ]
+    },
+    {
+      "name": "Truthseeker Debate",
+      "slug": "orchestra-simulated-truthseeker",
+      "mode": "simulated",
+      "pattern": "native",
+      "combined": false,
+      "description": "Full visible Grok / Harper / Benjamin / Lucas debate over 3 rounds for a single fact-check. Harper searches; Benjamin runs code for numerical checks; Lucas hunts flaws.",
+      "categories": [
+        "fact-check",
+        "audit",
+        "transparent",
+        "debate"
+      ],
+      "estimated_tokens": 13000,
+      "marketplace_badges": [
+        "transparent",
+        "auditable",
+        "safety-first"
+      ]
+    },
+    {
+      "name": "Hierarchical Research Report",
+      "slug": "orchestra-hierarchical-research",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "Two-team hierarchy \u2014 ResearchTeam (Harper + Benjamin) gathers, CritiqueTeam (Lucas + Grok) stress-tests, Grok synthesises into an X thread. Great for research-report-to-thread workflows.",
+      "categories": [
+        "research",
+        "x-thread",
+        "structured",
+        "two-team"
+      ],
+      "estimated_tokens": 22000,
+      "marketplace_badges": [
+        "structured",
+        "rigorous",
+        "thread-ready"
+      ]
+    },
+    {
+      "name": "Dynamic Trend Analyzer",
+      "slug": "orchestra-dynamic-spawn-trend-analyzer",
+      "mode": "simulated",
+      "pattern": "dynamic-spawn",
+      "combined": false,
+      "description": "Grok splits \"biggest X trends today\" into 3 sub-analyses; Harper + Lucas mini-debates run concurrently, Grok aggregates. Trades sequential rounds for fan-out parallelism.",
+      "categories": [
+        "trends",
+        "parallel",
+        "fan-out",
+        "daily"
+      ],
+      "estimated_tokens": 15000,
+      "marketplace_badges": [
+        "parallel",
+        "fast",
+        "daily"
+      ]
+    },
+    {
+      "name": "Policy Debate Loop",
+      "slug": "orchestra-debate-loop-policy",
+      "mode": "simulated",
+      "pattern": "debate-loop",
+      "combined": false,
+      "description": "Iterate up to 5 rounds toward a maximally-balanced 280-char summary of a contested topic; exits early on consensus. Mid-loop Lucas veto catches framing bias between iterations.",
+      "categories": [
+        "policy",
+        "iteration",
+        "balance",
+        "safety"
+      ],
+      "estimated_tokens": 25000,
+      "marketplace_badges": [
+        "iterative",
+        "balanced",
+        "safety-first"
+      ]
+    },
+    {
+      "name": "Parallel-tools Fact Check",
+      "slug": "orchestra-parallel-tools-fact-check",
+      "mode": "native",
+      "pattern": "parallel-tools",
+      "combined": false,
+      "description": "Native 4-agent run with enforced per-agent tool routing \u2014 Harper owns the internet, Benjamin owns the sandbox, Lucas and Grok reason from the transcript. Off-list tool calls produce warnings.",
+      "categories": [
+        "fact-check",
+        "tool-routing",
+        "audit",
+        "production-ready"
+      ],
+      "estimated_tokens": 9000,
+      "marketplace_badges": [
+        "auditable",
+        "tool-scoped",
+        "production-ready"
+      ]
+    },
+    {
+      "name": "Resilient Native 16",
+      "slug": "orchestra-recovery-resilient",
+      "mode": "native",
+      "pattern": "recovery",
+      "combined": false,
+      "description": "Native-16 run wrapped in the recovery pattern \u2014 on rate-limit or tool-execution errors, degrades to grok-4.20-0309 at medium effort and retries once. Zero overhead on the happy path.",
+      "categories": [
+        "production",
+        "resilient",
+        "scheduled",
+        "premium"
+      ],
+      "estimated_tokens": 35000,
+      "marketplace_badges": [
+        "resilient",
+        "production-ready",
+        "premium"
+      ]
+    },
+    {
+      "name": "Combined Trendseeker (cron-ready)",
+      "slug": "combined-trendseeker",
+      "mode": "simulated",
+      "pattern": "native",
+      "combined": true,
+      "description": "Flagship combined run \u2014 Bridge generates a lightweight X scraper module, Orchestra debates the scraped output, Lucas vetoes the synthesis, deploy. Built to be cron-scheduled.",
+      "categories": [
+        "combined",
+        "flagship",
+        "scheduled",
+        "x-thread",
+        "bridge"
+      ],
+      "estimated_tokens": 50000,
+      "marketplace_badges": [
+        "flagship",
+        "combined",
+        "scheduled"
+      ]
+    },
+    {
+      "name": "Combined Coder-Critic (TS CLI)",
+      "slug": "combined-coder-critic",
+      "mode": "simulated",
+      "pattern": "native",
+      "combined": true,
+      "description": "Bridge generates a small TypeScript CLI; Orchestra runs a 4-role critique of the generated code itself; Lucas vetoes the review thread; deploy writes files + posts the review thread to X.",
+      "categories": [
+        "combined",
+        "code-review",
+        "typescript",
+        "bridge"
+      ],
+      "estimated_tokens": 55000,
+      "marketplace_badges": [
+        "combined",
+        "code-review",
+        "ship-ready"
+      ]
+    },
+    {
+      "name": "Deep Research (Hierarchical 3-deep)",
+      "slug": "deep-research-hierarchical",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "Recursive sub-question generation, 3 levels deep, with a Lucas veto on every level synthesis. Built for research questions you can't fit in one prompt.",
+      "categories": [
+        "research",
+        "deep",
+        "debate",
+        "web-search"
+      ],
+      "estimated_tokens": 45000,
+      "marketplace_badges": [
+        "deep",
+        "rigorous",
+        "recursive"
+      ]
+    },
+    {
+      "name": "Local-Docs Debate Loop",
+      "slug": "debate-loop-with-local-docs",
+      "mode": "simulated",
+      "pattern": "debate-loop",
+      "combined": false,
+      "description": "Iteratively debate the contents of a local PDF/Markdown corpus until consensus. Requires v0.3+ for full local-docs ingest; earlier releases ignore `report_source: local`.",
+      "categories": [
+        "research",
+        "deep",
+        "local-docs",
+        "debate",
+        "requires-v0.3"
+      ],
+      "estimated_tokens": 25000,
+      "marketplace_badges": [
+        "local-docs",
+        "deep",
+        "requires-v0.3"
+      ]
+    },
+    {
+      "name": "Competitive Analysis",
+      "slug": "competitive-analysis",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "Hierarchical competitor brief \u2014 Harper researches, Benjamin audits the logic, Grok synthesises, Lucas vetoes any claim without a named source.",
+      "categories": [
+        "research",
+        "business",
+        "web-search",
+        "debate"
+      ],
+      "estimated_tokens": 18000,
+      "marketplace_badges": [
+        "business",
+        "sourced",
+        "rigorous"
+      ]
+    },
+    {
+      "name": "Investor Memo (DD)",
+      "slug": "due-diligence-investor-memo",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "1-pager investor memo \u2014 public sources only, hype-vetoed, \u2265 3 risks enforced. Lucas blocks output if Risks < 3 or any hype word survives review.",
+      "categories": [
+        "business",
+        "research",
+        "debate"
+      ],
+      "estimated_tokens": 20000,
+      "marketplace_badges": [
+        "business",
+        "hype-vetoed",
+        "1-pager"
+      ]
+    },
+    {
+      "name": "Red-team the Plan",
+      "slug": "red-team-the-plan",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "Stress-test a plan from 4 angles in one round \u2014 no external research, no API key for `dry-run`. Great first run for newcomers; exercises every code path offline.",
+      "categories": [
+        "debate",
+        "business",
+        "fast",
+        "offline-friendly"
+      ],
+      "estimated_tokens": 8000,
+      "marketplace_badges": [
+        "fast",
+        "offline-dry-run",
+        "beginner"
+      ]
+    },
+    {
+      "name": "Weekly News Digest",
+      "slug": "weekly-news-digest",
+      "mode": "native",
+      "pattern": "native",
+      "combined": false,
+      "description": "Topic + ISO date range \u2192 bullet digest with inline citations and 2\u20133 named themes. Web search is full-fidelity in v0.3+.",
+      "categories": [
+        "research",
+        "web-search",
+        "fast",
+        "requires-v0.3"
+      ],
+      "estimated_tokens": 9000,
+      "marketplace_badges": [
+        "fast",
+        "cited",
+        "web-search"
+      ]
+    },
+    {
+      "name": "Paper Summarizer",
+      "slug": "paper-summarizer",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "Structured arXiv / PDF summary \u2014 Problem, Method, Results, Limitations, What's next. Lucas vetoes results-paraphrasing that doesn't cite a specific table or figure.",
+      "categories": [
+        "research",
+        "technical",
+        "deep"
+      ],
+      "estimated_tokens": 15000,
+      "marketplace_badges": [
+        "technical",
+        "sourced",
+        "structured"
+      ]
+    },
+    {
+      "name": "Product Launch Brief",
+      "slug": "product-launch-brief",
+      "mode": "simulated",
+      "pattern": "hierarchical",
+      "combined": false,
+      "description": "5-section launch brief \u2014 positioning, audience, channels, risks (\u2265 3 enforced), KPIs (\u2264 5, measurable + cadence). Hype-vetoed positioning.",
+      "categories": [
+        "business",
+        "fast"
+      ],
+      "estimated_tokens": 14000,
+      "marketplace_badges": [
+        "business",
+        "KPIs",
+        "hype-vetoed"
+      ]
+    }
+  ]
+}
