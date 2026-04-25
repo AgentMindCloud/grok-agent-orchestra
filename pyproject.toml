@@ -122,6 +122,13 @@ tracing = [
     "opentelemetry-api>=1.24,<2",
     "opentelemetry-sdk>=1.24,<2",
 ]
+# Optional inline image generation in the Publisher step. Default-OFF:
+# enabled per-template via `publisher.images.enabled: true`. Pillow is
+# used for thumbnailing; replicate is the default Flux backend (BYOK).
+images = [
+    "Pillow>=10,<12",
+    "replicate>=0.25,<2",
+]
 # Big install (~300 MB Chromium). Reserved for sites that require JS.
 js = [
     "playwright>=1.42,<2",

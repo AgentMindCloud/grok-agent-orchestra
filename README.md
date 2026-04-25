@@ -73,6 +73,7 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
 | Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
+| Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
@@ -276,6 +277,54 @@ When a backend is active, the dashboard's run-detail panel grows a **🔭 View t
 ![LangSmith trace](docs/images/trace-langsmith.png)
 
 Full reference: [`docs/observability.md`](docs/observability.md).
+
+### Inline images in reports (BYOK)
+
+Reports can carry an auto-generated cover + section illustrations. Default OFF; opt in per-template:
+
+```yaml
+publisher:
+  images:
+    enabled: true
+    provider: flux              # grok (stub today) | flux | stable_diffusion
+    budget: 4                   # max images per run
+    cover: true
+    section_illustrations: 2
+    style: "minimal flat illustration, no faces"
+```
+
+```bash
+pip install 'grok-agent-orchestra[adapters,publish,images]'
+export REPLICATE_API_TOKEN="<paste-yours-here>"
+grok-orchestra run examples/with-images/illustrated-research.yaml
+```
+
+What ships:
+
+- Each PNG lands at `$GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/images/`.
+- The Markdown report references them with relative paths
+  (`![…](images/cover.png)`).
+- The PDF (WeasyPrint) resolves them via `base_url`.
+- The DOCX (python-docx) embeds them inline at the top of each section.
+- The dashboard's run-detail panel grows a thumbnail gallery linked to
+  the per-image URLs at `/api/runs/{id}/images/{name}.png`.
+
+Honest tradeoffs:
+
+- **Grok image API isn't publicly available yet.** `provider: grok` is a
+  placeholder that fails loud with an actionable hint to switch to
+  `flux`. The day xAI ships, the same YAML field flips over silently.
+- **Flux schnell costs ~$0.003/image** (your Replicate invoice). The
+  budget cap stops the run cleanly when reached. A SHA-keyed on-disk
+  cache makes re-runs free.
+- **Policy-refused prompts** (real public figures, copyrighted
+  characters, an extensible deny-list) skip that one image with a
+  WARNING; the report still ships.
+- **Tracing**: every image emits an `image_generation` span with
+  `provider`, `model`, `cache_key`, `cost_usd` so LangSmith /
+  Langfuse / OTel can index by spend.
+
+Full template + setup checklist: [`examples/with-images/`](examples/with-images/).
 
 ### Reports
 

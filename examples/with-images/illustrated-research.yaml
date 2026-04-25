@@ -1,0 +1,89 @@
+# -----------------------------------------------------------------------------
+# illustrated-research.yaml — research run + inline cover & section images.
+#
+# Prerequisites
+#   1. The base + adapters + images extras:
+#          pip install 'grok-agent-orchestra[adapters,publish,images]'
+#   2. A Replicate token (BYOK):
+#          export REPLICATE_API_TOKEN=<paste-yours-here>
+#   3. (optional) A cloud LLM key, otherwise pin to ollama/* or run with
+#      `simulated: true` in the dashboard for a key-free demo.
+#
+# Run
+#   grok-orchestra run examples/with-images/illustrated-research.yaml
+#   open $GROK_ORCHESTRA_WORKSPACE/runs/<run-id>/report.pdf
+#
+# What you get
+# - report.md      — relative `![…](images/…)` refs.
+# - report.pdf     — WeasyPrint resolves the relative paths against the
+#                    run's images dir (set as `base_url`).
+# - report.docx    — python-docx embeds each PNG inline at the start of
+#                    its section, sized at 6 inches wide.
+#
+# Honest tradeoffs
+# - Each image costs roughly $0.003 on Flux schnell (BYOK invoice).
+# - The default style prefix (`editorial illustration, abstract,
+#   minimal flat shapes, no realistic faces, no real people, no text`)
+#   keeps refusal rates low. Override with `publisher.images.style`.
+# - The policy layer hard-refuses real-public-figure prompts; if your
+#   topic legitimately mentions a politician by name, the cover image
+#   will be skipped (with a warning) but the report still ships.
+# -----------------------------------------------------------------------------
+
+name: illustrated-research
+description: Research report with auto-generated cover + section illustrations.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, business, fast]
+
+goal: |
+  Topic: <REPLACE WITH YOUR TOPIC — e.g. "trade-offs of multi-agent vs
+  single-agent LLM systems for research tasks">
+
+  Produce:
+    1. Three claims with one supporting reason each (Harper).
+    2. A logic check on those claims (Benjamin).
+    3. One devil's-advocate counter for each (Lucas).
+    4. A 200-word synthesis the reader could share (Grok).
+  Tone: rigorous, specific, no hype. No emoji.
+
+publisher:
+  images:
+    enabled: true
+    provider: flux                  # grok | flux | stable_diffusion
+    budget: 4                       # max images this run
+    cover: true
+    section_illustrations: 2        # adds findings + analysis illustrations
+    size: "1024x1024"
+    style: "editorial illustration, abstract, minimal flat shapes, no realistic faces, no real people, no text"
+    # Operators can extend the deny-list per template:
+    # deny_terms: ["acme-internal-name"]
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   []
+    Benjamin: []
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

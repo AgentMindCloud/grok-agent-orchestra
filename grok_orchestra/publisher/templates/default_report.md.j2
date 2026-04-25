@@ -16,6 +16,10 @@ version: {{ version }}
 
 # {{ title }}
 
+{% if image_refs and image_refs.cover %}
+![Cover illustration]({{ image_refs.cover }})
+
+{% endif %}
 > Lucas verdict: **{% if confidence.approved %}✅ approved{% else %}⛔ blocked{% endif %}**  ·  confidence **{{ "%.0f"|format(confidence.overall * 100) }}%**
 
 ## Executive Summary
@@ -26,24 +30,40 @@ version: {{ version }}
 
 _Surfaced by Harper (research)._
 
+{% if image_refs and image_refs.findings %}
+![Findings illustration]({{ image_refs.findings }})
+
+{% endif %}
 {{ findings or "_Harper produced no per-role output for this run._" }}
 
 ## Analysis
 
 _Logical structure check by Benjamin._
 
+{% if image_refs and image_refs.analysis %}
+![Analysis illustration]({{ image_refs.analysis }})
+
+{% endif %}
 {{ analysis or "_Benjamin produced no per-role output for this run._" }}
 
 ## Stress Test
 
 _Failure modes flagged by Lucas before final veto._
 
+{% if image_refs and image_refs.stress_test %}
+![Stress-test illustration]({{ image_refs.stress_test }})
+
+{% endif %}
 {{ stress_test or "_Lucas produced no per-role narrative — see verdict below._" }}
 
 ## Synthesis
 
 _Final framing by Grok (executive coordinator)._
 
+{% if image_refs and image_refs.synthesis %}
+![Synthesis illustration]({{ image_refs.synthesis }})
+
+{% endif %}
 {{ synthesis or executive_summary or "_No synthesis recorded._" }}
 
 ## Lucas Verdict

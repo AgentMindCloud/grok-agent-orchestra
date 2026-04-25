@@ -326,6 +326,47 @@ def create_app() -> FastAPI:
             filename=f"report-{run_id}.pdf",
         )
 
+    @app.get("/api/runs/{run_id}/images")
+    async def run_images_list(run_id: str) -> dict[str, Any]:
+        """List the inline images generated for ``run_id`` (cover + sections)."""
+        from grok_orchestra.publisher import run_report_dir
+
+        _require_run(app, run_id)
+        img_dir = run_report_dir(run_id) / "images"
+        if not img_dir.exists():
+            return {"ok": True, "run_id": run_id, "images": []}
+        items: list[dict[str, Any]] = []
+        for png in sorted(img_dir.glob("*.png")):
+            items.append(
+                {
+                    "slug": png.stem,
+                    "url": f"/api/runs/{run_id}/images/{png.name}",
+                    "bytes": png.stat().st_size,
+                }
+            )
+        return {"ok": True, "run_id": run_id, "images": items}
+
+    @app.get("/api/runs/{run_id}/images/{image_name}")
+    async def run_image_get(run_id: str, image_name: str) -> Any:
+        from fastapi.responses import FileResponse
+
+        from grok_orchestra.publisher import run_report_dir
+
+        _require_run(app, run_id)
+        # Path traversal guard — the filename must resolve inside the
+        # run's images dir. Reject anything that escapes via `..` or
+        # absolute path.
+        if "/" in image_name or "\\" in image_name or image_name.startswith("."):
+            raise HTTPException(status_code=400, detail="invalid image name")
+        full = (run_report_dir(run_id) / "images" / image_name).resolve()
+        try:
+            full.relative_to(run_report_dir(run_id).resolve())
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="path traversal") from exc
+        if not full.exists() or not full.is_file():
+            raise HTTPException(status_code=404, detail="image not found")
+        return FileResponse(full, media_type="image/png")
+
     @app.get("/api/runs/{run_id}/report.docx")
     async def run_report_docx(run_id: str) -> Any:
         from fastapi.responses import FileResponse

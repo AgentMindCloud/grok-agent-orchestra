@@ -50,11 +50,15 @@ def write_docx(ctx: Mapping[str, Any], output_path: Path) -> Path:
 
     doc.add_paragraph()  # spacer
 
+    image_refs = dict(ctx.get("image_refs") or {})
+    image_dir = ctx.get("image_dir") or ""
+    _embed_image(doc, image_refs.get("cover"), image_dir, width_in=6.0)
+
     _section(doc, "Executive Summary", ctx.get("executive_summary"))
-    _section(doc, "Findings", ctx.get("findings"), default="Harper produced no per-role output for this run.")
-    _section(doc, "Analysis", ctx.get("analysis"), default="Benjamin produced no per-role output for this run.")
-    _section(doc, "Stress Test", ctx.get("stress_test"), default="Lucas produced no per-role narrative — see verdict below.")
-    _section(doc, "Synthesis", ctx.get("synthesis") or ctx.get("executive_summary"))
+    _section(doc, "Findings", ctx.get("findings"), default="Harper produced no per-role output for this run.", image=image_refs.get("findings"), image_dir=image_dir)
+    _section(doc, "Analysis", ctx.get("analysis"), default="Benjamin produced no per-role output for this run.", image=image_refs.get("analysis"), image_dir=image_dir)
+    _section(doc, "Stress Test", ctx.get("stress_test"), default="Lucas produced no per-role narrative — see verdict below.", image=image_refs.get("stress_test"), image_dir=image_dir)
+    _section(doc, "Synthesis", ctx.get("synthesis") or ctx.get("executive_summary"), image=image_refs.get("synthesis"), image_dir=image_dir)
 
     # Lucas verdict table.
     doc.add_heading("Lucas Verdict", level=1)
@@ -123,8 +127,17 @@ def write_docx(ctx: Mapping[str, Any], output_path: Path) -> Path:
     return output_path
 
 
-def _section(doc: Any, heading: str, body: Any, *, default: str | None = None) -> None:
+def _section(
+    doc: Any,
+    heading: str,
+    body: Any,
+    *,
+    default: str | None = None,
+    image: str | None = None,
+    image_dir: str = "",
+) -> None:
     doc.add_heading(heading, level=1)
+    _embed_image(doc, image, image_dir, width_in=5.5)
     text = (body or default or "").strip()
     if not text:
         para = doc.add_paragraph("(no content)")
@@ -132,6 +145,34 @@ def _section(doc: Any, heading: str, body: Any, *, default: str | None = None) -
         return
     for paragraph in text.split("\n\n"):
         doc.add_paragraph(paragraph.strip())
+
+
+def _embed_image(
+    doc: Any,
+    rel_path: str | None,
+    image_dir: str,
+    *,
+    width_in: float,
+) -> None:
+    """Inline a generated PNG into the document, if both inputs resolve.
+
+    Silently no-ops when the image dir or relative path is missing —
+    image generation is best-effort, so a per-section render miss
+    must never break the report.
+    """
+    if not rel_path or not image_dir:
+        return
+    try:
+        from pathlib import Path
+
+        from docx.shared import Inches
+
+        full = Path(image_dir) / rel_path
+        if not full.exists():
+            return
+        doc.add_picture(str(full), width=Inches(width_in))
+    except Exception:  # noqa: BLE001 — never crash a report on an image embed
+        return
 
 
 def _row(table: Any, key: str, value: str) -> None:

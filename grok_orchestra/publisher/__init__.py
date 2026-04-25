@@ -322,6 +322,7 @@ class Publisher:
     def build_markdown(self, run: Any) -> str:
         from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+        from grok_orchestra.images_runner import maybe_generate_images
         from grok_orchestra.tracing import get_tracer
 
         tracer = get_tracer()
@@ -342,7 +343,7 @@ class Publisher:
             veto = _g(run, "veto_report")
             confidence = _confidence_from_veto(veto)
             citations = self.extract_citations(run)
-            ctx = {
+            ctx_pre = {
                 "title": _title_for(run),
                 "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
                 "template_name": _g(run, "template_name"),
@@ -359,9 +360,26 @@ class Publisher:
                 "citations": format_citations(citations),
                 "transcript_lines": _human_transcript(events),
             }
+            # Optional inline image generation. Default disabled — when
+            # the YAML carries `publisher.images.enabled: true` we
+            # generate a cover + section illustrations in parallel and
+            # surface relative paths the template renders as Markdown
+            # image refs.
+            image_refs, image_stats = maybe_generate_images(run, ctx_pre)
+            if image_stats:
+                run_proxy = run if isinstance(run, dict) else None
+                if run_proxy is not None:
+                    run_proxy.setdefault("image_stats", image_stats)
+                else:
+                    try:
+                        run.image_stats = image_stats
+                    except (AttributeError, TypeError):
+                        pass
+            ctx = {**ctx_pre, "image_refs": image_refs}
             rendered = template.render(**ctx)
             span.set_attribute("output_chars", len(rendered))
             span.set_attribute("citation_count", len(citations))
+            span.set_attribute("image_count", len(image_refs))
             return rendered
 
     # ------------------------------------------------------------------ #
@@ -399,7 +417,12 @@ class Publisher:
             )
             css_text = self.css_path.read_text(encoding="utf-8") if self.css_path.exists() else ""
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            HTML(string=full_html).write_pdf(
+            # `base_url` lets WeasyPrint resolve the relative
+            # ``images/<slug>.png`` refs the Markdown template emits
+            # — anchor on the per-run report dir.
+            run_id = _g(run, "id") or _g(run, "run_id") or "unknown"
+            base_url = str(run_report_dir(str(run_id))) + "/"
+            HTML(string=full_html, base_url=base_url).write_pdf(
                 target=str(output_path),
                 stylesheets=[CSS(string=css_text)] if css_text else None,
             )
@@ -422,18 +445,20 @@ class Publisher:
                 "pip install 'grok-agent-orchestra[publish]'"
             ) from exc
 
+        from grok_orchestra.images_runner import maybe_generate_images
         from grok_orchestra.tracing import get_tracer
 
         tracer = get_tracer()
+        run_id = _g(run, "id") or _g(run, "run_id") or "unknown"
         with tracer.span(
             "publisher/docx_render",
             kind="docx_render",
-            run_id=_g(run, "id") or _g(run, "run_id") or "unknown",
+            run_id=run_id,
         ) as span:
             events = list(_g(run, "events", []) or [])
-            ctx = {
+            ctx_pre = {
                 "title": _title_for(run),
-                "run_id": _g(run, "id") or _g(run, "run_id") or "unknown",
+                "run_id": run_id,
                 "template_name": _g(run, "template_name"),
                 "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "executive_summary": _g(run, "final_output") or "",
@@ -445,10 +470,20 @@ class Publisher:
                 "citations": self.extract_citations(run),
                 "transcript_lines": _human_transcript(events),
             }
+            # Honour publisher.images. Cached hits make this a no-op on
+            # second-write, so it's safe to call from build_docx even
+            # though build_markdown will have already triggered it.
+            image_refs, _stats = maybe_generate_images(run, ctx_pre)
+            ctx = {
+                **ctx_pre,
+                "image_refs": image_refs,
+                "image_dir": str(run_report_dir(str(run_id))),
+            }
             output_path.parent.mkdir(parents=True, exist_ok=True)
             write_docx(ctx, output_path)
             try:
                 span.set_attribute("output_bytes", output_path.stat().st_size)
+                span.set_attribute("image_count", len(image_refs))
             except OSError:
                 pass
             return output_path

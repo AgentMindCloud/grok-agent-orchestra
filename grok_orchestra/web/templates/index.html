@@ -99,6 +99,14 @@
       <div id="editor-host" class="p-0"></div>
     </div>
 
+    <div id="image-gallery" class="hidden bg-ink-900 border border-ink-700 rounded-xl p-3">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-xs uppercase tracking-wider text-slate-400">Generated images</h3>
+        <span id="image-gallery-count" class="text-[11px] text-slate-500">0</span>
+      </div>
+      <div id="image-gallery-grid" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+    </div>
+
     <div class="bg-ink-900 border border-ink-700 rounded-xl p-3">
       <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <h3 class="text-xs uppercase tracking-wider text-slate-400">Final output</h3>
@@ -343,6 +351,8 @@
     $("#web-activity").classList.add("hidden");
     $("#lucas-banner").classList.add("hidden");
     $("#confidence-meter").classList.add("hidden");
+    $("#image-gallery").classList.add("hidden");
+    $("#image-gallery-grid").innerHTML = "";
     $("#final").textContent = "—";
     $("#reasoning-pill").textContent = "0 reasoning tokens";
     $("#reasoning-pill").dataset.total = "0";
@@ -372,6 +382,37 @@
         el.hidden = false;
       })
       .catch(() => {});
+    // Generated images gallery — no-op unless the run produced any.
+    fetch(`/api/runs/${encodeURIComponent(runId)}/images`)
+      .then((r) => (r.ok ? r.json() : { images: [] }))
+      .then((body) => renderImageGallery(body && body.images || []))
+      .catch(() => {});
+  }
+
+  function renderImageGallery(images) {
+    const wrap = $("#image-gallery");
+    const grid = $("#image-gallery-grid");
+    grid.innerHTML = "";
+    if (!images.length) {
+      wrap.classList.add("hidden");
+      return;
+    }
+    $("#image-gallery-count").textContent = `${images.length} image${images.length === 1 ? "" : "s"}`;
+    for (const img of images) {
+      const figure = document.createElement("a");
+      figure.href = img.url;
+      figure.target = "_blank";
+      figure.rel = "noopener";
+      figure.className = "block rounded-md overflow-hidden border border-ink-700 hover:border-grok-500/60 transition";
+      figure.innerHTML = `
+        <img src="${img.url}" alt="${img.slug}" class="w-full h-32 object-cover bg-ink-800" loading="lazy" />
+        <div class="px-2 py-1 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>${img.slug}</span>
+          <span>${(img.bytes / 1024).toFixed(0)} KB</span>
+        </div>`;
+      grid.appendChild(figure);
+    }
+    wrap.classList.remove("hidden");
   }
 
   function setStatus(text, tone = "idle") {

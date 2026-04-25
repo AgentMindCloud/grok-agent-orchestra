@@ -10,6 +10,76 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Inline images in reports (BYOK, off by default).** New
+  ``grok_orchestra.images`` package + ``grok_orchestra.images_runner``
+  glue mints a cover + section illustrations during the publisher
+  step. Default OFF — templates opt in via:
+
+  .. code-block:: yaml
+
+      publisher:
+        images:
+          enabled: true
+          provider: flux       # grok | flux | stable_diffusion
+          budget: 4
+          cover: true
+          section_illustrations: 2
+          style: "minimal flat illustration, no faces"
+
+  - **``FluxReplicateProvider``** — default backend, BYOK
+    ``REPLICATE_API_TOKEN`` (read by ``replicate``'s own resolver,
+    never logged). Ballpark cost ≈ $0.003/image surfaced on the
+    ``Run.image_stats`` snapshot.
+  - **``GrokImageProvider``** — placeholder until xAI ships a stable
+    image API. Per the anti-pattern guard, it raises ``ImageError``
+    with a pointer to the Flux backend instead of silently no-opping.
+  - **``StableDiffusionProvider``** — skeleton with a TODO pointing
+    at the v2beta endpoint, mirroring the search-provider pattern.
+  - **Policy layer** (``grok_orchestra.images.policy``) — hard
+    refusal on real-public-figure names + copyrighted characters +
+    a categorical deny list (deepfakes, minors, sexual content);
+    style-prefix enforcement (``editorial illustration, abstract,
+    minimal flat shapes, no realistic faces, no real people, no
+    text`` by default; per-template override via
+    ``publisher.images.style``).
+  - **On-disk cache** (``$GROK_ORCHESTRA_WORKSPACE/.cache/images/``)
+    keyed on ``sha256(provider, model, prompt, style, size)``. Cache
+    hits return instantly with ``cost_usd=0`` and ``cached=True``.
+  - **Per-run image budget** + cost / refusal / hit / miss counters
+    surface on ``Run.image_stats`` and the dashboard panel.
+  - **Tracing** — every image emits an ``image_generation`` span
+    (the literal was already reserved in Prompt 10) carrying
+    ``provider``, ``model``, ``cache_key``, ``cost_usd``,
+    ``bytes``, ``cached``.
+  - **Embed pipeline** — Markdown gets relative
+    ``![…](images/<slug>.png)`` refs via the Jinja2 template;
+    WeasyPrint PDF render passes the per-run report dir as
+    ``base_url`` so relative refs resolve; ``python-docx``
+    ``add_picture`` embeds inline at 6 inches wide. Pillow downsamples
+    images > 1024 px on the longest side so PDFs stay slim.
+  - **Web layer** — new ``GET /api/runs/{id}/images`` (list) and
+    ``GET /api/runs/{id}/images/{name}.png`` (file) endpoints with a
+    path-traversal guard. The dashboard run-detail panel grows a
+    thumbnail gallery that hides itself when no images shipped.
+  - **`[images]` extra** — ``Pillow>=10,<12`` + ``replicate>=0.25,<2``.
+    ``.env.example`` gains ``REPLICATE_API_TOKEN`` (Flux) and
+    ``STABILITY_API_KEY`` (SD skeleton) under a new
+    "Inline image generation in reports" section.
+  - **`examples/with-images/illustrated-research.yaml`** + companion
+    README — full setup checklist and an honest-tradeoffs section.
+- **39 new tests** — ``tests/test_image_policy.py`` (refusals +
+  style enforcement), ``tests/test_image_providers_mock.py`` (Grok
+  stub raises with Flux pointer; Flux end-to-end with mocked
+  ``replicate.run`` + URL fetcher; auth / shape / failure paths;
+  StableDiffusion skeleton raises),
+  ``tests/test_image_cache.py`` (deterministic key, hit / miss /
+  overwrite / clear / corrupt-metadata / workspace env honour),
+  ``tests/test_publisher_with_images.py`` (Markdown emits cover +
+  section refs; disabled / budget=0 short-circuits; provider crash
+  doesn't break the report; refusals counted; cache hits across
+  runs; DOCX embeds an actual ``word/media/*`` entry).
+
+### Added
 - **Optional tracing layer (BYOK, off by default).** New
   ``grok_orchestra.tracing`` package exposes a narrow ``Tracer``
   Protocol + ``SpanContext`` context-manager; ``NoOpTracer``
