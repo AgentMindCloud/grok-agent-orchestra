@@ -113,6 +113,15 @@ search = [
 adapters = [
     "litellm>=1.34",
 ]
+# Optional observability stack. Default-OFF: the framework ships with a
+# zero-overhead NoOpTracer and only switches when the relevant env var
+# is set (LANGSMITH_API_KEY / LANGFUSE_PUBLIC_KEY / OTEL_EXPORTER_*).
+tracing = [
+    "langsmith>=0.1.50,<1",
+    "langfuse>=2.30,<3",
+    "opentelemetry-api>=1.24,<2",
+    "opentelemetry-sdk>=1.24,<2",
+]
 # Big install (~300 MB Chromium). Reserved for sites that require JS.
 js = [
     "playwright>=1.42,<2",
