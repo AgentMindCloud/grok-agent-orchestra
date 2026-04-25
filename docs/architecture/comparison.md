@@ -60,7 +60,32 @@ feature line-up so you can pick the right tool.
 | The richest frontend out-of-the-box | GPT-Researcher |
 | Both — pipe Orchestra's MD into GPT-Researcher's reader | Both |
 
+## Head-to-head benchmark
+
+The numbers below come from the harness at
+[`benchmarks/harness.py`](https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/benchmarks)
+against the 12-goal corpus in `benchmarks/goals.yaml`. Methodology
+is locked in
+[`benchmarks/methodology.md`](https://github.com/agentmindcloud/grok-agent-orchestra/blob/main/benchmarks/methodology.md);
+the LLM-as-judge is a non-Grok model (default
+`anthropic/claude-sonnet-4-6`) so we never grade ourselves.
+
+The block that follows is auto-included from
+`benchmarks/results/latest.md`, which is the most recent run's
+`comparison.md`. When the file doesn't exist (pre-launch state),
+the include falls through silently and this section just shows the
+methodology link.
+
+{%
+  include-markdown "../../benchmarks/results/latest.md"
+  start="## Headline numbers"
+  rewrite-relative-urls=false
+  fallback="_No public benchmark run yet. The harness ships in
+  `benchmarks/`; numbers populate the next time it lands a green run._"
+%}
+
 ## See also
 
 - [Quickstart](../getting-started/quickstart.md) — get a real run going.
 - [Templates](../guides/templates.md) — the 18 certified YAMLs.
+- [Blog → round-1 writeup](../blog/2026-04-orchestra-vs-gpt-researcher.md)

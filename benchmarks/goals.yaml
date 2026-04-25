@@ -1,0 +1,193 @@
+# -----------------------------------------------------------------------------
+# Benchmark goal set — 12 representative tasks across 4 domains.
+#
+# These goals are deliberately broad enough that a single-shot LLM
+# answer is plausible but unsatisfying; multi-agent orchestration
+# should win on citation density, audit-trail depth, and (occasional)
+# safety-veto correctness.
+#
+# Each goal carries:
+#   id            — stable slug used in the result file names
+#   domain        — one of: tech | finance | science | operations
+#   prompt        — verbatim text passed to every system
+#   reference     — short bullet list the LLM-as-judge uses to grade
+#                   factual accuracy. Curated by hand; updated when
+#                   the underlying facts shift.
+#   expected_format — what we tell the systems to produce (so they're
+#                   compared on the same output shape).
+# -----------------------------------------------------------------------------
+
+version: 1
+generated_at: "2026-04-25"
+
+goals:
+  # ----- Tech -------------------------------------------------------------- #
+  - id: tech-agent-frameworks-2026
+    domain: tech
+    prompt: >-
+      Compare the leading agent frameworks in 2026 (LangGraph, CrewAI,
+      AutoGen, Anthropic Skills, Grok Agent Orchestra). For each,
+      cover: orchestration model, safety story, multi-provider LLM
+      support, observability, and adoption signal. End with a
+      decision matrix.
+    reference:
+      - "Each named framework has at least one named maintainer and a public repo"
+      - "Multi-provider LLM support varies; LangGraph is the most LLM-agnostic"
+      - "Safety vetoes are not a default in any competitor — Orchestra is the outlier"
+      - "OpenAI Swarm is deprecated as of 2025-Q4"
+    expected_format: structured Markdown with a final table
+
+  - id: tech-rust-async-2025
+    domain: tech
+    prompt: >-
+      Survey the state of Rust async runtimes in 2025-2026.
+      Compare tokio, smol, async-std, glommio, monoio. Cover
+      scheduler model, ecosystem fit, single-threaded vs work-stealing
+      tradeoffs, and current maintainership. Recommend a default for
+      a new HTTP service.
+    reference:
+      - "tokio remains the de-facto default; async-std is functionally archived"
+      - "monoio + glommio are io_uring-native, single-threaded per-core"
+      - "smol is the most lightweight"
+    expected_format: prose with a final 'recommendation' section
+
+  - id: tech-postgres-vector-2026
+    domain: tech
+    prompt: >-
+      Compare Postgres vector-search options in 2026 — pgvector,
+      pgvecto.rs, Citus + pgvector, Timescale extension. Cover
+      index types (HNSW vs IVFFlat), recall benchmarks, and ops
+      caveats (rebuild cost, replication compatibility).
+    reference:
+      - "pgvector added HNSW in v0.5 (2023)"
+      - "pgvecto.rs is a newer alternative written in Rust with separate index files"
+      - "Timescale's extension extends pgvector with binary quantization"
+    expected_format: structured Markdown
+
+  # ----- Finance ----------------------------------------------------------- #
+  - id: finance-anthropic-public-snapshot
+    domain: finance
+    prompt: >-
+      Anthropic is private but well-covered. Produce a 1-page
+      synthetic 'investor brief' covering: revenue trajectory
+      (publicly reported figures only), strategic moat, top 3 risks,
+      and a 'would I invest at the latest reported valuation?'
+      stance with reasoning. Cite sources for every number.
+    reference:
+      - "Anthropic's last reported revenue figure must come from a named source"
+      - "Top 3 risks should include at least: regulatory, hyperscaler dependence, model commoditisation"
+      - "The 'invest at this valuation' stance must be a clear yes/no/depends with a rubric"
+    expected_format: 1-page memo with citations footnoted
+
+  - id: finance-saas-southeast-asia
+    domain: finance
+    prompt: >-
+      Risk register for launching a B2B SaaS in Southeast Asia
+      (Singapore-headquartered, customers across Indonesia,
+      Vietnam, Thailand, Philippines). Cover: regulatory (data
+      residency), payments, hiring, FX, GTM. Score each risk
+      severity × likelihood and rank.
+    reference:
+      - "Indonesia has data-localisation requirements for personal financial data"
+      - "Vietnam's cybersecurity law requires local representative for foreign tech"
+      - "FX volatility against USD is non-trivial across the region"
+    expected_format: risk register table with severity / likelihood scores
+
+  - id: finance-10k-walkthrough-clx
+    domain: finance
+    prompt: >-
+      Walk through Clorox's most recent 10-K. Identify three
+      financial line items that moved >10% YoY, explain why per
+      management's MD&A, and flag any item where management's
+      explanation seems thin. End with a one-paragraph 'should
+      this company be on a watchlist?' opinion.
+    reference:
+      - "10-K is filed annually; expect to see fiscal year 2024 or 2025"
+      - "Clorox cyber incident (Aug 2023) had material lingering effects on cost of goods"
+      - "Watchlist opinion must be a clear yes/no/depends"
+    expected_format: structured Markdown with line-item table
+
+  # ----- Science ----------------------------------------------------------- #
+  - id: science-ai-alignment-2025
+    domain: science
+    prompt: >-
+      Summarise the state of technical AI alignment research in
+      2025-2026. Cover: scalable oversight, interpretability,
+      adversarial robustness, debate / amplification. For each,
+      name 2-3 currently-active labs / research groups and one
+      representative paper or result from 2024-2025.
+    reference:
+      - "Anthropic + OpenAI + DeepMind + AISI all have public alignment teams"
+      - "Mechanistic interpretability work continues at Anthropic + Eleuther + Apollo"
+      - "Debate research is small but real (Irving et al.)"
+    expected_format: 4 sections with cited examples
+
+  - id: science-mrna-platform-2025
+    domain: science
+    prompt: >-
+      What's the state of mRNA-platform vaccines beyond COVID in
+      2025? Cover: cancer-vaccine pipeline (Moderna, BioNTech),
+      flu-pandemic readiness, manufacturing-cost trajectory,
+      cold-chain progress.
+    reference:
+      - "Moderna and BioNTech both have personalised cancer vaccines in Phase 3"
+      - "BioNTech's BNT122 (autogene cevumeran) is co-developed with Genentech"
+      - "Cold-chain has improved but still requires sub-zero for most candidates"
+    expected_format: 4-section synthesis
+
+  - id: science-fusion-progress-2026
+    domain: science
+    prompt: >-
+      What's the state of nuclear fusion in 2026 — both public
+      programs (ITER, JET successors) and private (Helion, TAE,
+      Commonwealth, General Fusion). For each private company,
+      give: approach (e.g. ICF / FRC / tokamak), latest milestone,
+      next milestone, capital raised. End with: 'most likely
+      first net-electricity demo by 2030?'
+    reference:
+      - "Commonwealth is tokamak-based with HTS magnets; SPARC under construction"
+      - "Helion uses FRC; aimed for net electricity demonstration in 2024-2025 window"
+      - "ITER first plasma is delayed multiple times; current target is 2034+"
+    expected_format: company-by-company structured analysis
+
+  # ----- Operations -------------------------------------------------------- #
+  - id: ops-incident-response-runbook
+    domain: operations
+    prompt: >-
+      Write an incident-response runbook for a small SaaS team
+      (5 engineers) handling a SEV-1 production outage. Cover:
+      detection, paging, comms cadence, war-room rules, post-
+      mortem template. Make it actionable enough to copy into a
+      Notion page.
+    reference:
+      - "Should reference the standard SEV-1 / SEV-2 / SEV-3 ladder"
+      - "Comms cadence for SEV-1 is typically every 15 minutes"
+      - "Blameless post-mortem template should be linkable"
+    expected_format: runbook with checklists
+
+  - id: ops-multi-region-postgres
+    domain: operations
+    prompt: >-
+      Design considerations for running Postgres across 2-3
+      regions for a SaaS with strong-consistency requirements
+      on writes but eventual-consistency tolerance on reads.
+      Cover: replication topology, RPO/RTO targets, failover
+      runbook, observability.
+    reference:
+      - "Single-leader is the only fit if writes need strong consistency"
+      - "Patroni / Stolon / RDS Multi-AZ are the canonical patterns"
+      - "Cross-region failover automation is the operational risk"
+    expected_format: 4-section Markdown design doc
+
+  - id: ops-launch-checklist-saas-asia
+    domain: operations
+    prompt: >-
+      Pre-launch checklist for a B2B SaaS going GA in Southeast
+      Asia. Cover: legal entity, data residency, payment rails,
+      KYC, support hours, escalation matrix. End with a 'go / no-go'
+      gate criteria list.
+    reference:
+      - "Indonesia OJK rules apply to FinTech-adjacent products"
+      - "Stripe / Adyen / local PSP coverage varies country-by-country"
+      - "Local language support coverage shapes T1 ticket volume"
+    expected_format: checklist with tick-boxes

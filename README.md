@@ -87,6 +87,41 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
+## Benchmarks
+
+Agent Orchestra ships a public head-to-head benchmark harness at
+[`benchmarks/`](benchmarks/) that runs every system-under-test
+against a 12-goal corpus across four domains, scored by an
+independent third-party LLM-as-judge (default
+`anthropic/claude-sonnet-4-6` — never Lucas, never Grok). The
+methodology is locked in [`benchmarks/methodology.md`](benchmarks/methodology.md);
+the recurring CI workflow at [`.github/workflows/benchmarks.yml`](.github/workflows/benchmarks.yml)
+re-runs monthly + on every release tag and opens a PR with the
+fresh `comparison.md` for human review.
+
+```bash
+pip install -e .
+pip install "litellm>=1.40,<2" "gpt-researcher>=0.10,<2" pyyaml matplotlib
+export XAI_API_KEY=...     OPENAI_API_KEY=...
+export TAVILY_API_KEY=...  ANTHROPIC_API_KEY=...
+python -m benchmarks.harness                     # full matrix
+python -m benchmarks.harness --skip-judge        # cheap metrics only
+```
+
+Round 1 numbers land in [`benchmarks/results/latest.md`](benchmarks/results/) (and
+auto-include into [`docs/architecture/comparison.md`](docs/architecture/comparison.md))
+the next time the workflow lands a green run with the keys configured.
+We don't suppress losing rows — the per-goal table publishes every
+row, including the goals where GPT-Researcher beats Orchestra.
+
+What we measure: tokens, dollar cost, wall time, citations + unique
+domains, audit lines per dollar (Orchestra's structural advantage),
+factual score against curated reference bullets, hallucination
+rate (claims without supporting citation in a ±2-sentence window),
+plus a manual "did the judge agree with the Lucas veto?" review
+when one fires. See the methodology for the full rubric + the
+inter-rater calibration study.
+
 ## Use from Claude
 
 Agent Orchestra ships a [Claude Skill](https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/skills/agent-orchestra)

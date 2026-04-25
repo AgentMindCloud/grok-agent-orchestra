@@ -1,0 +1,137 @@
+# -----------------------------------------------------------------------------
+# Recurring benchmark cadence — runs the head-to-head harness against
+# the live PyPI version and opens a PR with the fresh comparison.md.
+#
+# Triggers:
+#   - workflow_dispatch       (manual button in the Actions tab)
+#   - schedule "0 6 1 * *"    (1st of every month, 06:00 UTC)
+#   - on: push tags v*        (every release tag re-runs the matrix)
+#
+# Why a PR (not auto-publish): benchmark numbers go on the docs site
+# and the README. Each run gets a human review before the public
+# pages move. The PR includes the full per-goal table + every chart
+# so the reviewer can sanity-check at a glance.
+#
+# Required secrets (set in repo Settings → Secrets):
+#   XAI_API_KEY          — for orchestra-grok
+#   OPENAI_API_KEY       — for orchestra-litellm + GPT-Researcher
+#   ANTHROPIC_API_KEY    — for the default judge model
+#   TAVILY_API_KEY       — both Orchestra + GPT-Researcher use Tavily
+#
+# Without those secrets the harness exits 0 with a "no systems
+# available" warning. The workflow runs cleanly either way; the PR
+# just doesn't open.
+# -----------------------------------------------------------------------------
+
+name: benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      systems:
+        description: "Comma-separated runner slugs (default: every system)"
+        required: false
+        default: "orchestra-grok,orchestra-litellm,gpt-researcher-default,gpt-researcher-deep"
+      goals:
+        description: "Comma-separated goal IDs (default: every goal)"
+        required: false
+        default: ""
+      judge_model:
+        description: "LiteLLM judge model id"
+        required: false
+        default: "anthropic/claude-sonnet-4-6"
+  schedule:
+    - cron: "0 6 1 * *"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install harness + LiteLLM + GPT-Researcher
+        run: |
+          python -m pip install --upgrade pip
+          pip install grok-agent-orchestra "litellm>=1.40,<2" "gpt-researcher>=0.10,<2" pyyaml matplotlib
+
+      - name: Pre-flight (skips fast when secrets missing)
+        id: preflight
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "ANTHROPIC_API_KEY not set — judge would fail. Skipping run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Run benchmark
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          SYSTEMS="${{ github.event.inputs.systems || 'orchestra-grok,orchestra-litellm,gpt-researcher-default,gpt-researcher-deep' }}"
+          GOALS="${{ github.event.inputs.goals || '' }}"
+          JUDGE="${{ github.event.inputs.judge_model || 'anthropic/claude-sonnet-4-6' }}"
+          ARGS="--systems $SYSTEMS --judge-model $JUDGE"
+          if [ -n "$GOALS" ]; then
+            ARGS="$ARGS --goals $GOALS"
+          fi
+          python -m benchmarks.harness $ARGS
+
+      - name: Open / update PR
+        if: steps.preflight.outputs.skip == 'false'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(benchmarks): refresh comparison.md from automated run"
+          title: "chore(benchmarks): refresh round-${{ github.run_number }} numbers"
+          body: |
+            Automated benchmark run from
+            `.github/workflows/benchmarks.yml` (run #${{ github.run_number }}).
+
+            - Trigger: `${{ github.event_name }}`
+            - Judge: `${{ github.event.inputs.judge_model || 'anthropic/claude-sonnet-4-6' }}`
+            - Systems: `${{ github.event.inputs.systems || 'all' }}`
+            - Goals:   `${{ github.event.inputs.goals || 'all' }}`
+
+            Review the per-goal table in
+            `benchmarks/results/<run-dir>/comparison.md`. The `latest.md`
+            symlink updates automatically; the docs site picks up the
+            new numbers on the next deploy.
+
+            **Do not auto-merge.** A human reviews every benchmark PR
+            before the public pages move — anti-pattern guard from
+            `benchmarks/methodology.md`.
+          branch: benchmarks/round-${{ github.run_number }}
+          base: main
+          add-paths: |
+            benchmarks/results/**
+            docs/architecture/comparison.md
+          delete-branch: true

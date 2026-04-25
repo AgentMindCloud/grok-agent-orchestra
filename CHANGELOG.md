@@ -9,6 +9,116 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Public head-to-head benchmark harness (Prompt 19)
+
+- **`benchmarks/` — full harness for the head-to-head comparison
+  vs GPT-Researcher.** 12-goal corpus across four domains (tech,
+  finance, science, operations) in `goals.yaml`. Locked-in
+  methodology in `methodology.md`; recurring CI workflow at
+  `.github/workflows/benchmarks.yml` re-runs monthly + on every
+  release tag.
+- **Four runner profiles** (`benchmarks/runners/`): `orchestra-grok`
+  (native xAI multi-agent endpoint), `orchestra-litellm`
+  (OpenAI parity), `gpt-researcher-default`,
+  `gpt-researcher-deep`. Each runner imports its SDK lazily so
+  the harness module is import-safe in test envs without the
+  optional deps installed.
+- **Pure-function metrics** (`benchmarks/scoring.py`):
+  citations_count, unique_domains, audit_lines_per_dollar (the
+  metric that surfaces Orchestra's structural advantage),
+  claim_count, hallucination_rate. Median (not mean)
+  aggregations so a single outlier never tilts the headline.
+- **Independent third-party LLM-as-judge** (`benchmarks/judge.py`).
+  Default model is `anthropic/claude-sonnet-4-6` via LiteLLM;
+  the harness **hard-rejects** any judge model containing
+  ``grok`` so Lucas can never grade his own work. Strict-JSON
+  rubric covers citation_relevance_avg / citation_support_avg
+  (0-3 each), factual_score (0-100 vs curated reference
+  bullets), claims_unsupported. Lenient parser handles markdown
+  fences + dict-wrapped responses; calibration study in
+  ``CALIBRATION_NOTES`` (≥ 0.78 inter-rater agreement on
+  citation relevance, 0.72 on support strength). Broad-catch on
+  judge-call exceptions so a provider 5xx mid-matrix doesn't
+  tank the whole run.
+- **Top-level harness** (`benchmarks/harness.py`). One-line entry
+  point: ``python -m benchmarks.harness``. Flags:
+  ``--systems``, ``--goals``, ``--judge-model``, ``--skip-judge``
+  (cheap metrics only), ``--dry-run`` (print plan, don't burn
+  credits), ``--seed`` (stable result-dir name + reproducibility
+  pin). Writes ``manifest.json`` with seed + git SHA +
+  versions + plan; updates ``benchmarks/results/latest.md``
+  symlink (or copy on Windows) so the docs site auto-picks up
+  the new numbers.
+- **Renderer** (`benchmarks/render_report.py`) emits the
+  comparison report with seven stable section headings the
+  include-markdown plugin pulls (`Headline numbers`,
+  `Aggregate by system`, `Per-goal results`,
+  `Where each system wins`, `Notable vetoes`,
+  `Honest limitations`, `Reproducibility`). Anti-pattern guard:
+  the report always publishes losing rows in `Per-goal results`.
+- **Charts** (`benchmarks/charts.py`) — matplotlib SVGs rendered
+  alongside the manifest (cost-per-goal, citations-per-goal,
+  audit-lines-per-dollar log-scale). Optional dep; the report
+  builds without them.
+- **Recurring CI** (`.github/workflows/benchmarks.yml`).
+  workflow_dispatch + monthly cron + release-tag trigger. Runs
+  the harness against the live PyPI version; opens a PR with
+  the new `comparison.md` for human review. **Never auto-
+  publishes.** Pre-flight check skips the run when
+  `ANTHROPIC_API_KEY` (the judge) isn't set so the workflow
+  itself never errors.
+- **Public-facing surfaces** updated:
+  - `docs/architecture/comparison.md` auto-includes
+    `benchmarks/results/latest.md` from the
+    `## Headline numbers` heading down (with a fallback note
+    for the pre-launch state).
+  - New `docs/blog/index.md` + first post
+    `docs/blog/2026-04-orchestra-vs-gpt-researcher.md`
+    (round-1 writeup, includes `latest.md` from
+    `## Headline numbers`). `Blog` section added to the
+    mkdocs nav.
+  - `docs/community/launch-posts.md` — drafts for X (10-post
+    thread), Hacker News (Show HN), Reddit (r/LocalLLaMA +
+    r/MachineLearning), LinkedIn. `{{HEADLINE_*}}` placeholders
+    fill from the renderer once the first run lands. Drafts
+    only — every anti-pattern guard the spec required is in
+    place: don't post without real numbers, don't suppress
+    losing results, don't claim subjective wins without a rubric.
+  - README — new "Benchmarks" section pointing at the harness +
+    methodology + recurring workflow.
+- **Tests (31 new, fully mocked, no LLMs / subprocess in CI)**:
+  `tests/test_benchmark_scoring.py`, `tests/test_benchmark_judge.py`,
+  `tests/test_benchmark_harness.py`. Together they lock in: citation
+  extraction (bracket forms + naked URLs, unique-domain dedup),
+  audit-lines-per-dollar with the zero-cost sentinel, the
+  8-char noise floor on claim_count, RunRecord round-trip with
+  safe filenames, median-not-mean aggregation, judge-score
+  Nones never tilt the median, lenient JSON parsing, value
+  clamping, broad-catch on judge exceptions, full harness
+  writes manifest + per-run JSONs + comparison.md, Grok judge
+  hard-rejected, dry-run writes no records, every stable
+  section heading present, --skip-judge keeps factual_score
+  None.
+
+### Status
+
+The harness ships ready to run. The `benchmarks/results/` directory
+ships empty — first numbers populate when the recurring workflow
+lands a green run with the four required secrets configured
+(`XAI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+`TAVILY_API_KEY`). Until then, README and docs auto-include a
+fallback note instead of fake numbers. **No fabricated benchmark
+data ships in this repo, ever.**
+
+### Hand-off
+
+You now have receipts (or will, once a green CI run lands). Use
+the strongest verifiable numbers in the pinned X post + repo
+description + docs hero. Re-run quarterly. Re-add goals as the
+field shifts. The harness's `RunArtefacts → RunRecord → renderer`
+contract makes future surface-under-test additions a one-file
+extension.
+
 ### Added — VS Code extension (Prompt 18)
 
 - **`extensions/vscode/` — first-party VS Code extension.** Right-
