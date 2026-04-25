@@ -34,11 +34,17 @@ Only needed for Step 4 onward. If you only want to see the TUI via
 3. Put it in your shell:
 
    ```bash
-   export XAI_API_KEY=sk-xai-XXXXXXXXXXXXXXXXXXXX
+   export XAI_API_KEY="<paste-your-key-here>"   # starts with sk-xai-
    ```
 
    To make it stick across terminals, add the line to your
    `~/.bashrc` / `~/.zshrc` / `~/.config/fish/config.fish`.
+
+   **Bring your own key.** This project never embeds, ships, or
+   transmits keys — the framework only reads `XAI_API_KEY` from your
+   shell or a local `.env` (which `.gitignore` keeps out of every
+   commit). Lose the key → rotate it on the xAI console; nothing
+   else needs to change.
 
 ## Step 2 — install from source
 

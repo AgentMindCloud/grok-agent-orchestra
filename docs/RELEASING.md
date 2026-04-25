@@ -165,7 +165,7 @@ python -m build
 # 2. Authenticate. Generate a project-scoped token at
 #    https://pypi.org/manage/account/token/  and export it:
 export TWINE_USERNAME=__token__
-export TWINE_PASSWORD=pypi-AgEIcHlw...           # the new token
+export TWINE_PASSWORD="<paste-your-pypi-token-here>"   # starts with pypi-
 
 # 3. Sanity-check then upload.
 python -m twine check dist/*
