@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "grok-agent-orchestra"
 version = "0.1.0"
-description = "Grok 4.20 multi-agent orchestration on top of Grok Build Bridge — xAI-native and prompt-simulated debate."
+description = "Multi-agent research with visible debate and enforceable safety vetoes — powered by Grok."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -21,6 +21,10 @@ keywords = [
     "orchestration",
     "agents",
     "llm",
+    "research",
+    "debate",
+    "safety",
+    "lucas-veto",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

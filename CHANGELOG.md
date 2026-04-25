@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **README rewritten as a conversion-grade landing page.** New hero block,
+  honest GPT-Researcher comparison table, three-path Quickstart (PyPI /
+  GitHub / editable), runnable first-orchestration walkthrough, 60-second
+  architecture diagram (Mermaid + ASCII fallback), highlighted templates,
+  and a thematic roadmap. `docs/images/` placeholder added for the TUI
+  demo GIF.
+- `pyproject.toml` description now matches the new tagline; keywords
+  expanded to cover `research`, `debate`, `safety`, and `lucas-veto` so
+  the package is findable for the new positioning.
+
 ## [0.1.0] - 2026-04-22
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok

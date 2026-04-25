@@ -1,179 +1,67 @@
-<!-- NEON / CYBERPUNK REPO TEMPLATE · GROK AGENT ORCHESTRA -->
+<h1 align="center">Grok Agent Orchestra</h1>
 
 <p align="center">
-  <img
-    src="https://capsule-render.vercel.app/api?type=waving&height=230&color=0:00E5FF,50:7C3AED,100:FF4FD8&text=Grok%20Agent%20Orchestra&fontSize=54&fontColor=EAF8FF&fontAlign=50&fontAlignY=38&desc=YAML%20%E2%86%92%20Debate%20%E2%86%92%20Lucas%20Veto%20%E2%86%92%20Deploy&descAlignY=62&descSize=18"
-    width="100%"
-    alt="header"
-  />
-</p>
-
-<h1 align="center">⚡ Grok Agent Orchestra</h1>
-
-<p align="center">
-  <b>Multi-agent YAML with a mandatory safety veto.</b><br/>
-  Four named Grok roles debate. Lucas decides what ships. If the gate says no, nothing deploys.
+  <b>Multi-agent research with visible debate and enforceable safety vetoes — powered by Grok.</b>
 </p>
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Space+Grotesk&weight=700&size=22&pause=1000&color=00E5FF&center=true&vCenter=true&width=900&lines=Grok+4.20+Multi-Agent+Runtime;Fail-Closed+Safety+Veto+Gate;Five+Orchestration+Patterns;Rich+Live+TUI+Debate+Viewer" alt="typing" />
+  <a href="https://pypi.org/project/grok-agent-orchestra/"><img alt="PyPI" src="https://img.shields.io/badge/pypi-coming%20in%20v0.1.0-C026D3?style=flat-square" /></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-00C2A8?style=flat-square" /></a>
+  <a href="#"><img alt="Docker pulls" src="https://img.shields.io/badge/docker-coming%20soon-2496ED?style=flat-square&logo=docker&logoColor=white" /></a>
+  <a href="#"><img alt="Discord" src="https://img.shields.io/badge/discord-coming%20soon-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
+  <a href="https://github.com/agentmindcloud/grok-agent-orchestra/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/agentmindcloud/grok-agent-orchestra?style=flat-square&logo=github" /></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Apache%202.0-00E5FF?style=for-the-badge&logoColor=001018&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/Python%203.10+-7C3AED?style=for-the-badge&logo=python&logoColor=FFFFFF&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/xAI%20SDK-FF4FD8?style=for-the-badge&logoColor=FFFFFF&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/Status%20Active-00D5FF?style=for-the-badge&logoColor=001018&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/PyPI%20Pending-C026D3?style=for-the-badge&logoColor=FFFFFF&labelColor=0A0D14" />
+  <img src="docs/images/tui-demo.gif" alt="Rich TUI demo — Grok / Harper / Benjamin / Lucas debate streamed live, ending with a Lucas veto verdict." width="780" />
 </p>
 
 ---
 
-## ✦ What This Is
+## Why Agent Orchestra?
 
-Grok Agent Orchestra turns one YAML file into a Grok 4.20 multi-agent run with a mandatory safety veto at the exit. Four named roles — Grok (executive), Harper (research), Benjamin (critique), and Lucas (veto) — debate, and Lucas has the final word. Every deploy, every post, every webhook call passes through a fail-closed JSON gate running on `grok-4.20-0309`. Veto → exit code 4. No deploy.
+- **Visible debate, not a black box.** Four named roles (Grok, Harper, Benjamin, Lucas) argue on screen. Every turn, every tool call, every reasoning gauge streams into a Rich TUI you can actually read while it happens.
+- **Lucas veto = enforceable quality / safety gate.** A separate `grok-4.20-0309` pass with strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed, low-confidence, or timed-out → exit code 4 → nothing ships.
+- **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4.20-multi-agent-0309` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Roadmap: a provider-adapter layer so you can swap engines without touching specs.
 
-Two execution modes from the same spec: **native** (xAI's `grok-4.20-multi-agent-0309` endpoint, 4 or 16 agents) or **simulated** (visible per-role debate, streamed through a Rich live TUI you can actually watch).
+## Compared to GPT-Researcher
 
-## ✦ Signature Stack
+[gpt-researcher](https://github.com/assafelovic/gpt-researcher) is the reference competitor. Honest scorecard:
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-00E5FF?style=for-the-badge&logo=python&logoColor=001018&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/xAI%20SDK-7C3AED?style=for-the-badge&logoColor=FFFFFF&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/Typer-FF4FD8?style=for-the-badge&logoColor=FFFFFF&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/Rich-00D5FF?style=for-the-badge&logoColor=001018&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/JSONSchema-9D4EDD?style=for-the-badge&logoColor=FFFFFF&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/Tenacity-5EF2FF?style=for-the-badge&logoColor=001018&labelColor=0A0D14" />
-  <img src="https://img.shields.io/badge/pytest-C026D3?style=for-the-badge&logo=pytest&logoColor=FFFFFF&labelColor=0A0D14" />
-</p>
+| Capability | Grok Agent Orchestra | GPT-Researcher |
+| --- | --- | --- |
+| Multi-agent debate | ✅ Visible & streamed | ❌ Hidden |
+| Safety veto layer | ✅ Lucas (fail-closed) | ❌ |
+| Native Grok multi-agent endpoint | ✅ | ❌ |
+| Local docs ingest | 🟡 Roadmap | ✅ |
+| Web UI | 🟡 Roadmap | ✅ |
+| `pip install` from PyPI | 🟡 Roadmap (v0.1.0) | ✅ |
 
-## ✦ Why You'd Use It
+🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
-<table>
-  <tr>
-    <td width="33%">
-      <h3>🧠 Auditable Debate</h3>
-      <p>Four named roles, full transcripts, per-role tool routing. Not a black-box ensemble.</p>
-    </td>
-    <td width="33%">
-      <h3>🛡️ Fail-Closed Gate</h3>
-      <p>Lucas runs strict-JSON safety review. Malformed, timeout, low confidence → blocks deploy.</p>
-    </td>
-    <td width="33%">
-      <h3>⚙️ Two Modes · One Spec</h3>
-      <p>Native xAI endpoint (4/16 agents) OR simulated debate. Same YAML. Swap with one line.</p>
-    </td>
-  </tr>
-</table>
+## Quickstart
 
-## ✦ 30 Seconds to a Dry Run
+Pick the install path that fits your situation. They produce the same `grok-orchestra` CLI.
+
+### From PyPI — *coming in v0.1.0*
 
 ```bash
-pip install grok-agent-orchestra   # pending — use `pip install -e .` from source for now
-grok-orchestra init orchestra-native-4 --out my-spec.yaml
-grok-orchestra run my-spec.yaml --dry-run
+pip install grok-agent-orchestra
+grok-orchestra version
 ```
 
-No xAI tokens needed for `--dry-run`. Canned-stream replay clients keyed on prompt shape make every pattern previewable offline.
+### From GitHub — works today
 
-## ✦ Architecture
+The sibling [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) is also installed from git for now (also pre-PyPI):
 
-```mermaid
-flowchart LR
-    YAML([YAML spec]) --> P[parser.load_orchestra_yaml]
-    P --> D{dispatcher<br/>pattern + mode}
-    D -->|native| RN[runtime_native<br/>xAI multi-agent endpoint]
-    D -->|simulated| RS[runtime_simulated<br/>4-role debate + TUI]
-    RN --> GROK(((Grok<br/>executive)))
-    RS --> GROK
-    GROK --> HARPER((Harper<br/>research))
-    GROK --> BENJ((Benjamin<br/>critique))
-    HARPER <-.debate.-> BENJ
-    HARPER --> LUCAS
-    BENJ --> LUCAS
-    GROK --> LUCAS
-    LUCAS{{"⛔ LUCAS VETO<br/>grok-4.20-0309<br/>strict JSON · fails closed"}}
-    LUCAS -->|safe=true| DEPLOY([deploy])
-    LUCAS -->|safe=false| BLOCK([exit 4 · blocked])
+```bash
+pip install git+https://github.com/agentmindcloud/grok-build-bridge.git
+pip install git+https://github.com/agentmindcloud/grok-agent-orchestra.git
+grok-orchestra version
 ```
 
-Five orchestration patterns compose on top: `hierarchical`, `dynamic-spawn`, `debate-loop`, `parallel-tools`, `recovery`. Each ≤120 LOC. Each ends at Lucas.
-
-## ✦ The Lucas Veto
-
-The thing that makes Orchestra different from every other agent framework.
-
-- Runs on `grok-4.20-0309` with **high reasoning effort**
-- Enforces **strict JSON output** via schema + regex fallback parser
-- **Fails closed** on malformed output, low confidence, or timeout
-- Two separate veto passes in the combined runtime (mid-debate + pre-deploy)
-- Exit codes: `0` success · `2` CLI error · `3` parse fail · `4` **veto** · `5` runtime fail
-- Rich panel output: green ✅ for safe, red ⛔ for blocked
-
-```yaml
-# my-spec.yaml — minimal native run with veto
-mode: native
-pattern: hierarchical
-model: grok-4.20-multi-agent-0309
-agents: 4
-task: "Draft a technical thread on the ΔS-1 migration."
-veto:
-  model: grok-4.20-0309
-  effort: high
-  fail_closed: true
-```
-
-## ✦ CLI
-
-Eight commands, all Typer, all with typed exit codes.
-
-| Command | Purpose |
-|---|---|
-| `init <template>` | Scaffold a YAML spec from 10 certified templates |
-| `run <spec>` | Execute orchestra (supports `--dry-run`) |
-| `validate <spec>` | Schema-check without executing |
-| `templates` | List available templates with descriptions |
-| `debate <spec>` | Stream the debate only — no deploy, veto advisory |
-| `veto <text>` | Run Lucas veto standalone on arbitrary text |
-| `combined <spec>` | Bridge codegen → Orchestra debate → veto → deploy |
-| `version` | Print the installed Orchestra version |
-
-## ✦ Orchestration Patterns
-
-<table>
-  <tr>
-    <td width="50%">
-      <h3>🎯 Hierarchical</h3>
-      <p>Grok delegates to Harper + Benjamin; synthesis before veto.</p>
-    </td>
-    <td width="50%">
-      <h3>🚀 Dynamic-Spawn</h3>
-      <p><code>asyncio.gather</code> fan-out across N agents; veto aggregates.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>🔄 Debate-Loop</h3>
-      <p>Harper ↔ Benjamin iterate with mid-loop veto + consensus check.</p>
-    </td>
-    <td>
-      <h3>⚡ Parallel-Tools</h3>
-      <p>Union tool allowlist with post-stream audit before veto.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>🛟 Recovery</h3>
-      <p>Rate-limit / timeout wrapper with <code>fallback_model</code>; veto on final output.</p>
-    </td>
-    <td>
-      <h3>🧩 Combined</h3>
-      <p>Bridge codegen + Orchestra debate + Lucas veto in one Rich Live panel.</p>
-    </td>
-  </tr>
-</table>
-
-## ✦ Install from Source
+### Editable / dev install
 
 ```bash
 git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
@@ -182,48 +70,129 @@ pip install -e ".[dev]"
 grok-orchestra version
 ```
 
-Requires Python 3.10 / 3.11 / 3.12. CI matrix covers all three with ≥85% coverage enforcement.
+Set `XAI_API_KEY` for live runs. For offline previews use `--dry-run` — every template ships with a canned-stream replay client, so you don't need a key to see how a pattern behaves.
 
-## ✦ Sibling Tools
+## Run your first orchestration
 
-<table>
-  <tr>
-    <td width="33%">
-      <h3>🌉 grok-build-bridge</h3>
-      <p>Codegen layer. Compose via <code>grok-orchestra combined</code>.</p>
-      <a href="https://github.com/agentmindcloud/grok-build-bridge">Repository →</a>
-    </td>
-    <td width="33%">
-      <h3>📦 grok-install</h3>
-      <p>Declarative spawn manifest standard for Grok agents.</p>
-      <a href="https://github.com/agentmindcloud/grok-install">Repository →</a>
-    </td>
-    <td width="33%">
-      <h3>🌐 universal-spawn</h3>
-      <p>Cross-platform spawn standard (Apache 2.0).</p>
-      <a href="https://github.com/agentmindcloud/universal-spawn">Repository →</a>
-    </td>
-  </tr>
-</table>
+Scaffold a workhorse 4-agent native run from the certified template catalog:
 
-## ✦ Connect
+```bash
+grok-orchestra init orchestra-native-4 --out my-spec.yaml
+```
 
-<p align="center">
-  <a href="https://github.com/agentmindcloud">
-    <img src="https://img.shields.io/badge/GitHub-00E5FF?style=for-the-badge&logo=github&logoColor=001018&labelColor=0A0D14" />
-  </a>
-  <a href="https://x.com/JanSol0s">
-    <img src="https://img.shields.io/badge/X-7C3AED?style=for-the-badge&logo=x&logoColor=FFFFFF&labelColor=0A0D14" />
-  </a>
-  <a href="https://www.jansolos.com">
-    <img src="https://img.shields.io/badge/Portfolio-FF4FD8?style=for-the-badge&logo=vercel&logoColor=FFFFFF&labelColor=0A0D14" />
-  </a>
-</p>
+The minimal `my-spec.yaml` looks like this:
 
-## ✦ License
+```yaml
+name: orchestra-native-4
+goal: |
+  Draft a 3-tweet X thread on today's most-discussed topic in AI agent
+  orchestration. Hook + headline, one piece of evidence, one takeaway.
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  orchestration:
+    pattern: native
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+deploy:
+  target: stdout
+```
 
-Apache 2.0. Use it, fork it, ship it. Lucas still has to sign off.
+Then dry-run it (no API key required):
 
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer&color=0:00E5FF,50:7C3AED,100:FF4FD8" width="100%" />
-</p>
+```bash
+grok-orchestra run my-spec.yaml --dry-run
+```
+
+Expected output (truncated):
+
+```text
+┌─ Grok Agent Orchestra · native · 4 agents ──────────────────────────┐
+│ phase 1/6  resolve         ✓                                        │
+│ phase 2/6  stream debate   ▰▰▰▰▰▰▰▰▱▱  Harper → Benjamin            │
+│   Harper:   "Primary source: arXiv:2403.…  [web_search]"            │
+│   Benjamin: "Logic check: claim 2 conflates correlation with …"     │
+│ phase 3/6  audit           ✓ (no off-list tool calls)               │
+│ phase 4/6  Lucas veto      ✅ safe=true · confidence=0.91           │
+│ phase 5/6  deploy          stdout                                   │
+│ phase 6/6  summary                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+exit 0
+```
+
+A `safe=false` verdict prints a red ⛔ panel and exits 4. Nothing deploys.
+
+## Architecture in 60 seconds
+
+```mermaid
+flowchart LR
+    G([User goal / YAML]) --> P[Planner<br/>parser + dispatcher]
+    P --> D{{Debate loop}}
+    D --> H((Harper<br/>research))
+    D --> B((Benjamin<br/>critique))
+    D --> X((Grok<br/>executive))
+    H <-.debate.-> B
+    H --> L
+    B --> L
+    X --> L
+    L{{⛔ Lucas veto<br/>strict JSON · fail-closed}}
+    L -->|safe=true| O([Output / deploy])
+    L -->|safe=false| K([exit 4 · blocked])
+```
+
+ASCII fallback if Mermaid isn't rendering for you:
+
+```text
+   YAML ──► Planner ──► [ Grok · Harper · Benjamin ]
+                         │   ▲   │
+                         ▼   │   ▼
+                         └─ debate ─┘
+                              │
+                              ▼
+                         Lucas veto  ──► safe? ──► output
+                                            │
+                                            └► exit 4 (blocked)
+```
+
+Five composable patterns sit on top of this core: `hierarchical`, `dynamic-spawn`, `debate-loop`, `parallel-tools`, `recovery`. Each is ≤120 LOC. Each ends at Lucas.
+
+## Templates
+
+The CLI ships ten certified templates in [`grok_orchestra/templates/`](grok_orchestra/templates/) with a machine-readable [`INDEX.yaml`](grok_orchestra/templates/INDEX.yaml) catalog. Five highlights:
+
+- [`orchestra-native-4`](grok_orchestra/templates/orchestra-native-4.yaml) — daily X-thread workhorse on the native 4-agent endpoint.
+- [`orchestra-native-16`](grok_orchestra/templates/orchestra-native-16.yaml) — weekly deep-research thread, 16 agents at high effort, auto-degrade on 429s.
+- [`orchestra-simulated-truthseeker`](grok_orchestra/templates/orchestra-simulated-truthseeker.yaml) — fully-visible Grok / Harper / Benjamin / Lucas debate over 3 fact-check rounds.
+- [`orchestra-debate-loop-policy`](grok_orchestra/templates/orchestra-debate-loop-policy.yaml) — iterate up to 5 rounds toward a balanced 280-char summary, with a mid-loop veto.
+- [`combined-trendseeker`](grok_orchestra/templates/combined-trendseeker.yaml) — flagship combined run: Bridge codegen → Orchestra debate → Lucas veto → deploy. Cron-ready.
+
+Browse the rest with `grok-orchestra templates`, or read the catalog at [`grok_orchestra/templates/INDEX.yaml`](grok_orchestra/templates/INDEX.yaml).
+
+## Roadmap
+
+Grouped by theme. Status emojis: ✅ shipped · 🟡 in progress · ⏳ planned.
+
+- **Distribution** — 🟡 PyPI publish (v0.1.0) · ⏳ Docker image · ⏳ Homebrew tap.
+- **Adapters** — ⏳ provider adapter layer (OpenAI / Anthropic / local) so the same YAML targets non-Grok engines.
+- **Knowledge** — ⏳ local docs ingest with citation-preserving retrieval · ⏳ structured corpus templates.
+- **Surfaces** — ⏳ web UI for live debate inspection · ⏳ exportable HTML transcripts · ⏳ Discord bot.
+- **Veto depth** — ⏳ pluggable veto stacks (legal / brand / PII gates chained before Lucas) · ⏳ veto replay tooling.
+- **Reliability** — ✅ recovery pattern w/ fallback model · ⏳ richer cost/latency budgets · ⏳ distributed run mode.
+
+The 18-item improvement roster lives in [`docs/`](docs/) — each item resolves into one of the themes above.
+
+## Contributing
+
+Issues, PRs, and template submissions welcome. The flow:
+
+1. Read [`docs/getting-started.md`](docs/getting-started.md) and the (placeholder) `CONTRIBUTING.md` — TODO: write the formal contributor guide.
+2. Open an issue before large changes so we can sanity-check the design against the veto invariants.
+3. Run `pytest` and `ruff check .` before pushing — CI enforces ≥85% coverage and the lint suite.
+
+## License & Attribution
+
+Apache 2.0 — see [`LICENSE`](LICENSE). Use it, fork it, ship it. Lucas still has to sign off.
+
+Built on top of [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) and the [xAI SDK](https://docs.x.ai/). Inspired in spirit (and benchmarked against) [assafelovic/gpt-researcher](https://github.com/assafelovic/gpt-researcher).
