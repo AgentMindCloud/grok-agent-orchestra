@@ -38,6 +38,9 @@ SpanKind = Literal[
     "mcp_connect",        # MCPSource: open one server (stdio/http/ws)
     "mcp_tool_call",      # MCPSource: invoke a namespaced MCP tool
     "mcp_resource_get",   # MCPSource: read an MCP resource (cached per-run)
+    "planning_root",      # Deep Research: top-level planner pass
+    "planning_level",     # Deep Research: per-node planner expansion
+    "planner_call",       # Deep Research: one LLM call inside the planner
     "generic",
 ]
 

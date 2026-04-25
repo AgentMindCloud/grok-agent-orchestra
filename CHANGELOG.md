@@ -10,6 +10,76 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Deep Research workflow — recursive sub-question planner (Prompt 15a / 4).**
+  First piece of the GPT-Researcher-style deep-research surface; pairs
+  the recursive planner with this project's visible-debate +
+  Lucas-veto guarantees. Lives under
+  ``grok_orchestra.workflows.deep_research`` (new ``workflows``
+  package; siblings will follow in 15b / 15c / 15d).
+  - **``SubQuestion``** — one node in the plan tree. Carries
+    ``text``, ``parent_id``, ``depth``, ``priority`` (0.0-1.0),
+    ``required_sources`` (``web|local|mcp|reasoning``), ``rationale``,
+    plus mutable ``status`` / ``answer`` / ``citations`` / ``error``
+    fields that 15b will mutate as it executes leaves. Frozen
+    enum coercion + ``to_dict`` / ``from_dict`` round-trip.
+  - **``ResearchPlan``** — tree wrapper with ``all_nodes()``,
+    ``leaf_nodes()``, ``find(id)``, and a per-status ``progress()``
+    snapshot. Versioned via ``schema_version: 1`` so future shape
+    changes can land without breaking saved plans.
+  - **``Planner``** — recursive sub-question generator. One LLM call
+    per node; emits ``planner_call`` events; parses strict JSON +
+    leniently handles markdown fences and ``{"questions": [...]}``
+    wrappers. Source routing is *per-node* — each sub-question
+    declares which backends it needs, the input contract for 15b's
+    dispatcher.
+  - **Hard caps the YAML cannot disable**:
+    ``HARD_DEPTH_CEILING=6`` and ``HARD_FANOUT_CEILING=12``.
+    ``priority_threshold`` (default 0.4) marks low-priority sibs as
+    ``SKIPPED`` and prunes the recursion before they spawn another
+    LLM call.
+  - **``DeepResearchWorkflow``** — top-level entry point. Persists
+    the plan to ``$GROK_ORCHESTRA_WORKSPACE/runs/<run_id>/plan.json``
+    and auto-resumes when re-run with the same ``run_id``
+    (override with ``resume=False``). YAML form:
+
+    .. code-block:: yaml
+
+        workflow: deep_research
+        goal: "What are the most promising agentic AI frameworks in 2026?"
+        max_depth: 3
+        max_sub_questions_per_level: 5
+        priority_threshold: 0.4
+        sources:
+          - {type: web}
+          - {type: local, path: ./workspace/docs}
+
+  - **``LLMCallable`` injection point** — every Planner LLM hop
+    routes through a ``Callable[[system, user], str]`` so tests
+    pass scripted responses without touching xAI / LiteLLM /
+    Bridge. ``build_default_llm_call()`` lazily binds to
+    ``patterns._grok_call`` for production.
+  - **Three new ``SpanKind`` values** reserved for tracing:
+    ``planning_root``, ``planning_level``, ``planner_call``. The
+    planner already emits the matching ``type`` events
+    (``planning_root_started/completed``,
+    ``planning_level_started/completed``, ``planner_call``,
+    ``deep_research_planned``, ``deep_research_resumed``) so 15b's
+    UI tile can render the tree live as it grows.
+  - **``plan_tree_status(plan)``** returns a compact dict (no
+    ``answer`` / ``citations`` payloads) sized for WebSocket frames.
+  - **Tests (19 new, all green, fully mocked)**:
+    ``tests/test_deep_research_planner.py`` (tree shape, depth cap,
+    fan-out cap, source routing, lenient JSON parsing, event
+    emission), ``tests/test_planner_pruning.py`` (priority threshold
+    matrix, no recursion into skipped branches, edge thresholds),
+    ``tests/test_planner_resume.py`` (round-trip JSON, workflow
+    resume, ``resume=False``, partial-plan mutated-status survival,
+    ``plan_tree_status`` snapshot).
+  - **Hand-off note (15b):** the ``SubQuestion`` field shape is the
+    contract for parallel sub-question execution. 15b should mutate
+    ``status`` / ``answer`` / ``citations`` / ``answered_at`` /
+    ``error`` in-place and re-save via ``save_plan`` after each
+    leaf completes so mid-run crashes resume gracefully.
 - **MCP (Model Context Protocol) client as a Source.**
   - New ``grok_orchestra.sources.mcp_source`` module — peer to
     ``LocalDocsSource`` and ``WebSource``. One ``MCPSource`` connects
