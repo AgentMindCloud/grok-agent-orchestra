@@ -127,7 +127,10 @@ def main(argv: list[str] | None = None) -> int:
 
     md = render_report.render_from_dir(out_dir)
     (out_dir / "comparison.md").write_text(md, encoding="utf-8")
-    _update_latest(out_dir / "comparison.md", DEFAULT_RESULTS_ROOT / "latest.md")
+    # `latest.md` lives under whichever results root the caller picked
+    # — never the hard-coded repo path. Tests that pass --results-root
+    # /tmp/... must not mutate the real repo's tracked files.
+    _update_latest(out_dir / "comparison.md", Path(args.results_root) / "latest.md")
     print(f"\n✓ wrote {out_dir / 'comparison.md'}")
     return 0
 

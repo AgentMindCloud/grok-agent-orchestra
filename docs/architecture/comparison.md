@@ -70,18 +70,19 @@ is locked in
 the LLM-as-judge is a non-Grok model (default
 `anthropic/claude-sonnet-4-6`) so we never grade ourselves.
 
-The block that follows is auto-included from
-`benchmarks/results/latest.md`, which is the most recent run's
-`comparison.md`. When the file doesn't exist (pre-launch state),
-the include falls through silently and this section just shows the
-methodology link.
+_No public benchmark run has landed yet. The harness ships in
+[`benchmarks/`](https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/benchmarks);
+real numbers populate this section the next time the recurring
+workflow at `.github/workflows/benchmarks.yml` lands a green run with
+the four required secrets configured. Until then, the methodology
+link above is the contract; what follows is whatever
+`benchmarks/results/latest.md` currently holds (empty in the
+pre-launch state)._
 
 {%
   include-markdown "../../benchmarks/results/latest.md"
   start="## Headline numbers"
   rewrite-relative-urls=false
-  fallback="_No public benchmark run yet. The harness ships in
-  `benchmarks/`; numbers populate the next time it lands a green run._"
 %}
 
 ## See also

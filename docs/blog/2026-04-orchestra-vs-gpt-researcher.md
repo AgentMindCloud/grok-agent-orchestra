@@ -39,6 +39,11 @@ own work.
 
 ## The receipts
 
+_Round 1 is a placeholder until the recurring workflow lands a green
+run. The block below auto-includes
+`benchmarks/results/latest.md`; before the first run it renders
+empty. Re-read this page once the launch PR merges._
+
 {%
   include-markdown "../../benchmarks/results/latest.md"
   start="## Headline numbers"

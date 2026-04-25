@@ -18,7 +18,7 @@ import pytest
 
 httpx = pytest.importorskip("httpx")
 fastapi_testclient = pytest.importorskip("fastapi.testclient")
-from fastapi.testclient import TestClient   # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 YAML = "name: t\ngoal: hi\norchestra:\n  mode: simulated\n  agent_count: 4\n  reasoning_effort: low\n  debate_rounds: 1\n  orchestration: {pattern: native, config: {}}\n  agents:\n    - {name: Grok, role: coordinator}\n    - {name: Harper, role: researcher}\n    - {name: Benjamin, role: logician}\n    - {name: Lucas, role: contrarian}\nsafety: {lucas_veto_enabled: true, confidence_threshold: 0.5}\ndeploy: {target: stdout}\n"
 

@@ -220,6 +220,44 @@ def test_render_handles_empty_records() -> None:
     assert "No records yet" in md
 
 
+def test_harness_does_not_mutate_real_results_dir(
+    goals_file: Path,
+    tmp_path: Path,
+    stubbed_runners,                                              # noqa: ARG001
+    stubbed_judge,                                                # noqa: ARG001
+) -> None:
+    """Regression: when --results-root is a tmp dir, the real repo's
+    benchmarks/results/latest.md must not be created or rewritten.
+
+    Catches the bug fixed in this same commit where _update_latest
+    used the hard-coded DEFAULT_RESULTS_ROOT regardless of the
+    caller's --results-root flag, polluting the working tree on
+    every pytest run."""
+    real_results = harness.DEFAULT_RESULTS_ROOT
+    real_latest = real_results / "latest.md"
+    before_exists = real_latest.exists()
+    before_target = real_latest.resolve(strict=False) if before_exists else None
+
+    rc = harness.main(
+        [
+            "--goals-file", str(goals_file),
+            "--systems", "orchestra-grok",
+            "--seed", "isolation",
+            "--results-root", str(tmp_path / "ws"),
+        ]
+    )
+    assert rc == 0
+
+    # The tmp results-root got its own latest.md — that's correct.
+    assert (tmp_path / "ws" / "latest.md").exists()
+
+    # The real repo's latest.md is unchanged — same existence state,
+    # same target if it existed.
+    assert real_latest.exists() == before_exists
+    if before_exists:
+        assert real_latest.resolve(strict=False) == before_target
+
+
 def test_skip_judge_keeps_factual_score_none(
     goals_file: Path,
     tmp_path: Path,
