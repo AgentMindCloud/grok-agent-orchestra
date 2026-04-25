@@ -37,6 +37,7 @@
 | Local docs ingest | 🟡 Roadmap | ✅ |
 | Web UI | ✅ Live debate stream | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
+| Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
@@ -81,30 +82,38 @@ Set `XAI_API_KEY` for live runs. For offline previews use `--dry-run` — every 
 
 ### Run in Docker
 
-The fastest path to a working dashboard — no Python install on the host:
+The fastest path to a working dashboard — no Python install on the host. Pre-built multi-arch images (linux/amd64 + linux/arm64) are published to **GitHub Container Registry**:
+
+```bash
+docker pull ghcr.io/agentmindcloud/grok-agent-orchestra:latest
+docker run --rm -p 8000:8000 \
+  -e XAI_API_KEY=<your-key> \
+  ghcr.io/agentmindcloud/grok-agent-orchestra:latest
+# → http://localhost:8000
+```
+
+Pin a specific version in production — `:latest` is fine for evals, but production should track an explicit `:v0.1.0` (or `:0.1`) tag so the image you ship in CI matches what you smoke-tested.
+
+Or build + run from a fresh clone with `docker compose`:
 
 ```bash
 git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
 cd grok-agent-orchestra
 cp .env.example .env                  # paste XAI_API_KEY (optional for simulated runs)
 docker compose up --build
-# → http://localhost:8000
-```
-
-Or with `docker run` directly:
-
-```bash
-docker build -t grok-agent-orchestra:0.1.0 .
-docker run --rm -p 8000:8000 \
-  --env-file .env \
-  -v "$PWD/workspace:/app/workspace" \
-  grok-agent-orchestra:0.1.0
 ```
 
 For hot-reload during development:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+Smoke-test a fresh build end-to-end (bash + PowerShell variants ship side by side):
+
+```bash
+./scripts/docker-smoke-test.sh                  # macOS / Linux
+.\scripts\docker-smoke-test.ps1                 # Windows
 ```
 
 The image binds to `0.0.0.0:8000` by default, runs as the unprivileged `orchestra` user, and ships a `/api/health` HEALTHCHECK so `docker ps` reports container readiness.

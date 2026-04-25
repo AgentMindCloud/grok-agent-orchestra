@@ -1,0 +1,95 @@
+# -----------------------------------------------------------------------------
+# Build the grok-agent-orchestra container and publish to GitHub Container
+# Registry (ghcr.io) on every push to `main` and on every `v*.*.*` tag.
+#
+# Layout
+# ------
+# - Multi-arch builds via QEMU + buildx: linux/amd64 + linux/arm64.
+# - Layer cache backed by GitHub Actions' built-in `type=gha` cache (free
+#   for public repos, scoped per ref).
+# - Tags emitted by docker/metadata-action:
+#     :latest               — only on main
+#     :main                 — only on main
+#     :v0.1.0 + :0.1.0      — only on `v*.*.*` tags
+#     :sha-<short>          — always
+# -----------------------------------------------------------------------------
+
+name: docker
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write   # required to push to ghcr.io
+  id-token: write   # reserved for sigstore / cosign in a future iteration
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # AgentMindCloud/grok-agent-orchestra
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # QEMU lets the amd64 runner emulate arm64 for the cross-build.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Log in only when we'll actually push (skip on PRs from forks).
+      - name: Log in to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags + labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # `latest` only follows main; tag pushes carry the explicit version.
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=grok-agent-orchestra
+            org.opencontainers.image.description=Multi-agent research with visible debate and enforceable safety vetoes — powered by Grok.
+            org.opencontainers.image.licenses=Apache-2.0
+
+      - name: Build and push (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          # PRs build only — never push from a fork.
+          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image summary
+        if: always()
+        run: |
+          echo "### Image tags pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

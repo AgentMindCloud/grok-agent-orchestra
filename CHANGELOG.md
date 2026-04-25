@@ -17,13 +17,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `uvicorn --reload`. Image runs as a non-root `orchestra` user, ships
   a `/api/health`-based HEALTHCHECK, and is labelled with the OCI
   metadata triple (title / description / source / version / licenses).
+- **GHCR publish workflow** — `.github/workflows/docker.yml` builds
+  multi-arch (linux/amd64 + linux/arm64) on every push to `main` and
+  every `v*.*.*` tag, then pushes to
+  `ghcr.io/agentmindcloud/grok-agent-orchestra` with tags `:latest`
+  (main only), `:v0.1.0` / `:0.1` (semver tags), `:main`, and
+  `:sha-<short>`. Layer cache backed by GitHub Actions' `type=gha`
+  backend.
+- **Smoke test scripts** — `scripts/docker-smoke-test.sh` (bash) and
+  `scripts/docker-smoke-test.ps1` (PowerShell). Build, boot the
+  container, poll `/api/health` until 200, tear down. Safe to re-run
+  and CI-friendly. Bash version exits non-zero on any failure with
+  `set -euo pipefail`; PowerShell version uses
+  `$ErrorActionPreference = "Stop"` and a `try/finally` cleanup.
 - **`.env.example` expanded** to document every env var the stack
   knows about today (XAI_API_KEY, ORCHESTRA_MODE, LOG_LEVEL) plus
   reserved placeholders for the planned adapter providers
   (OPENAI_API_KEY, ANTHROPIC_API_KEY) and the X deploy target.
-- **README "Run in Docker" section** with both the
-  `docker compose up --build` quickstart and a raw `docker run`
-  invocation, plus the dev-overlay command for hot-reload.
+- **README "Run in Docker" section** — pre-built `docker pull` from
+  ghcr.io, the compose quickstart, the dev overlay command, and a
+  pointer to the smoke-test scripts. Comparison table gains a Docker
+  row (✅ amd64 + arm64 on ghcr.io).
 
 ### Added
 - **FastAPI web UI** at `grok-orchestra serve` (new top-level CLI
