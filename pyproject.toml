@@ -1,6 +1,16 @@
+# -----------------------------------------------------------------------------
+# pyproject.toml — grok-agent-orchestra
+#
+# PEP 621 metadata + Hatchling build backend.
+#
+# Layout: the package is at top-level ``grok_orchestra/`` (flat layout).
+# Hatchling auto-discovers it; we still pin ``packages = ["grok_orchestra"]``
+# explicitly so the wheel target never accidentally bundles tests/ or docs/.
+# -----------------------------------------------------------------------------
+
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
 
 [project]
 name = "grok-agent-orchestra"
@@ -14,62 +24,107 @@ authors = [
     { name = "AgentMindCloud" },
 ]
 keywords = [
+    "xai",
     "grok",
     "grok-4.20",
-    "xai",
     "multi-agent",
-    "orchestration",
     "agents",
-    "llm",
+    "orchestration",
     "research",
     "debate",
     "safety",
     "lucas-veto",
+    "ai",
+    "llm",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
+
+# Pin majors, leave minors loose so users don't get stuck on a pinned point
+# release in six months. Bump the upper bound when we test against the next
+# major.
 dependencies = [
-    "grok-build-bridge>=0.1",
-    "xai-sdk>=1.0",
-    "pyyaml>=6",
-    "rich>=13",
-    "typer>=0.12",
-    "tenacity>=8.2",
-    "jsonschema>=4.21",
+    "grok-build-bridge>=0.1,<1",
+    "xai-sdk>=1.0,<2",
+    "pyyaml>=6,<7",
+    "rich>=13,<15",
+    "typer>=0.12,<1",
+    "tenacity>=8.2,<10",
+    "jsonschema>=4.21,<5",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-asyncio",
-    "mypy",
-    "ruff",
+    "pytest>=7",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4",
+    "mypy>=1.8",
+    "ruff>=0.4",
+    "build>=1.2",
+    "twine>=5",
 ]
-
-[project.scripts]
-grok-orchestra = "grok_orchestra.cli:main"
+# Reserved extras — Prompt 4 (web UI) and a future docs build will fill these.
+web = []
+docs = []
 
 [project.urls]
 Homepage = "https://github.com/agentmindcloud/grok-agent-orchestra"
 Repository = "https://github.com/agentmindcloud/grok-agent-orchestra"
 Issues = "https://github.com/agentmindcloud/grok-agent-orchestra/issues"
 Changelog = "https://github.com/agentmindcloud/grok-agent-orchestra/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/agentmindcloud/grok-agent-orchestra/tree/main/docs"
 
-[tool.setuptools.packages.find]
-include = ["grok_orchestra*"]
-exclude = ["tests*", "docs*"]
+[project.scripts]
+grok-orchestra = "grok_orchestra.cli:main"
 
-[tool.setuptools.package-data]
-grok_orchestra = ["schema/*.json", "templates/*"]
+# -----------------------------------------------------------------------------
+# Hatch build configuration
+# -----------------------------------------------------------------------------
+# `packages` pins the wheel content — tests/ and docs/ never ship.
+# Bundled JSON schema + YAML templates ship as package data so
+# `grok-orchestra init <template>` keeps working post-install.
+
+[tool.hatch.build.targets.wheel]
+# Hatchling auto-includes every file inside `grok_orchestra/` — including
+# `schema/*.json` and `templates/*.yaml` — as long as the dir contains
+# an `__init__.py`. No `force-include` needed (and adding one duplicates
+# the entries in the wheel zip).
+packages = ["grok_orchestra"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "grok_orchestra",
+    "tests",
+    "docs",
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "SECURITY.md",
+    "pyproject.toml",
+]
+exclude = [
+    "grok_orchestra/__pycache__",
+    "**/*.pyc",
+    "**/.DS_Store",
+]
+
+# -----------------------------------------------------------------------------
+# Tooling
+# -----------------------------------------------------------------------------
 
 [tool.ruff]
 line-length = 100

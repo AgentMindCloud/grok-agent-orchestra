@@ -1,0 +1,90 @@
+# -----------------------------------------------------------------------------
+# Publish grok-agent-orchestra to PyPI on a v*.*.* tag push.
+#
+# Trusted-publishing (OIDC) is the default — configure the project on
+# https://pypi.org/manage/account/publishing/ with:
+#   owner:   AgentMindCloud
+#   repo:    grok-agent-orchestra
+#   workflow: publish.yml
+#   environment: pypi
+#
+# Token fallback (only if OIDC is unavailable):
+#   1. Generate a project-scoped API token on PyPI.
+#   2. Store it as the GitHub Secret  PYPI_API_TOKEN.
+#   3. Replace the `pypa/gh-action-pypi-publish` step's `with:` block with:
+#        password: ${{ secrets.PYPI_API_TOKEN }}
+#      and remove the `id-token: write` permission below.
+# -----------------------------------------------------------------------------
+
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or commit ref to build (e.g. v0.1.0). Required for manual runs."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Verify artifacts
+        run: |
+          ls -la dist/
+          python -m pip install twine
+          python -m twine check dist/*
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grok-agent-orchestra
+    permissions:
+      id-token: write   # OIDC trusted publishing
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI (trusted publishing / OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` field — the action mints a short-lived OIDC token.
+        # If you switch to API-token mode, set `password:` here and remove
+        # the `id-token: write` permission above.

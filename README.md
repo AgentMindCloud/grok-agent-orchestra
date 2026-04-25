@@ -36,7 +36,7 @@
 | Native Grok multi-agent endpoint | ✅ | ❌ |
 | Local docs ingest | 🟡 Roadmap | ✅ |
 | Web UI | 🟡 Roadmap | ✅ |
-| `pip install` from PyPI | 🟡 Roadmap (v0.1.0) | ✅ |
+| `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
@@ -44,21 +44,21 @@
 
 Pick the install path that fits your situation. They produce the same `grok-orchestra` CLI.
 
-### From PyPI — *coming in v0.1.0*
+### From PyPI
 
 ```bash
 pip install grok-agent-orchestra
-grok-orchestra version
 ```
 
-### From GitHub — works today
+Available from `v0.1.0` onward.
 
-The sibling [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) is also installed from git for now (also pre-PyPI):
+### From GitHub
+
+If you need a tip-of-`main` build before the next release. The sibling [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) installs from git too:
 
 ```bash
 pip install git+https://github.com/agentmindcloud/grok-build-bridge.git
 pip install git+https://github.com/agentmindcloud/grok-agent-orchestra.git
-grok-orchestra version
 ```
 
 ### Editable / dev install
@@ -67,7 +67,14 @@ grok-orchestra version
 git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
 cd grok-agent-orchestra
 pip install -e ".[dev]"
-grok-orchestra version
+```
+
+### Verifying your install
+
+```bash
+grok-orchestra --version      # → grok-orchestra 0.1.0
+grok-orchestra templates      # bundled starter catalog
+grok-orchestra --help         # subcommand list
 ```
 
 Set `XAI_API_KEY` for live runs. For offline previews use `--dry-run` — every template ships with a canned-stream replay client, so you don't need a key to see how a pattern behaves.

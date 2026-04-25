@@ -6,18 +6,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-- **README rewritten as a conversion-grade landing page.** New hero block,
-  honest GPT-Researcher comparison table, three-path Quickstart (PyPI /
-  GitHub / editable), runnable first-orchestration walkthrough, 60-second
-  architecture diagram (Mermaid + ASCII fallback), highlighted templates,
-  and a thematic roadmap. `docs/images/` placeholder added for the TUI
-  demo GIF.
-- `pyproject.toml` description now matches the new tagline; keywords
-  expanded to cover `research`, `debate`, `safety`, and `lucas-veto` so
-  the package is findable for the new positioning.
-
-## [0.1.0] - 2026-04-22
+## [0.1.0] - 2026-04-25
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok
 4.20 multi-agent run — either xAI-native (`grok-4.20-multi-agent-0309`) or a
@@ -93,6 +82,29 @@ with a real safety veto before anything ships.
 - **CI matrix** — lint + test (py3.10/3.11/3.12) + schema-check +
   safety-scan + build + PyPI release on tag. Coverage enforced at
   ≥85%.
+
+### Changed
+- **README rewritten as a conversion-grade landing page.** New hero
+  block, honest GPT-Researcher comparison table, three-path Quickstart
+  (PyPI / GitHub / editable), runnable first-orchestration walkthrough,
+  60-second architecture diagram (Mermaid + ASCII fallback), highlighted
+  templates, and a thematic roadmap. `docs/images/` placeholder added
+  for the TUI demo GIF.
+
+### Build & Release
+- **Modernised packaging.** `pyproject.toml` migrated from setuptools to
+  Hatchling (PEP 517/621). Dependencies pinned to major-version ranges
+  so users do not get stuck on a point release. New `dev`, `web`, and
+  `docs` extras (the latter two are placeholders for upcoming work).
+- **Dedicated PyPI publish workflow.** `.github/workflows/publish.yml`
+  builds wheel + sdist on every `v*.*.*` tag push and publishes via
+  PyPI trusted publishing (OIDC). The `release` job has been removed
+  from `ci.yml` to avoid double-publishing.
+- **Smoke tests for the installed CLI.** `tests/test_cli_smoke.py`
+  shells out to the `grok-orchestra` console-script entry point so we
+  catch packaging-layer breakage that the in-tree unit tests cannot.
+- **Releasing guide.** `docs/RELEASING.md` documents the tag-driven
+  publish flow plus a manual `twine` fallback.
 
 ### Security
 - Lucas veto is enabled by default (`safety.lucas_veto_enabled: true`)
