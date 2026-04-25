@@ -78,6 +78,11 @@ dev = [
     # Web tests: FastAPI's TestClient ships httpx + websocket support.
     "fastapi>=0.110,<1.0",
     "httpx>=0.27,<1.0",
+    # Search-layer tests run against mocked responses so we don't add
+    # `tavily-python` here, but `selectolax` + `trafilatura` are pure
+    # Python and exercised by the fetcher tests.
+    "selectolax>=0.3,<1",
+    "trafilatura>=1.8,<2",
 ]
 web = [
     "fastapi>=0.110,<1.0",
@@ -95,6 +100,16 @@ publish = [
     "python-docx>=1.1,<2.0",     # DOCX
     "markdown>=3.5,<4",          # MD → HTML for WeasyPrint
     "pygments>=2.17,<3",         # code highlighting in PDFs
+]
+search = [
+    "tavily-python>=0.3,<1",     # default search provider
+    "httpx>=0.26,<1",            # HTTP fetcher
+    "selectolax>=0.3,<1",        # fast HTML selectors
+    "trafilatura>=1.8,<2",       # main-content extraction
+]
+# Big install (~300 MB Chromium). Reserved for sites that require JS.
+js = [
+    "playwright>=1.42,<2",
 ]
 docs = []
 

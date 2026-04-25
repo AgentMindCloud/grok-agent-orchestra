@@ -133,6 +133,7 @@
         </div>
       </div>
     </div>
+    <div id="web-activity" class="hidden mb-2 rounded-md border border-ink-700 bg-ink-800/40 px-2 py-1.5 text-[11px] font-mono text-slate-300 max-h-32 overflow-y-auto"></div>
     <div id="lanes" class="grid gap-2 max-h-[70vh] overflow-y-auto pr-1">
       <!-- Lanes injected by JS. -->
     </div>
@@ -295,8 +296,50 @@
     wrap.classList.remove("hidden");
   }
 
+  function shortHost(url) {
+    try { return new URL(url).host; } catch { return url || ""; }
+  }
+
+  function appendWebActivity(line) {
+    const wrap = $("#web-activity");
+    wrap.classList.remove("hidden");
+    const div = document.createElement("div");
+    div.textContent = line;
+    div.className = "py-0.5";
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function renderSearchResults(results) {
+    if (!results.length) {
+      appendWebActivity("(no results)");
+      return;
+    }
+    appendWebActivity(`✓ ${results.length} hit${results.length === 1 ? "" : "s"}`);
+    for (const r of results) {
+      const div = document.createElement("div");
+      div.className = "py-0.5 text-slate-400 truncate";
+      div.title = r.snippet || "";
+      div.textContent = `  · ${r.title || r.url}`;
+      $("#web-activity").appendChild(div);
+    }
+    $("#web-activity").scrollTop = $("#web-activity").scrollHeight;
+  }
+
+  function renderFetched(ev) {
+    if (ev.skipped === "robots") {
+      appendWebActivity(`  ⛔ robots.txt blocked ${shortHost(ev.url)}`);
+      return;
+    }
+    const cache = ev.cache ? " (cache)" : "";
+    const bytes = ev.bytes ? ` · ${(ev.bytes / 1024).toFixed(1)} KB` : "";
+    appendWebActivity(`  ✓ ${ev.title || shortHost(ev.url)}${cache}${bytes}`);
+  }
+
   function resetStream() {
     $("#lanes").innerHTML = "";
+    $("#web-activity").innerHTML = "";
+    $("#web-activity").classList.add("hidden");
     $("#lucas-banner").classList.add("hidden");
     $("#confidence-meter").classList.add("hidden");
     $("#final").textContent = "—";
@@ -347,6 +390,18 @@
         return;
       case "run_started":
         setStatus("running", "running");
+        return;
+      case "web_search_started":
+        appendWebActivity(`🌐 searching: ${ev.query || ""}`);
+        return;
+      case "web_search_results":
+        renderSearchResults(ev.results || []);
+        return;
+      case "fetch_started":
+        appendWebActivity(`↓ fetching ${shortHost(ev.url)}…`);
+        return;
+      case "fetch_completed":
+        renderFetched(ev);
         return;
       case "debate_round_started":
         return;

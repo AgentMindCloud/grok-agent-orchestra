@@ -60,6 +60,13 @@ class Run:
     veto_report: dict[str, Any] | None = None
     error: str | None = None
 
+    # Source-layer hand-off (Prompt 8 / Prompt 7+).
+    # ``citations`` is consumed by the publisher and surfaced under the
+    # report's "## Citations" section. ``source_stats`` is the budget
+    # snapshot the dashboard renders.
+    citations: list[dict[str, Any]] = field(default_factory=list)
+    source_stats: dict[str, Any] = field(default_factory=dict)
+
     def next_seq(self) -> int:
         with self._seq_lock:
             self.seq += 1
@@ -84,6 +91,8 @@ class Run:
             "final_output": self.final_output,
             "veto_report": self.veto_report,
             "error": self.error,
+            "citations": list(self.citations),
+            "source_stats": dict(self.source_stats),
         }
 
 

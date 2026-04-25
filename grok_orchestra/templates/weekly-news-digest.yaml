@@ -1,21 +1,20 @@
 # -----------------------------------------------------------------------------
 # Template: weekly-news-digest
 #
-# !!! requires v0.3+ for full live web search
-#   Web search lands as a first-class tool routing target in v0.3.
-#   Earlier releases dispatch the routing hint to the runtime but the
-#   `web_search` tool returns a deterministic stub — fine for `dry-run`,
-#   not useful for live runs. Use `--dry-run` until v0.3 ships.
-#
 # Purpose
 #   Native 4-agent run that produces a researched bullet digest with
-#   inline citations for a topic, scoped to a date range.
+#   inline citations for a topic, scoped to a date range. Real web
+#   research happens via Tavily before the orchestration starts (see
+#   `sources:` block) — Harper synthesises off cited findings, the
+#   publisher's report carries those citations.
 #
 # Required env
 #   XAI_API_KEY                    required for `run`.
+#   TAVILY_API_KEY                 required for live web research.
+#                                  Simulated runs work without it.
 #
 # Estimated cost
-#   ≈ 7–11 k tokens per run.
+#   ≈ 7–11 k tokens per run + ≤ 1 Tavily search + ≤ 5 page fetches.
 #
 # Expected output
 #   A digest of 8–12 bullets, each ≤ 30 words, each with an inline
@@ -30,8 +29,8 @@
 # -----------------------------------------------------------------------------
 
 name: weekly-news-digest
-description: Topic + date-range news digest with inline citations and themes. (web search is full-fidelity in v0.3+)
-version: 0.9.0
+description: Topic + date-range news digest with inline citations and themes. Live Tavily web research.
+version: 1.0.0
 author: AgentMindCloud
 tags: [research, web-search, fast]
 
@@ -60,6 +59,21 @@ goal: |
       earlier but only became important inside the range, say so.
     - End with a "Themes" section: 2–3 named arcs that group the
       bullets.
+
+sources:
+  - type: web
+    provider: tavily
+    max_results_per_query: 5
+    fetch_top_k: 5
+    allow_js: false
+    allowed_domains: []
+    blocked_domains:
+      - pinterest.com
+      - quora.com
+    cache_ttl_seconds: 3600
+    budget:
+      max_searches: 20
+      max_fetches: 50
 
 orchestra:
   mode: native

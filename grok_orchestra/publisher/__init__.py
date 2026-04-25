@@ -56,7 +56,7 @@ class PublisherError(RuntimeError):
 # --------------------------------------------------------------------------- #
 
 
-CitationSourceType = Literal["url", "file", "doc", "search", "internal"]
+CitationSourceType = Literal["url", "web", "file", "doc", "search", "internal"]
 
 
 @dataclass(frozen=True)

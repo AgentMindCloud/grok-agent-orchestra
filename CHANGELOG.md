@@ -7,6 +7,59 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Real web research via Tavily.** A new `sources:` YAML block runs a
+  citation-ready research pass *before* the orchestration starts;
+  findings are prepended to the goal as a "Web research findings" block
+  and the underlying URLs land in `run.citations` so the published
+  report carries proper attribution. New module
+  `grok_orchestra.sources` exposes `Source`, `Document`, `SearchHit`,
+  `FetchedPage`, `ResearchResult` plus a pluggable
+  `SearchProvider` registry. Default provider:
+  `TavilyProvider` (reads `TAVILY_API_KEY`); `SerpAPIProvider`,
+  `BingProvider`, `BraveProvider` ship as skeletons with explicit
+  `TODO(prompts-9+)` markers.
+- **HTTP fetcher** — `httpx` + `trafilatura` (main-content extraction)
+  + `selectolax` (title), with a `ThreadPoolExecutor` for bounded
+  concurrency, a 15-second per-page timeout, and a UA string that
+  identifies the project + version + repo. Domain allow/blocklists,
+  `robots.txt` (fail-open on network errors, fail-closed on explicit
+  Disallow), SQLite cache (`$GROK_ORCHESTRA_WORKSPACE/.cache/web/`,
+  TTL 1h, stores extracted text + metadata only), and per-run budget
+  tracking (default 20 searches / 50 fetches). Over-spend raises a
+  `SourceBudgetExceeded` with a clear message.
+- **Optional `[js]` extra** (`playwright`, ~300 MB) wires a
+  PlaywrightFetcher fallback for sites whose extracted text falls
+  below 1000 chars — opt-in per-source via `allow_js: true`.
+- **`[search]` extra** — `tavily-python`, `httpx`, `selectolax`,
+  `trafilatura`. Required for live web research; simulated mode
+  works without it. Added to `dev` so tests run end-to-end (Tavily
+  client is mocked; `selectolax` + `trafilatura` exercised for real).
+- **New event types** — `web_search_started`,
+  `web_search_results`, `fetch_started`, `fetch_completed`. The
+  dashboard renders them in a "🌐 web activity" panel above the
+  role lanes with hits + fetched titles + cache hits.
+- **Run-level telemetry** — `Run` carries `citations` and
+  `source_stats` lists; both surface on `/api/runs/{id}` and the run
+  detail panel. `source_stats` includes `searches`, `fetches`,
+  `cache_hits`, `cache_misses`, and the per-run caps.
+- **`weekly-news-digest` template** — bumped to v1.0.0; the
+  `requires v0.3+` banner is gone, the YAML now carries a real
+  `sources:` block (Tavily, blocklists `pinterest.com` /
+  `quora.com`).
+- **Tests** — `tests/test_tavily_provider.py` (5 tests, mocked
+  Tavily client + registry check), `tests/test_fetcher.py` (5
+  tests covering extraction, cache, dedupe, allowlist /
+  blocklist), `tests/test_robots.py` (3 tests covering deny / fail-
+  open / end-to-end refuses to fetch), `tests/test_budget.py` (4
+  tests including thread-safe concurrent spends), and
+  `tests/test_web_e2e_simulated.py` (4 tests on the simulated full
+  run lifecycle, ws event types, and citations in the published
+  Markdown).
+- **README "Web research" section** with the YAML reference,
+  comparison-table tick, robots / cache / budget defaults, and the
+  simulated-mode demo path.
+
+### Added
 - **Publisher / report export.** Every run that completes via the
   dashboard now auto-writes a canonical `report.md` plus a
   `run.json` snapshot to

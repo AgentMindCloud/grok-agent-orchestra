@@ -52,6 +52,71 @@ def _client_for(config: Any, simulated: bool) -> Any | None:
     return DryRunSimulatedClient(tick_seconds=0)
 
 
+def _maybe_run_sources(config: Any, run: Run, publish: Any) -> Any:
+    """Run every configured ``Source`` and prepend the brief to the goal.
+
+    Returns a *new* config mapping with the augmented goal — the
+    original (frozen) ``Mapping`` is left intact.
+
+    Sources are a best-effort enrichment layer; any failure logs and
+    returns the original config so the orchestration still runs.
+    """
+    try:
+        from grok_orchestra.sources import build_sources
+    except ImportError:
+        return config
+
+    sources = build_sources(config)
+    if not sources:
+        return config
+
+    pieces: list[str] = [str(config.get("goal") or "")]
+    documents: list[dict[str, Any]] = []
+    stats: dict[str, Any] = {}
+    for source in sources:
+        # Honour the run-level simulated flag so demos never hit the network.
+        if hasattr(source, "simulated"):
+            source.simulated = bool(run.simulated) or getattr(source, "simulated", False)
+        try:
+            result = source.collect(goal=str(config.get("goal") or ""), event_callback=publish)
+        except Exception as exc:  # noqa: BLE001 — never let a source kill a run
+            import logging as _logging
+
+            _logging.getLogger(__name__).warning(
+                "source %s failed: %s", type(source).__name__, exc
+            )
+            continue
+        if result.brief:
+            pieces.append(result.brief)
+        for doc in result.documents:
+            documents.append(
+                {
+                    "source_type": doc.source_type,
+                    "title": doc.title,
+                    "url": doc.url,
+                    "file_path": doc.file_path,
+                    "excerpt": doc.excerpt,
+                    "accessed_at": doc.accessed_at,
+                    "used_in_section": doc.used_in_section,
+                }
+            )
+        stats.update(result.stats)
+
+    if not pieces[1:]:
+        return config
+
+    # Persist citations + budget snapshot onto the live Run so the API
+    # + publisher pick them up.
+    run.citations = documents
+    run.source_stats = stats
+
+    # Build a mutable shallow copy of config with the augmented goal —
+    # the original is a MappingProxyType so we can't mutate it in place.
+    augmented: dict[str, Any] = dict(config)
+    augmented["goal"] = "\n\n".join(piece.strip() for piece in pieces if piece)
+    return augmented
+
+
 def start_run(*, run: Run) -> threading.Thread:
     """Spawn a daemon thread that runs the orchestration to completion.
 
@@ -91,8 +156,13 @@ def start_run(*, run: Run) -> threading.Thread:
     def _worker() -> None:
         run.status = "running"
         run.started_at = time.time()
+
+        # Source-layer pre-research — runs before the orchestration so
+        # Harper sees real, citation-ready findings in the goal.
+        config_for_run = _maybe_run_sources(config, run, _publish)
+
         try:
-            result = run_orchestra(config, client=client, event_callback=_publish)
+            result = run_orchestra(config_for_run, client=client, event_callback=_publish)
         except Exception as exc:  # noqa: BLE001
             import traceback as _tb
 

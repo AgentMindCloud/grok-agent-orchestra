@@ -36,6 +36,7 @@
 | Native Grok multi-agent endpoint | ✅ | ❌ |
 | Local docs ingest | 🟡 Roadmap | ✅ |
 | Web UI | ✅ Live debate stream | ✅ |
+| Live web research | ✅ Tavily + cited findings | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
 
@@ -117,6 +118,44 @@ Smoke-test a fresh build end-to-end (bash + PowerShell variants ship side by sid
 ```
 
 The image binds to `0.0.0.0:8000` by default, runs as the unprivileged `orchestra` user, and ships a `/api/health` HEALTHCHECK so `docker ps` reports container readiness.
+
+### Web research
+
+When a YAML spec carries a `sources:` block, Orchestra runs a real research pass before Harper starts thinking. Findings are prepended to the goal as a "Web research findings" block, and the underlying URLs become Citations on the published report.
+
+```bash
+pip install 'grok-agent-orchestra[search]'
+export TAVILY_API_KEY=tvly-...
+grok-orchestra serve --no-browser
+# pick `weekly-news-digest`, untoggle Simulated, click Run.
+```
+
+YAML shape (defaults shown):
+
+```yaml
+sources:
+  - type: web
+    provider: tavily              # default; serpapi / bing / brave skeletons exist
+    max_results_per_query: 5
+    fetch_top_k: 5
+    allow_js: false               # set true to use Playwright fallback (extra: [js])
+    allowed_domains: []           # empty = all
+    blocked_domains: ["pinterest.com", "quora.com"]
+    cache_ttl_seconds: 3600       # SQLite cache in $GROK_ORCHESTRA_WORKSPACE/.cache/web/
+    budget:
+      max_searches: 20
+      max_fetches: 50
+```
+
+Honourable mentions:
+
+- `robots.txt` is fail-closed for explicit Disallow rules and fail-open on transient network errors. The user-agent is `grok-agent-orchestra/<version> (+repo URL)` so site operators can policy us.
+- The fetcher caches **extracted text + metadata** only — never raw HTML — so disk usage stays sane even on long-running services.
+- Per-run **budget** caps prevent runaway spend; over-spend raises `SourceBudgetExceeded` with a clear message rather than silently degrading.
+- Set `simulated: true` on the run (the dashboard's default) and the search + fetch stages serve canned data — no API key, no network — ideal for demos and tests.
+- The dashboard renders a "🌐 Searching the web…" panel above the role lanes with the query, the hits, and the fetched titles so the user can audit Harper's source set.
+
+JS-rendered pages are an opt-in extra (`pip install 'grok-agent-orchestra[js]'` — adds Playwright + Chromium, ~300 MB). When enabled, pages whose extracted text falls below a threshold get re-fetched through Playwright; the same fetcher caches the result.
 
 ### Reports
 
