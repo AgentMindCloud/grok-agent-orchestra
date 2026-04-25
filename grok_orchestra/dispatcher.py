@@ -92,12 +92,17 @@ def run_orchestra(
         :mod:`grok_orchestra._events`.
     """
     pattern = _pattern_name(config)
-    if pattern == "native":
+    # If any role pins a non-Grok model, the multi-agent endpoint isn't
+    # an option — coerce into the per-role simulated runtime which knows
+    # how to drive multiple providers in one debate.
+    if _has_non_grok_role(config) and pattern == "native":
+        pattern_fn: PatternFn = _module_attr("run_simulated_orchestra")
+    elif pattern == "native":
         # The "native" pattern means "use the transport-native runtime for
         # the resolved mode". Simulated mode therefore lands on the
         # named-role debate runtime, not on the multi-agent endpoint.
         if resolve_mode(config) == "simulated":
-            pattern_fn: PatternFn = _module_attr("run_simulated_orchestra")
+            pattern_fn = _module_attr("run_simulated_orchestra")
         else:
             pattern_fn = _module_attr("run_native_orchestra")
     else:
@@ -175,6 +180,25 @@ def _pattern_name(config: Mapping[str, Any]) -> str:
         .get("orchestration", {})
         .get("pattern", "native")
     )
+
+
+def _has_non_grok_role(config: Mapping[str, Any]) -> bool:
+    """True iff any role model is non-Grok (forces adapter / mixed mode)."""
+    from grok_orchestra.llm import is_grok_model, resolve_role_models
+
+    orch = config.get("orchestra") or {}
+    if not isinstance(orch, Mapping):
+        return False
+    role_names = [
+        str(a.get("name"))
+        for a in (orch.get("agents") or [])
+        if isinstance(a, Mapping) and a.get("name")
+    ]
+    if not role_names:
+        # No agents block — fall back to inspecting the global model.
+        return not is_grok_model(config.get("model"))
+    role_models = resolve_role_models(config, role_names)
+    return any(not is_grok_model(m) for m in role_models.values())
 
 
 def _fallback_enabled(config: Mapping[str, Any]) -> bool:

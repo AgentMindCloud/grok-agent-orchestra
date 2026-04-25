@@ -114,6 +114,11 @@
           "enum": ["coordinator", "researcher", "logician", "contrarian", "custom"],
           "description": "Functional role the agent plays in the debate.",
           "examples": ["coordinator", "researcher"]
+        },
+        "model": {
+          "type": "string",
+          "description": "Optional per-role model override. Grok models (anything matching grok* / xai/* / x-ai/*) keep the native fast path; LiteLLM-style provider/model strings (openai/gpt-4o, anthropic/claude-3-5-sonnet, ollama/llama3.1) route through the [adapters] extra.",
+          "examples": ["openai/gpt-4o-mini", "anthropic/claude-3-5-sonnet", "grok-4.20-0309"]
         }
       },
       "required": ["name", "role"],

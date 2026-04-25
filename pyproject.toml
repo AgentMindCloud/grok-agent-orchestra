@@ -107,6 +107,12 @@ search = [
     "selectolax>=0.3,<1",        # fast HTML selectors
     "trafilatura>=1.8,<2",       # main-content extraction
 ]
+# Pluggable LLM providers via LiteLLM (OpenAI / Anthropic / Ollama / …).
+# Grok stays in core (xai-sdk) — this extra is opt-in for portability mode.
+# litellm ships often, so we deliberately keep the floor and ceiling loose.
+adapters = [
+    "litellm>=1.34",
+]
 # Big install (~300 MB Chromium). Reserved for sites that require JS.
 js = [
     "playwright>=1.42,<2",

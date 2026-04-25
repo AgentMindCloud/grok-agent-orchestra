@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterable, Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from grok_build_bridge import _console
@@ -61,6 +61,12 @@ class OrchestraResult:
     veto_report: Mapping[str, Any] | None
     deploy_url: str | None
     duration_seconds: float
+    # New in Prompt 9 — pluggable LLM support. Defaults keep the
+    # dataclass backwards-compatible for any caller that constructs an
+    # OrchestraResult by hand (most prominently the unit-test fixtures).
+    mode_label: str = "native"
+    provider_costs: Mapping[str, float] = field(default_factory=dict)
+    role_models: Mapping[str, str] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------- #

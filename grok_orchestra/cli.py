@@ -549,6 +549,174 @@ def _do_copy(
 app.add_typer(templates_app, name="templates")
 
 
+# --------------------------------------------------------------------------- #
+# `models` — pluggable LLM helpers (Prompt 9). BYOK: every test command
+# reads its credential from the env via LiteLLM's own resolver.
+# --------------------------------------------------------------------------- #
+
+
+models_app = typer.Typer(
+    name="models",
+    help="Inspect + smoke-test the pluggable LLM adapter layer.",
+    invoke_without_command=False,
+    no_args_is_help=True,
+    add_completion=False,
+)
+
+
+@models_app.command("list")
+def _models_list(
+    ctx: typer.Context,
+    spec: Annotated[
+        str | None,
+        typer.Option(
+            "--spec",
+            "-s",
+            help=(
+                "Optional path to a YAML spec — when set, the listing also "
+                "shows that spec's `model_aliases:` and per-role model pins."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """List the LLM defaults + any aliases declared in a YAML spec."""
+    from grok_orchestra.llm import GROK_DEFAULT_MODEL, resolve_role_models
+
+    state = _state(ctx)
+    aliases: dict[str, str] = {}
+    pinned: dict[str, str] = {}
+    if spec:
+        try:
+            config = load_orchestra_yaml(Path(spec))
+        except OrchestraConfigError as exc:
+            _emit_error(state, exc, title="grok-orchestra · models list")
+            raise typer.Exit(code=EXIT_CONFIG) from exc
+        raw = config.get("model_aliases") or {}
+        if hasattr(raw, "items"):
+            aliases = {str(k): str(v) for k, v in raw.items()}
+        agents = (
+            config.get("orchestra", {})
+            .get("agents", [])
+            or []
+        )
+        role_names = [str(a.get("name")) for a in agents if isinstance(a, dict) and a.get("name")]
+        if role_names:
+            pinned = resolve_role_models(config, role_names)
+
+    if state.json:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": True,
+                    "default": GROK_DEFAULT_MODEL,
+                    "aliases": aliases,
+                    "role_pins": pinned,
+                    "providers": ["grok (native)", "litellm (adapters extra)"],
+                }
+            )
+        )
+        return
+
+    table = Table(
+        title="grok-orchestra · models",
+        border_style="#8B5CF6",
+        box=box.ROUNDED,
+        title_style="bold #B69EFE",
+    )
+    table.add_column("scope", style="cyan")
+    table.add_column("name", style="white")
+    table.add_column("model", style="dim")
+    table.add_row("default", "—", GROK_DEFAULT_MODEL)
+    for k, v in aliases.items():
+        table.add_row("alias", k, v)
+    for k, v in pinned.items():
+        table.add_row("role", k, v)
+    state.console.print(table)
+    state.console.print(
+        Text(
+            "→ Set per-role models in YAML under `orchestra.agents[].model` "
+            "or globally via top-level `model:`.\n"
+            "→ Adapter mode (any non-Grok provider) needs the [adapters] "
+            "extra: pip install 'grok-agent-orchestra[adapters]'",
+            style="dim",
+        )
+    )
+
+
+@models_app.command("test")
+def _models_test(
+    ctx: typer.Context,
+    model: Annotated[
+        str,
+        typer.Option(
+            "--model",
+            "-m",
+            help=(
+                "Model identifier — e.g. 'anthropic/claude-3-5-sonnet', "
+                "'openai/gpt-4o-mini', 'ollama/llama3.1', or any Grok model."
+            ),
+        ),
+    ],
+    prompt: Annotated[
+        str,
+        typer.Option(
+            "--prompt",
+            help="Sentence the model should echo back. Keep it short.",
+        ),
+    ] = "Reply with the single word 'ok'.",
+) -> None:
+    """Issue a tiny chat call to confirm the credential + model work.
+
+    BYOK: reads the matching key from the environment
+    (``OPENAI_API_KEY`` / ``ANTHROPIC_API_KEY`` / …). Prints a clear
+    install or env-var hint when the call fails — never logs the key.
+    """
+    from grok_orchestra.llm import LLMError, is_grok_model, resolve_client
+
+    state = _state(ctx)
+    client = resolve_client(model)
+    state.console.log(
+        f"[dim]testing {model} via "
+        f"{'GrokNativeClient' if is_grok_model(model) else 'LiteLLMClient'}…[/dim]"
+    )
+
+    try:
+        events = list(
+            client.single_call(
+                messages=[{"role": "user", "content": prompt}],
+                model=model,
+                tools=None,
+                max_tokens=32,
+            )
+        )
+    except LLMError as exc:
+        _emit_error(state, exc, title="grok-orchestra · models test")
+        raise typer.Exit(code=EXIT_CONFIG) from exc
+    except Exception as exc:  # noqa: BLE001
+        _emit_error(state, exc, title="grok-orchestra · models test")
+        raise typer.Exit(code=EXIT_RUNTIME) from exc
+
+    text = "".join(getattr(ev, "text", "") or "" for ev in events).strip()
+    if state.json:
+        typer.echo(
+            json.dumps({"ok": True, "model": model, "events": len(events), "reply": text})
+        )
+        return
+
+    body = Text()
+    body.append(f"✓ {model} responded\n", style="bold green")
+    body.append(f"events: {len(events)}\n", style="dim")
+    if text:
+        body.append("\nreply:\n", style="bold yellow")
+        body.append(text + "\n", style="white")
+    state.console.print(
+        Panel(body, title="grok-orchestra · models test", border_style="#8B5CF6", box=box.ROUNDED)
+    )
+
+
+app.add_typer(models_app, name="models")
+
+
 @app.command()
 def init(
     ctx: typer.Context,

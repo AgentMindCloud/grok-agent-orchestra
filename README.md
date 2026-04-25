@@ -39,6 +39,7 @@
 | Live web research | ✅ Tavily + cited findings | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
+| Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 
@@ -156,6 +157,59 @@ Honourable mentions:
 - The dashboard renders a "🌐 Searching the web…" panel above the role lanes with the query, the hits, and the fetched titles so the user can audit Harper's source set.
 
 JS-rendered pages are an opt-in extra (`pip install 'grok-agent-orchestra[js]'` — adds Playwright + Chromium, ~300 MB). When enabled, pages whose extracted text falls below a threshold get re-fetched through Playwright; the same fetcher caches the result.
+
+### Pluggable LLMs (BYOK)
+
+**Grok = power mode. Other providers = portability mode.**
+
+When every role uses a Grok model (the default), Orchestra routes through the native multi-agent endpoint — one streamed call, four agents, full TUI. When a role pins a non-Grok model, the same orchestration runs through a LiteLLM-backed adapter so you can swap in OpenAI, Anthropic, Ollama, Mistral, Bedrock, Azure, Together, Groq, … without touching the framework.
+
+```bash
+pip install 'grok-agent-orchestra[adapters]'
+# Bring your own keys — set whichever providers your YAML pins:
+export OPENAI_API_KEY=<paste-yours-here>
+export ANTHROPIC_API_KEY=<paste-yours-here>
+```
+
+Per-role model overrides:
+
+```yaml
+model: anthropic/claude-3-5-sonnet     # global default for the run
+
+orchestra:
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher, model: openai/gpt-4o}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian, model: grok-4.20-0309}  # judge stays on Grok
+
+# Optional aliases — name your own.
+model_aliases:
+  fast:    openai/gpt-4o-mini
+  premium: anthropic/claude-3-5-sonnet
+```
+
+The runtime auto-detects the run's mode and surfaces it on `OrchestraResult.mode_label`:
+
+| `mode_label` | When | What happens |
+| --- | --- | --- |
+| `native` | Every role uses a Grok model AND pattern is `native` | Multi-agent endpoint — fastest path. |
+| `simulated` | Every role uses a Grok model on a non-`native` pattern (hierarchical / debate-loop / …) | Per-role debate over `grok-4.20-0309`. |
+| `adapter` | Every role uses a non-Grok model | Per-role debate over the LiteLLM adapter. |
+| `mixed` | Some Grok, some non-Grok | Per-role debate; each role hits its own provider. |
+
+Cost tracking is on the run-detail panel: `provider_costs` carries a per-provider USD breakdown derived from `litellm.cost_per_token`. The Grok-native path isn't priced (no public unit cost available).
+
+CLI helpers:
+
+```bash
+grok-orchestra models list                                       # show defaults + roles + aliases
+grok-orchestra models list --spec ./my-spec.yaml                 # …including spec-defined aliases
+grok-orchestra models test --model openai/gpt-4o-mini            # tiny BYOK connectivity check
+grok-orchestra models test --model anthropic/claude-3-5-sonnet
+```
+
+`models test` reads the matching `*_API_KEY` from the environment via LiteLLM's resolver — the framework never embeds, ships, or logs the value. A missing key surfaces a clear "set OPENAI_API_KEY" hint, not a stack trace.
 
 ### Reports
 

@@ -7,6 +7,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Pluggable LLM providers via LiteLLM (BYOK).** New
+  ``grok_orchestra.llm`` module exposes an ``LLMClient`` Protocol +
+  provider-neutral ``ChatChunk`` / ``ChatResponse`` / ``ToolCall`` /
+  ``Usage`` dataclasses. ``GrokNativeClient`` wraps the existing
+  ``OrchestraClient`` (zero-overhead delegation — the Grok-native fast
+  path is unchanged); ``LiteLLMClient`` lazy-imports ``litellm`` for
+  every other provider (OpenAI / Anthropic / Ollama / Bedrock / Azure
+  / Together / Groq / …). New ``[adapters]`` extra pulls in
+  ``litellm>=1.34``; the package never embeds keys and reads every
+  credential from env via LiteLLM's own resolver.
+- **YAML model overrides** — top-level ``model:`` sets a global
+  default; ``orchestra.agents[].model`` pins per-role; alternative
+  ``orchestra.roles.<name>.model`` shape is also accepted; YAML-level
+  ``model_aliases:`` map (e.g. ``fast → openai/gpt-4o-mini``) resolves
+  with cycle protection. Schema's ``AgentMeta`` gains an optional
+  ``model`` field.
+- **Mode detection.** ``OrchestraResult`` gains ``mode_label``
+  (``native`` / ``simulated`` / ``adapter`` / ``mixed``) plus
+  ``role_models`` + per-provider ``provider_costs`` (USD,
+  via ``litellm.cost_per_token``). The dispatcher coerces
+  ``pattern: native`` to the simulated runtime when any role pins a
+  non-Grok model so the multi-agent endpoint is never invoked
+  off-Grok.
+- **`grok-orchestra models list / test` CLI** — ``list`` shows
+  the framework default + spec-defined aliases + per-role pins;
+  ``test --model=…`` issues a tiny BYOK connectivity check.
+  Friendly install / env-var hints when the credential is missing;
+  raw key values are never logged.
+- **37 new tests** — ``tests/test_llm_resolution.py`` (model-string
+  routing, alias chains + cycles, per-role overrides, mode
+  detection), ``tests/test_litellm_adapter.py`` (mocked
+  ``litellm.completion`` covering streaming, usage + cost capture,
+  provider inference, auth-failure → friendly error, missing-extra →
+  install hint), ``tests/test_grok_native_preserved.py`` (all-Grok
+  config still routes to ``run_native_orchestra`` — anti-regression
+  for the fast path), ``tests/test_mixed_mode.py`` (mixed-provider
+  end-to-end, per-provider cost breakdown, all-adapter run reports
+  ``mode_label="adapter"``).
+
+### Added
 - **Real web research via Tavily.** A new `sources:` YAML block runs a
   citation-ready research pass *before* the orchestration starts;
   findings are prepended to the goal as a "Web research findings" block

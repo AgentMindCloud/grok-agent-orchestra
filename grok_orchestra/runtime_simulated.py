@@ -90,13 +90,22 @@ def run_simulated_orchestra(
     roles = _resolve_roles(orch.get("agents") or [])
     per_role_tools = _resolve_role_tools(roles, tool_routing)
 
+    # Per-role LLM clients. When the user sets `model:` (globally or
+    # per-agent) on a Grok model, we keep the existing path — the
+    # GrokNativeClient delegates straight to the same XAIClient the
+    # legacy runtime used. When a non-Grok model is configured, the
+    # LiteLLMClient kicks in and the runtime emits provider-neutral
+    # events. ``client`` (the legacy explicit override used by tests
+    # and --dry-run) wins over both.
+    from grok_orchestra.llm import resolve_role_models
+
+    role_models = resolve_role_models(config, [r.name for r in roles])
+    role_clients = _resolve_role_clients(config, roles, override=client)
+
     console.log(
         f"[dim]roles={[r.name for r in roles]} rounds={debate_rounds} "
         f"tools={ {r.name: list(ts) for r, ts in per_role_tools.items()} }[/dim]"
     )
-
-    if client is None:
-        client = XAIClient()
 
     # ----- Phase 2: Rounds ----------------------------------------------- #
     _console.section(console, "🎤  Debate")
@@ -126,12 +135,13 @@ def run_simulated_orchestra(
                 )
                 messages = _build_role_messages(role, goal, transcript)
                 turn_events, turn_text, turn_reasoning = _stream_single_call(
-                    client,
+                    role_clients[role],
                     messages=messages,
                     tools=per_role_tools.get(role),
                     tui=tui,
                     event_callback=event_callback,
                     role_name=role.name,
+                    model=role_models.get(role.name),
                 )
                 total_reasoning += turn_reasoning
                 stream_events.extend(turn_events)
@@ -165,13 +175,18 @@ def run_simulated_orchestra(
             ),
         )
         synth_messages = _build_synthesis_messages(goal, transcript)
+        # Synthesis runs on Grok's role client (typically the Grok native
+        # path, but adapter-mode runs synthesise on whatever model is
+        # pinned to Grok in this YAML).
+        synth_client = role_clients.get(GROK, next(iter(role_clients.values())))
         synth_events, final_content, synth_reasoning = _stream_single_call(
-            client,
+            synth_client,
             messages=synth_messages,
             tools=None,
             tui=tui,
             event_callback=event_callback,
             role_name=GROK.name,
+            model=role_models.get(GROK.name),
         )
         stream_events.extend(synth_events)
         total_reasoning += synth_reasoning
@@ -258,6 +273,22 @@ def run_simulated_orchestra(
             total_reasoning_tokens=total_reasoning,
         ),
     )
+    # Roll up per-provider cost from each role client's last_usage —
+    # GrokNativeClient reports nothing (we don't price the in-house
+    # path), LiteLLMClient surfaces a USD cost via litellm.cost_per_token.
+    provider_costs: dict[str, float] = {}
+    for client_obj in role_clients.values():
+        usage = getattr(client_obj, "last_usage", None)
+        if usage is None:
+            continue
+        provider_costs[usage.provider] = (
+            provider_costs.get(usage.provider, 0.0) + float(usage.cost_usd)
+        )
+
+    from grok_orchestra.llm import detect_mode
+
+    mode_label = detect_mode(role_models, pattern="simulated")
+
     return OrchestraResult(
         success=success,
         mode="simulated",
@@ -268,6 +299,9 @@ def run_simulated_orchestra(
         veto_report=veto_report,
         deploy_url=deploy_url,
         duration_seconds=duration,
+        mode_label=mode_label,
+        provider_costs=dict(provider_costs),
+        role_models=dict(role_models),
     )
 
 
@@ -534,6 +568,40 @@ def _resolve_role_tools(
     return out
 
 
+def _resolve_role_clients(
+    config: Mapping[str, Any],
+    roles: Sequence[Role],
+    *,
+    override: Any | None = None,
+) -> dict[Role, Any]:
+    """Pin one LLM client per role, honouring per-agent ``model:`` overrides.
+
+    Resolution order *per role*:
+
+    1. If the role's resolved model is non-Grok → always go through
+       the LiteLLM registry; the legacy ``override`` (an XAIClient) is
+       not capable of routing non-Grok calls.
+    2. Else (Grok-native) → use ``override`` when provided (this is
+       how ``--dry-run`` injects ``DryRunSimulatedClient`` and how
+       legacy tests pin a scripted client). Otherwise resolve through
+       the registry, which lazy-builds a real
+       :class:`~grok_orchestra.multi_agent_client.OrchestraClient`.
+    """
+    from grok_orchestra.llm import is_grok_model, resolve_client, resolve_role_models
+
+    role_models = resolve_role_models(config, [r.name for r in roles])
+    out: dict[Role, Any] = {}
+    for role in roles:
+        model = role_models[role.name]
+        if not is_grok_model(model):
+            out[role] = resolve_client(model)
+        elif override is not None:
+            out[role] = override
+        else:
+            out[role] = resolve_client(model)
+    return out
+
+
 def _build_role_messages(
     role: Role,
     goal: str,
@@ -574,19 +642,25 @@ def _stream_single_call(
     tui: DebateTUI,
     event_callback: EventCallback = None,
     role_name: str | None = None,
+    model: str | None = None,
 ) -> tuple[list[MultiAgentEvent], str, int]:
     """Run a single agent call, stream into the TUI, and collect outputs.
 
     When ``event_callback`` is set every stream event is mirrored onto
     it as a ``{"type": "stream", "role": <role_name>, ...}`` dict for
     the web UI to render in the role's lane.
+
+    ``model`` overrides the framework default — adapter-mode roles
+    pass their pinned model here so the LiteLLMClient routes the call
+    to the right provider. Grok-native clients accept the kwarg too;
+    they just forward it to xAI.
     """
     events: list[MultiAgentEvent] = []
     parts: list[str] = []
     reasoning = 0
     stream = client.single_call(
         messages=messages,
-        model=SINGLE_AGENT_MODEL,
+        model=model or SINGLE_AGENT_MODEL,
         tools=tools or None,
     )
     for raw in stream:
