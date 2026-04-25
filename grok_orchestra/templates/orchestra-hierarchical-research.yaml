@@ -34,6 +34,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-hierarchical-research
+description: Two-team hierarchy — Research → Critique → Synthesis — for research-grade X threads.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, deep, debate, web-search]
+
 goal: |
   Produce a research-grade X thread (5–7 tweets) on a topic you care
   about *this week*.

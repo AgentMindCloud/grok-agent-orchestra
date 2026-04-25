@@ -167,15 +167,40 @@ Five composable patterns sit on top of this core: `hierarchical`, `dynamic-spawn
 
 ## Templates
 
-The CLI ships ten certified templates in [`grok_orchestra/templates/`](grok_orchestra/templates/) with a machine-readable [`INDEX.yaml`](grok_orchestra/templates/INDEX.yaml) catalog. Five highlights:
+The CLI ships **18 certified templates** in [`grok_orchestra/templates/`](grok_orchestra/templates/), with a machine-readable catalog at [`INDEX.yaml`](grok_orchestra/templates/INDEX.yaml). Discover, inspect, copy, and run them via the `templates` command group:
 
-- [`orchestra-native-4`](grok_orchestra/templates/orchestra-native-4.yaml) — daily X-thread workhorse on the native 4-agent endpoint.
-- [`orchestra-native-16`](grok_orchestra/templates/orchestra-native-16.yaml) — weekly deep-research thread, 16 agents at high effort, auto-degrade on 429s.
-- [`orchestra-simulated-truthseeker`](grok_orchestra/templates/orchestra-simulated-truthseeker.yaml) — fully-visible Grok / Harper / Benjamin / Lucas debate over 3 fact-check rounds.
-- [`orchestra-debate-loop-policy`](grok_orchestra/templates/orchestra-debate-loop-policy.yaml) — iterate up to 5 rounds toward a balanced 280-char summary, with a mid-loop veto.
-- [`combined-trendseeker`](grok_orchestra/templates/combined-trendseeker.yaml) — flagship combined run: Bridge codegen → Orchestra debate → Lucas veto → deploy. Cron-ready.
+```bash
+grok-orchestra templates list                          # all 18, grouped by category
+grok-orchestra templates list --tag business           # filter by tag
+grok-orchestra templates list --format json            # machine-readable
+grok-orchestra templates show competitive-analysis     # print the YAML
+grok-orchestra templates copy red-team-the-plan ./my.yaml
+grok-orchestra dry-run red-team-the-plan               # offline, no API key
+grok-orchestra run red-team-the-plan                   # live (needs XAI_API_KEY)
+```
 
-Browse the rest with `grok-orchestra templates`, or read the catalog at [`grok_orchestra/templates/INDEX.yaml`](grok_orchestra/templates/INDEX.yaml).
+| Template | Pattern | Tags | What it does |
+| --- | --- | --- | --- |
+| [`orchestra-native-4`](grok_orchestra/templates/orchestra-native-4.yaml) | native | research · fast · web-search | Daily 3-tweet X-thread on the native 4-agent endpoint. |
+| [`orchestra-native-16`](grok_orchestra/templates/orchestra-native-16.yaml) | native | research · deep · web-search | Weekly deep-research thread, 16 agents at high effort. |
+| [`orchestra-simulated-truthseeker`](grok_orchestra/templates/orchestra-simulated-truthseeker.yaml) | native | debate · research | Visible Grok / Harper / Benjamin / Lucas fact-check debate. |
+| [`orchestra-hierarchical-research`](grok_orchestra/templates/orchestra-hierarchical-research.yaml) | hierarchical | research · deep · debate · web-search | Two-team hierarchy: Research → Critique → Synthesis. |
+| [`orchestra-dynamic-spawn-trend-analyzer`](grok_orchestra/templates/orchestra-dynamic-spawn-trend-analyzer.yaml) | dynamic-spawn | research · fast · web-search | Concurrent fan-out — Harper+Lucas mini-debates in parallel. |
+| [`orchestra-debate-loop-policy`](grok_orchestra/templates/orchestra-debate-loop-policy.yaml) | debate-loop | debate · deep | Iterate up to 5 rounds toward a balanced 280-char summary. |
+| [`orchestra-parallel-tools-fact-check`](grok_orchestra/templates/orchestra-parallel-tools-fact-check.yaml) | parallel-tools | research · fast · debate · web-search | Per-agent tool routing with off-list audit. |
+| [`orchestra-recovery-resilient`](grok_orchestra/templates/orchestra-recovery-resilient.yaml) | recovery | research · deep · web-search | Native-16 wrapped with rate-limit fallback + retry. |
+| [`combined-trendseeker`](grok_orchestra/templates/combined-trendseeker.yaml) | native (combined) | business · research · web-search | Bridge codegen → Orchestra debate → Lucas veto → deploy. |
+| [`combined-coder-critic`](grok_orchestra/templates/combined-coder-critic.yaml) | native (combined) | technical · debate | Bridge generates a TypeScript CLI; Orchestra critiques the code. |
+| [`deep-research-hierarchical`](grok_orchestra/templates/deep-research-hierarchical.yaml) | hierarchical | research · deep · debate · web-search | Recursive 3-deep sub-question generation with per-level veto. |
+| [`debate-loop-with-local-docs`](grok_orchestra/templates/debate-loop-with-local-docs.yaml) 🟡 | debate-loop | research · deep · local-docs · debate | Debate a local PDF/Markdown corpus to consensus. *requires v0.3+.* |
+| [`competitive-analysis`](grok_orchestra/templates/competitive-analysis.yaml) | hierarchical | research · business · web-search · debate | Competitor brief; Lucas vetoes any unsourced claim. |
+| [`due-diligence-investor-memo`](grok_orchestra/templates/due-diligence-investor-memo.yaml) | hierarchical | business · research · debate | 1-pager memo — public sources, hype-vetoed, ≥ 3 risks enforced. |
+| [`red-team-the-plan`](grok_orchestra/templates/red-team-the-plan.yaml) | hierarchical | debate · business · fast | Stress-test a plan from 4 angles. No external research, dry-run-friendly. |
+| [`weekly-news-digest`](grok_orchestra/templates/weekly-news-digest.yaml) 🟡 | native | research · web-search · fast | Topic + ISO date range → cited bullet digest. *web-search full in v0.3+.* |
+| [`paper-summarizer`](grok_orchestra/templates/paper-summarizer.yaml) | hierarchical | research · technical · deep | arXiv / PDF → Problem · Method · Results · Limitations · Next. |
+| [`product-launch-brief`](grok_orchestra/templates/product-launch-brief.yaml) | hierarchical | business · fast | Launch brief — positioning, audience, channels, risks (≥ 3), KPIs. |
+
+🟡 = uses a roadmap-only feature that is stubbed today; see the file's `requires v0.3+` note.
 
 ## Roadmap
 

@@ -1,0 +1,107 @@
+# -----------------------------------------------------------------------------
+# Template: red-team-the-plan
+#
+# Purpose
+#   Stress-test a plan, strategy, or decision from four angles in a
+#   single round. No external research — the team works only from
+#   what you paste into `goal`. Fast and offline-friendly: a great
+#   first run for newcomers because `dry-run` exercises every code
+#   path without an API key.
+#
+# Required env
+#   XAI_API_KEY                    required for `run`. Not needed for
+#                                  `dry-run`.
+#
+# Estimated cost
+#   ≈ 6–10 k tokens per run.
+#
+# Expected output
+#   A 4-section critique:
+#     - Logical flaws        (Benjamin)
+#     - Hidden assumptions   (Harper)
+#     - Failure modes        (Lucas)
+#     - Counter-plan sketch  (Grok)
+#   Followed by a Lucas veto pass on the synthesis itself.
+#
+# Example invocation
+#   grok-orchestra templates copy red-team-the-plan ./my-redteam.yaml
+#   $EDITOR ./my-redteam.yaml          # paste your plan into `goal`
+#   grok-orchestra dry-run ./my-redteam.yaml      # works without an API key
+#   grok-orchestra run ./my-redteam.yaml
+# -----------------------------------------------------------------------------
+
+name: red-team-the-plan
+description: Stress-test a plan from 4 angles — no external research, no API key for dry-run.
+version: 1.0.0
+author: AgentMindCloud
+tags: [debate, business, fast]
+
+inputs:
+  plan:
+    type: string
+    description: The full plan or strategy text to stress-test.
+    required: true
+
+expected_outputs: |
+  A 4-section critique (logical flaws, hidden assumptions, failure
+  modes, counter-plan sketch) plus a Lucas veto verdict on the
+  synthesis. Total ≤ 700 words.
+
+goal: |
+  Plan to red-team:
+  ----------------
+  <PASTE YOUR PLAN OR STRATEGY HERE — keep it under ~500 words for the
+  fastest run; the team will critique whatever you paste verbatim>
+  ----------------
+
+  Produce a 4-section critique. No external research is permitted —
+  reason only from the text above.
+
+  1. Logical flaws (Benjamin)
+     Name informal fallacies, hidden quantifier shifts, or unsupported
+     leaps. Cite the line of the plan.
+
+  2. Hidden assumptions (Harper)
+     Surface ≤ 5 assumptions the plan relies on that are not stated.
+     For each, name the consequence if the assumption is wrong.
+
+  3. Failure modes (Lucas)
+     Enumerate the top 3 ways the plan fails in production. For each:
+     trigger condition, observable signal, recovery cost.
+
+  4. Counter-plan sketch (Grok)
+     Briefly outline a plan that survives the failure modes above.
+     ≤ 150 words. Do not "fix" the original plan — propose an
+     alternative.
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  # Empty allowlists → no external tools fire. The whole template runs
+  # against pure reasoning over the pasted plan, which is what makes
+  # `dry-run` fast and key-free.
+  tool_routing:
+    Grok:     []
+    Harper:   []
+    Benjamin: []
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

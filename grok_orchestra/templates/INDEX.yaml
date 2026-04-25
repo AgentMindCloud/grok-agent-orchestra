@@ -151,3 +151,106 @@ templates:
     categories: [combined, code-review, typescript, bridge]
     estimated_tokens: 55000
     marketplace_badges: [combined, code-review, ship-ready]
+
+  - name: Deep Research (Hierarchical 3-deep)
+    slug: deep-research-hierarchical
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      Recursive sub-question generation, 3 levels deep, with a Lucas
+      veto on every level synthesis. Built for research questions you
+      can't fit in one prompt.
+    categories: [research, deep, debate, web-search]
+    estimated_tokens: 45000
+    marketplace_badges: [deep, rigorous, recursive]
+
+  - name: Local-Docs Debate Loop
+    slug: debate-loop-with-local-docs
+    mode: simulated
+    pattern: debate-loop
+    combined: false
+    description: >-
+      Iteratively debate the contents of a local PDF/Markdown corpus
+      until consensus. Requires v0.3+ for full local-docs ingest;
+      earlier releases ignore `report_source: local`.
+    categories: [research, deep, local-docs, debate, requires-v0.3]
+    estimated_tokens: 25000
+    marketplace_badges: [local-docs, deep, requires-v0.3]
+
+  - name: Competitive Analysis
+    slug: competitive-analysis
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      Hierarchical competitor brief — Harper researches, Benjamin
+      audits the logic, Grok synthesises, Lucas vetoes any claim
+      without a named source.
+    categories: [research, business, web-search, debate]
+    estimated_tokens: 18000
+    marketplace_badges: [business, sourced, rigorous]
+
+  - name: Investor Memo (DD)
+    slug: due-diligence-investor-memo
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      1-pager investor memo — public sources only, hype-vetoed,
+      ≥ 3 risks enforced. Lucas blocks output if Risks < 3 or any
+      hype word survives review.
+    categories: [business, research, debate]
+    estimated_tokens: 20000
+    marketplace_badges: [business, hype-vetoed, 1-pager]
+
+  - name: Red-team the Plan
+    slug: red-team-the-plan
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      Stress-test a plan from 4 angles in one round — no external
+      research, no API key for `dry-run`. Great first run for
+      newcomers; exercises every code path offline.
+    categories: [debate, business, fast, offline-friendly]
+    estimated_tokens: 8000
+    marketplace_badges: [fast, offline-dry-run, beginner]
+
+  - name: Weekly News Digest
+    slug: weekly-news-digest
+    mode: native
+    pattern: native
+    combined: false
+    description: >-
+      Topic + ISO date range → bullet digest with inline citations
+      and 2–3 named themes. Web search is full-fidelity in v0.3+.
+    categories: [research, web-search, fast, requires-v0.3]
+    estimated_tokens: 9000
+    marketplace_badges: [fast, cited, web-search]
+
+  - name: Paper Summarizer
+    slug: paper-summarizer
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      Structured arXiv / PDF summary — Problem, Method, Results,
+      Limitations, What's next. Lucas vetoes results-paraphrasing
+      that doesn't cite a specific table or figure.
+    categories: [research, technical, deep]
+    estimated_tokens: 15000
+    marketplace_badges: [technical, sourced, structured]
+
+  - name: Product Launch Brief
+    slug: product-launch-brief
+    mode: simulated
+    pattern: hierarchical
+    combined: false
+    description: >-
+      5-section launch brief — positioning, audience, channels, risks
+      (≥ 3 enforced), KPIs (≤ 5, measurable + cadence). Hype-vetoed
+      positioning.
+    categories: [business, fast]
+    estimated_tokens: 14000
+    marketplace_badges: [business, KPIs, hype-vetoed]

@@ -183,24 +183,42 @@ def test_validate_json_mode(tmp_path: Path) -> None:
 
 
 def test_templates_lists_bundled(tmp_path: Path) -> None:
-    """The table prints without error and contains the 'bundled' header."""
+    """Bare `templates` defaults to `templates list`, grouped by category."""
     result = runner.invoke(cli_module.app, ["templates"])
     assert result.exit_code == 0
-    assert "bundled Orchestra templates" in result.stdout
-    # Pattern column shows every pattern we shipped a template for.
-    for pattern in ("native", "hierarchical", "dynamic-spawn", "debate-loop", "parallel-tools", "recovery"):
+    # Categorical headers should appear instead of a single bundled-table title.
+    assert "Research" in result.stdout
+    # Pattern column still shows every pattern we shipped a template for.
+    for pattern in (
+        "native",
+        "hierarchical",
+        "dynamic-spawn",
+        "debate-loop",
+        "parallel-tools",
+        "recovery",
+    ):
         assert pattern in result.stdout, f"missing pattern badge {pattern!r}"
 
 
-def test_templates_lists_all_ten_in_json() -> None:
-    """JSON mode is the machine-readable surface — should list all 10 templates."""
-    result = runner.invoke(cli_module.app, ["--json", "templates"])
+def test_templates_list_subcommand_matches_bare() -> None:
+    """`templates list` should produce the same body as bare `templates`."""
+    result = runner.invoke(cli_module.app, ["templates", "list"])
+    assert result.exit_code == 0
+    assert "Research" in result.stdout
+
+
+def test_templates_list_includes_all_eighteen_in_json() -> None:
+    """JSON output is the machine-readable surface — must include every shipped template."""
+    result = runner.invoke(
+        cli_module.app, ["templates", "list", "--format", "json"]
+    )
     assert result.exit_code == 0
     import json as _json
 
     last = result.stdout.strip().splitlines()[-1]
     payload = _json.loads(last)
     names = {t["name"] for t in payload["templates"]}
+    # The 10 originals + 8 added in the templates-expansion session.
     expected = {
         "orchestra-native-4",
         "orchestra-native-16",
@@ -212,12 +230,21 @@ def test_templates_lists_all_ten_in_json() -> None:
         "orchestra-recovery-resilient",
         "combined-trendseeker",
         "combined-coder-critic",
+        "deep-research-hierarchical",
+        "debate-loop-with-local-docs",
+        "competitive-analysis",
+        "due-diligence-investor-memo",
+        "red-team-the-plan",
+        "weekly-news-digest",
+        "paper-summarizer",
+        "product-launch-brief",
     }
     assert expected.issubset(names), f"missing templates: {expected - names}"
 
 
-def test_templates_json_mode() -> None:
-    result = runner.invoke(cli_module.app, ["--json", "templates"])
+def test_templates_list_global_json_flag_still_works() -> None:
+    """`--json templates list` keeps emitting JSON for back-compat."""
+    result = runner.invoke(cli_module.app, ["--json", "templates", "list"])
     assert result.exit_code == 0
     import json as _json
 
@@ -226,11 +253,53 @@ def test_templates_json_mode() -> None:
     assert payload["ok"] is True
     names = [t["name"] for t in payload["templates"]]
     assert "orchestra-native-4" in names
-    # INDEX.yaml is a catalog, not a template — it must NOT appear.
-    assert "INDEX" not in names
+    assert "INDEX" not in names  # catalog file, not a template
+
+
+def test_templates_list_tag_filter() -> None:
+    result = runner.invoke(
+        cli_module.app, ["templates", "list", "--tag", "business", "--format", "json"]
+    )
+    assert result.exit_code == 0
+    import json as _json
+
+    last = result.stdout.strip().splitlines()[-1]
+    payload = _json.loads(last)
+    names = {t["name"] for t in payload["templates"]}
+    # Sanity: business templates landed in the filter, others did not.
+    assert "competitive-analysis" in names
+    assert "product-launch-brief" in names
+    assert "orchestra-native-4" not in names  # not tagged "business"
+
+
+def test_templates_show_prints_yaml() -> None:
+    result = runner.invoke(
+        cli_module.app, ["templates", "show", "competitive-analysis"]
+    )
+    assert result.exit_code == 0
+    assert "name: competitive-analysis" in result.stdout
+    assert "orchestra:" in result.stdout
+
+
+def test_templates_show_unknown_exits_config() -> None:
+    result = runner.invoke(cli_module.app, ["templates", "show", "nonexistent"])
+    assert result.exit_code == EXIT_CONFIG
+
+
+def test_templates_copy_to_disk(tmp_path: Path) -> None:
+    dest = tmp_path / "my-redteam.yaml"
+    result = runner.invoke(
+        cli_module.app,
+        ["templates", "copy", "red-team-the-plan", str(dest)],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert dest.exists()
+    body = dest.read_text(encoding="utf-8")
+    assert "name: red-team-the-plan" in body
 
 
 def test_init_copies_template(tmp_path: Path) -> None:
+    """`init` is preserved as a back-compat alias for `templates copy`."""
     dest = tmp_path / "my-spec.yaml"
     result = runner.invoke(
         cli_module.app, ["init", "orchestra-native-4", "--out", str(dest)]

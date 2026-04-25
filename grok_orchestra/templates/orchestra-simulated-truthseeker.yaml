@@ -34,6 +34,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-simulated-truthseeker
+description: Fully-visible Grok / Harper / Benjamin / Lucas debate over 3 fact-check rounds.
+version: 1.0.0
+author: AgentMindCloud
+tags: [debate, research]
+
 goal: |
   Fact-check this specific claim: "<paste the claim here, verbatim>".
 

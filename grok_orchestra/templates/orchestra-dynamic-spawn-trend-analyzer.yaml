@@ -32,6 +32,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-dynamic-spawn-trend-analyzer
+description: Concurrent fan-out — Grok decomposes a question, Harper+Lucas mini-debates run in parallel.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, fast, web-search]
+
 goal: |
   Analyse the biggest X / Twitter trends of today. Decompose the goal
   into exactly 3 sub-analyses (Grok classification call will do this):

@@ -275,15 +275,40 @@ def parse(source: str | dict[str, Any]) -> Mapping[str, Any]:
 def load_orchestra_yaml(path: str | Path) -> Mapping[str, Any]:
     """Load and fully validate an Orchestra YAML spec from disk.
 
-    The Bridge-half is validated by :func:`grok_build_bridge.parser.load_yaml`;
-    the Orchestra additions are validated against the schema shipped with this
-    package. Defaults are applied to the Orchestra and safety blocks. The
-    returned mapping is frozen (``MappingProxyType`` all the way down) so
-    downstream code can treat the spec as immutable.
+    Parsing flow:
+    - Read the file with ``yaml.safe_load`` (so Orchestra-only fields like
+      ``goal``, ``orchestra``, ``tags``, ``description``, ``inputs`` …
+      are accepted without colliding with Bridge's strict
+      ``additionalProperties: false`` schema).
+    - When ``combined: true`` is set, *also* run Bridge's full validator —
+      combined runs have a real ``build:`` block that needs Bridge's
+      schema applied.
+    - Validate the Orchestra additions against
+      :mod:`grok_orchestra.schema.orchestra.schema.json`.
+    - Apply defaults and freeze.
+
+    The returned mapping is frozen (``MappingProxyType`` all the way down)
+    so downstream code can treat the spec as immutable.
     """
-    raw = bridge_load_yaml(str(path))
+    import yaml
+
+    text = Path(path).read_text(encoding="utf-8")
+    try:
+        raw = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise OrchestraConfigError(f"Could not parse YAML at {path}: {exc}") from exc
+
     if not isinstance(raw, dict):
-        raise OrchestraConfigError(f"Spec root must be a mapping, got {type(raw).__name__}.")
+        raise OrchestraConfigError(
+            f"Spec root must be a mapping, got {type(raw).__name__}."
+        )
+
+    if raw.get("combined") is True:
+        # Bridge owns the build half — run its validator so the build:
+        # block is checked against Bridge's own schema. Bridge's load_yaml
+        # re-reads the file, which is fine for combined specs.
+        bridge_load_yaml(str(path))
+
     validate(raw)
     apply_defaults(raw)
     return _freeze(raw)

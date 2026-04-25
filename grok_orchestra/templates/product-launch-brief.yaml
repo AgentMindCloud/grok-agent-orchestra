@@ -1,0 +1,106 @@
+# -----------------------------------------------------------------------------
+# Template: product-launch-brief
+#
+# Purpose
+#   Generate a launch brief covering positioning, target audience,
+#   channels, risks, and KPIs. Harper benchmarks comparable launches
+#   on the open web; Grok drafts the brief; Benjamin checks the KPI
+#   logic; Lucas vetoes vague positioning and missing-risk sections.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 11–17 k tokens per run.
+#
+# Expected output
+#   A 5-section brief (≤ 700 words):
+#     - Positioning      one sentence + 3 sub-bullets
+#     - Audience         primary + 1 secondary segment, both with
+#                        evidence
+#     - Channels         ≤ 4 channels, each with rationale
+#     - Risks            ≥ 3 risks, each with mitigation
+#     - KPIs             ≤ 5 measurable KPIs with target + cadence
+#
+# Example invocation
+#   grok-orchestra templates copy product-launch-brief ./launch.yaml
+#   $EDITOR ./launch.yaml             # set product + launch date in `goal`
+#   grok-orchestra dry-run ./launch.yaml
+#   grok-orchestra run ./launch.yaml
+# -----------------------------------------------------------------------------
+
+name: product-launch-brief
+description: Launch brief — positioning, audience, channels, risks, KPIs — with hype-vetoed positioning.
+version: 1.0.0
+author: AgentMindCloud
+tags: [business, fast]
+
+inputs:
+  product:
+    type: string
+    description: Product name + one-sentence description.
+    required: true
+  launch_date:
+    type: string
+    description: Target launch date (ISO YYYY-MM-DD).
+    required: true
+
+expected_outputs: |
+  A 5-section launch brief: Positioning, Audience, Channels, Risks
+  (≥ 3), KPIs (≤ 5 measurable + cadence). ≤ 700 words total.
+
+goal: |
+  Product: <REPLACE WITH PRODUCT NAME + ONE-SENTENCE DESCRIPTION>
+  Launch date: <REPLACE WITH ISO YYYY-MM-DD>
+
+  Phase 1 — Harper (researcher):
+    Benchmark 2–3 comparable recent launches in the same category.
+    Surface positioning angles, channel mixes, and KPI baselines
+    they used.
+
+  Phase 2 — Grok (coordinator):
+    Draft a 5-section launch brief (≤ 700 words):
+      - Positioning   one sentence + 3 sub-bullets
+      - Audience      primary + 1 secondary, each with evidence
+      - Channels      ≤ 4, each with a one-line rationale
+      - Risks         ≥ 3, each with mitigation
+      - KPIs          ≤ 5, each with target value + cadence
+
+  Phase 3 — Benjamin (logician):
+    Check that each KPI is (a) measurable, (b) attributable to launch
+    actions, and (c) bounded in time. Flag any KPI that fails the
+    test.
+
+  Phase 4 — Lucas (contrarian):
+    Veto if Risks has < 3 entries. Veto positioning that uses hype
+    words ("revolutionary", "10x", "category-defining"). Veto KPIs
+    Benjamin flagged as non-measurable.
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

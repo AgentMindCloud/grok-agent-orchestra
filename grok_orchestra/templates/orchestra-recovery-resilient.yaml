@@ -33,6 +33,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-recovery-resilient
+description: Native-16 wrapped in the recovery pattern — degrades on rate-limit + retries once.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, deep, web-search]
+
 goal: |
   Produce a 4–6 tweet X thread summarising the week's single most
   important AI-agent news story. Constraints:

@@ -726,6 +726,16 @@ def _maybe_deploy(
     if not veto_approved:
         console.log("[yellow]deploy skipped (veto denied)[/yellow]")
         return None, prior_safety
+
+    # `target: stdout` is the default for every shipped template. Print
+    # the final content directly rather than invoking Bridge's
+    # deploy_to_target — Bridge's signature is `(generated_dir, config)`,
+    # so passing a free-text final_content there raises TypeError. Real
+    # remote targets (post_to_x, github, …) still flow through Bridge.
+    if str(deploy_cfg.get("target", "")).lower() == "stdout":
+        console.print(final_content)
+        return "stdout://", prior_safety
+
     url = deploy_to_target(final_content, deploy_cfg)
     console.log(f"[dim]deploy_to_target → {url}[/dim]")
     return url, prior_safety

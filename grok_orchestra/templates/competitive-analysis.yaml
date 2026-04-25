@@ -1,0 +1,97 @@
+# -----------------------------------------------------------------------------
+# Template: competitive-analysis
+#
+# Purpose
+#   Produce a structured competitor brief. Harper researches the
+#   competitor on the open web; Benjamin stress-tests the logic and
+#   numerical claims; Grok synthesises the brief; Lucas vetoes any
+#   claim that can't be traced back to a named source.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 14–22 k tokens per run.
+#
+# Expected output
+#   A 5-section brief: positioning, pricing, GTM, technical moats,
+#   risks. Every claim is followed by an inline citation; unsourced
+#   claims trigger a Lucas veto and never make it to the output.
+#
+# Example invocation
+#   grok-orchestra templates copy competitive-analysis ./competitor.yaml
+#   $EDITOR ./competitor.yaml          # set `goal` to a competitor name + URL
+#   grok-orchestra dry-run ./competitor.yaml
+#   grok-orchestra run ./competitor.yaml
+# -----------------------------------------------------------------------------
+
+name: competitive-analysis
+description: Hierarchical competitor brief — research → critique → synthesis, with a no-unsourced-claims veto.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, business, web-search, debate]
+
+inputs:
+  competitor:
+    type: string
+    description: Competitor name + canonical URL.
+    required: true
+  our_product:
+    type: string
+    description: One sentence on the product we're positioning against.
+    required: true
+
+expected_outputs: |
+  A 5-section competitor brief — positioning, pricing, GTM, technical
+  moats, risks — with inline citations for every factual claim. Lucas
+  blocks the output if any claim lacks a named source.
+
+goal: |
+  Competitor: <REPLACE WITH NAME + URL>
+  Our product: <REPLACE WITH ONE SENTENCE>
+
+  Phase 1 — Harper (researcher):
+    Surface ≥ 2 primary sources per section: positioning, pricing,
+    GTM, technical moats, risks. Use only the open web; no insider
+    rumours.
+
+  Phase 2 — Benjamin (logician):
+    Flag claims that conflate correlation with causation, rely on a
+    single anecdote, or assume vendor marketing as fact.
+
+  Phase 3 — Grok (coordinator):
+    Synthesise into a 5-section brief. ≤ 600 words total. Every claim
+    must have an inline citation in (Author, Year) or [URL] form.
+
+  Phase 4 — Lucas (contrarian):
+    Veto if any claim lacks a named source. Veto if the brief
+    overstates a moat or risk relative to the underlying evidence.
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

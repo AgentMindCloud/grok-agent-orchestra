@@ -90,8 +90,18 @@ def _stub_deploy_to_target(*_args: Any, **_kwargs: Any) -> str:
     return "https://example.test/deployed"
 
 
-def _stub_section(console: Any, title: str) -> None:
-    console.rule(title, style="cyan")
+def _stub_section(*args: Any) -> None:
+    """Stand-in for ``grok_build_bridge._console.section``.
+
+    Real Bridge ships ``section(title: str)`` and uses its module-level
+    Rich console. Older Orchestra call sites pass ``(console, title)``;
+    Orchestra installs a shim in ``grok_orchestra/__init__.py`` that
+    normalises both shapes onto ``section(title)``. The stub mirrors
+    that contract so it works whether tests bypass or exercise the
+    shim.
+    """
+    title = args[1] if len(args) >= 2 else (args[0] if args else "")
+    Console().rule(str(title), style="cyan")
 
 
 class _StubChat:

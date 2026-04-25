@@ -29,6 +29,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-parallel-tools-fact-check
+description: Per-agent tool routing — Harper owns the web, Benjamin the sandbox, audit on off-list calls.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, fast, debate, web-search]
+
 goal: |
   Fact-check the following claim and produce a 3–4 tweet thread for X:
   "<paste claim here, verbatim, with source attribution>".

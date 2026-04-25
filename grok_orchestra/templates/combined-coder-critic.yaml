@@ -38,6 +38,11 @@
 # -----------------------------------------------------------------------------
 
 name: combined-coder-critic
+description: Bridge generates a TypeScript CLI; Orchestra critiques the generated code; Lucas vetoes the review.
+version: 1.0.0
+author: AgentMindCloud
+tags: [technical, debate]
+
 goal: |
   Build a lightweight TypeScript CLI that reads a JSON config, runs a
   single named task, and prints structured output.

@@ -3,12 +3,25 @@
 Templates live in ``grok_orchestra/templates/`` and are shipped as
 package data (see ``pyproject.toml``). Each is a YAML file that the
 ``templates`` and ``init`` CLI commands introspect.
+
+A template's top-level YAML may carry these *display-only* metadata
+fields in addition to the schema-required `name`, `goal`, `orchestra`:
+
+    description     one-line human summary
+    version         template version string (defaults to "1.0.0")
+    author          person/team who maintains it
+    tags            list of tag strings (e.g. ["research", "deep"])
+
+These are surfaced by the ``templates list`` / ``templates show``
+commands and ignored by the runtime. The runtime spec schema sets
+``additionalProperties: true`` at the root so unknown top-level fields
+neither reach the executor nor cause validation failures.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -20,6 +33,7 @@ __all__ = [
     "copy_template",
     "get_template",
     "list_templates",
+    "render_template_yaml",
 ]
 
 
@@ -30,12 +44,16 @@ _TEMPLATES_PACKAGE = "grok_orchestra.templates"
 class Template:
     """One bundled Orchestra template."""
 
-    name: str  # filename stem, e.g. "basic-native"
+    name: str  # filename stem, e.g. "deep-research-hierarchical"
     path: Path  # absolute path to the YAML on disk (when extracted)
     goal: str
     mode: str
     pattern: str
     combined: bool
+    description: str = ""
+    version: str = "1.0.0"
+    author: str = "AgentMindCloud"
+    tags: tuple[str, ...] = field(default_factory=tuple)
 
 
 _NON_TEMPLATE_STEMS: frozenset[str] = frozenset({"INDEX", "index"})
@@ -51,7 +69,6 @@ def _iter_yaml_names() -> Iterator[str]:
         if not (name.endswith(".yaml") or name.endswith(".yml")):
             continue
         stem = name.rsplit(".", 1)[0]
-        # Skip catalog / metadata files that live in the same directory.
         if stem in _NON_TEMPLATE_STEMS or stem.startswith("."):
             continue
         yield name
@@ -67,13 +84,18 @@ def _read_yaml(name: str) -> tuple[str, dict[str, Any]]:
     return text, data
 
 
-def list_templates() -> list[Template]:
-    """Return every bundled template, sorted by name.
+def _coerce_tags(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    out: list[str] = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            out.append(item.strip().lower())
+    return tuple(out)
 
-    Each :class:`Template` carries enough metadata to render a quick
-    table: ``mode``, ``pattern``, and whether the spec is a combined
-    Bridge + Orchestra run.
-    """
+
+def list_templates() -> list[Template]:
+    """Return every bundled template, sorted by name."""
     out: list[Template] = []
     for name in sorted(_iter_yaml_names()):
         stem = name.rsplit(".", 1)[0]
@@ -91,6 +113,10 @@ def list_templates() -> list[Template]:
                 mode=str(orch.get("mode", "auto")),
                 pattern=str(orchestration.get("pattern", "native")),
                 combined=bool(data.get("combined", False)),
+                description=str(data.get("description", "")),
+                version=str(data.get("version", "1.0.0")),
+                author=str(data.get("author", "AgentMindCloud")),
+                tags=_coerce_tags(data.get("tags")),
             )
         )
     return out
@@ -105,7 +131,6 @@ def get_template(name: str) -> Template:
     candidates = {tpl.name: tpl for tpl in list_templates()}
     if name in candidates:
         return candidates[name]
-    # Accept `name.yaml` too for friendlier UX.
     if name.endswith((".yaml", ".yml")):
         stem = name.rsplit(".", 1)[0]
         if stem in candidates:
@@ -113,6 +138,16 @@ def get_template(name: str) -> Template:
     raise FileNotFoundError(
         f"no template named {name!r}. Available: {sorted(candidates)}"
     )
+
+
+def render_template_yaml(name: str) -> str:
+    """Return the raw YAML text of template ``name``.
+
+    Raises :class:`FileNotFoundError` when ``name`` does not match any
+    bundled template. Used by ``grok-orchestra templates show``.
+    """
+    template = get_template(name)
+    return template.path.read_text(encoding="utf-8")
 
 
 def copy_template(name: str, out_path: str | Path) -> Path:

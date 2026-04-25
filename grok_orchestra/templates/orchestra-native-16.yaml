@@ -35,6 +35,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-native-16
+description: Weekly deep-research thread on the native 16-agent endpoint at high effort.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, deep, web-search]
+
 goal: |
   Produce a 5–8 tweet weekly research thread on the most important
   development in agentic LLMs from the past 7 days. Constraints:

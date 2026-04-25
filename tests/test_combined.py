@@ -117,7 +117,13 @@ def _veto_unsafe() -> Any:
 
 
 def test_combined_runs_six_phases_in_order(tmp_path: Path) -> None:
-    spec_path = _write_spec(tmp_path, _spec())
+    # Use a non-stdout target so the deploy_to_target call site fires.
+    # Stdout deploys short-circuit out of Bridge to avoid the
+    # `(generated_dir, config)` signature mismatch — see
+    # `_maybe_deploy` in patterns.py / combined.py.
+    spec = _spec()
+    spec["deploy"] = {"target": "x", "post_to_x": True}
+    spec_path = _write_spec(tmp_path, spec)
     out_dir = tmp_path / "generated"
 
     with patch(

@@ -323,6 +323,13 @@ def _maybe_deploy(
         return None
     if deploy_cfg.get("post_to_x"):
         audit_x_post(final_content, config=safety_cfg)
+
+    # See patterns.py:_maybe_deploy — Bridge's deploy_to_target expects
+    # a generated_dir, not free-text content. Stub stdout deploys here.
+    if str(deploy_cfg.get("target", "")).lower() == "stdout":
+        console.print(final_content)
+        return "stdout://"
+
     url = deploy_to_target(final_content, deploy_cfg)
     console.log(f"[dim]deploy_to_target → {url}[/dim]")
     return url

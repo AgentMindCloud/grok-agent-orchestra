@@ -6,14 +6,17 @@ the two tools apart at a glance. The banner renders once per invocation.
 
 Commands
 --------
-- ``run <yaml>``       — dispatch via :func:`grok_orchestra.dispatcher.run_orchestra`.
-- ``combined <yaml>``  — Bridge + Orchestra end-to-end (session 9).
-- ``validate <yaml>``  — parse, validate, and report resolved mode + pattern.
-- ``templates``        — list bundled starter templates.
-- ``init <name>``      — materialise a template to disk.
-- ``debate <yaml>``    — stream the debate only, no deploy / no enforced veto.
-- ``veto <file>``      — run Lucas's safety veto on arbitrary text.
-- ``version``          — print just the version.
+- ``run <spec>``           — dispatch a spec (template name *or* path).
+- ``dry-run <spec>``       — alias for ``run --dry-run``; no API calls.
+- ``combined <yaml>``      — Bridge + Orchestra end-to-end.
+- ``validate <spec>``      — parse, validate, and report resolved mode + pattern.
+- ``templates list``       — list bundled starter templates (with tag filter).
+- ``templates show <n>``   — print a template's YAML to stdout.
+- ``templates copy <n>``   — copy a template to disk for editing.
+- ``init <name>``          — back-compat alias for ``templates copy``.
+- ``debate <yaml>``        — stream the debate only, no deploy / no enforced veto.
+- ``veto <file>``          — run Lucas's safety veto on arbitrary text.
+- ``version``              — print just the version.
 
 Global flags
 ------------
@@ -48,9 +51,11 @@ from grok_orchestra._errors import (
     render_json_error,
 )
 from grok_orchestra._templates import (
+    Template,
     copy_template,
     get_template,
     list_templates,
+    render_template_yaml,
 )
 from grok_orchestra.combined import (
     CombinedResult,  # noqa: F401  # re-exported for external callers
@@ -190,6 +195,33 @@ def version(ctx: typer.Context) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Spec resolution helpers.
+# --------------------------------------------------------------------------- #
+
+
+def _resolve_spec_path(spec: str) -> Path:
+    """Resolve ``spec`` to a YAML path on disk.
+
+    ``spec`` may be:
+    - a path to an existing YAML file (returned as-is),
+    - the slug of a bundled template (resolved to its packaged path).
+
+    Raises :class:`FileNotFoundError` with a helpful message if neither
+    resolution succeeds.
+    """
+    path = Path(spec)
+    if path.exists() and path.is_file():
+        return path
+    try:
+        return get_template(spec).path
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"{spec!r} is neither a readable file nor a bundled template name. "
+            "Run `grok-orchestra templates list` to see what's available."
+        ) from exc
+
+
+# --------------------------------------------------------------------------- #
 # `validate` — parse + report resolved pattern / mode.
 # --------------------------------------------------------------------------- #
 
@@ -197,12 +229,23 @@ def version(ctx: typer.Context) -> None:
 @app.command()
 def validate(
     ctx: typer.Context,
-    spec: Annotated[str, typer.Argument(help="Path to an Orchestra YAML spec.")],
+    spec: Annotated[
+        str,
+        typer.Argument(
+            help="Path to an Orchestra YAML spec, or the slug of a bundled template.",
+        ),
+    ],
 ) -> None:
     """Validate an Orchestra spec and print resolved mode + pattern."""
     state = _state(ctx)
     try:
-        config = load_orchestra_yaml(Path(spec))
+        spec_path = _resolve_spec_path(spec)
+    except FileNotFoundError as exc:
+        _emit_error(state, exc, title="grok-orchestra · validate")
+        raise typer.Exit(code=EXIT_CONFIG) from exc
+
+    try:
+        config = load_orchestra_yaml(spec_path)
     except OrchestraConfigError as exc:
         _emit_error(state, exc)
         raise typer.Exit(code=exit_code_for(exc)) from exc
@@ -218,7 +261,7 @@ def validate(
     if state.json:
         payload = {
             "ok": True,
-            "spec": str(spec),
+            "spec": str(spec_path),
             "mode": mode,
             "pattern": pattern,
             "combined": combined,
@@ -228,7 +271,7 @@ def validate(
 
     body = Text()
     body.append("✓ spec is valid\n", style="bold green")
-    body.append(f"path:     {spec}\n", style="white")
+    body.append(f"path:     {spec_path}\n", style="white")
     body.append(f"mode:     {mode}\n", style="white")
     body.append(f"pattern:  {pattern}\n", style="white")
     body.append(f"combined: {combined}\n", style="white")
@@ -238,7 +281,8 @@ def validate(
 
 
 # --------------------------------------------------------------------------- #
-# `templates` / `init` — discover + materialise bundled starters.
+# `templates` — sub-app with `list` / `show` / `copy`. Bare `templates`
+#               (no subcommand) defaults to `list` for back-compat.
 # --------------------------------------------------------------------------- #
 
 
@@ -252,31 +296,87 @@ _PATTERN_STYLES: dict[str, str] = {
 }
 
 
-@app.command()
-def templates(ctx: typer.Context) -> None:
-    """List bundled Orchestra starter templates with pattern badges."""
-    state = _state(ctx)
-    tpls = list_templates()
+# Tag → category-header order. The first tag from each template that
+# appears in this map is the bucket the template renders under. Anything
+# left over goes into "other".
+_CATEGORY_ORDER: tuple[str, ...] = (
+    "research",
+    "business",
+    "technical",
+    "debate",
+    "fast",
+    "deep",
+    "local-docs",
+    "web-search",
+)
+_CATEGORY_LABEL: dict[str, str] = {
+    "research": "Research",
+    "business": "Business & Strategy",
+    "technical": "Technical",
+    "debate": "Debate & Critique",
+    "fast": "Fast / Offline-friendly",
+    "deep": "Deep / Long-form",
+    "local-docs": "Local Docs",
+    "web-search": "Web-search heavy",
+    "other": "Other",
+}
 
-    if state.json:
-        payload = {
-            "ok": True,
-            "templates": [
-                {
-                    "name": t.name,
-                    "goal": t.goal,
-                    "mode": t.mode,
-                    "pattern": t.pattern,
-                    "combined": t.combined,
-                }
-                for t in tpls
-            ],
-        }
-        typer.echo(json.dumps(payload))
-        return
 
+def _primary_category(tpl: Template) -> str:
+    for tag in tpl.tags:
+        if tag in _CATEGORY_ORDER:
+            return tag
+    return "other"
+
+
+def _bucket_by_category(tpls: list[Template]) -> dict[str, list[Template]]:
+    buckets: dict[str, list[Template]] = {}
+    for tpl in tpls:
+        buckets.setdefault(_primary_category(tpl), []).append(tpl)
+    ordered: dict[str, list[Template]] = {}
+    for cat in (*_CATEGORY_ORDER, "other"):
+        if cat in buckets:
+            ordered[cat] = sorted(buckets[cat], key=lambda t: t.name)
+    return ordered
+
+
+def _filter_by_tag(tpls: list[Template], tag: str | None) -> list[Template]:
+    if not tag:
+        return tpls
+    needle = tag.strip().lower()
+    return [t for t in tpls if needle in t.tags]
+
+
+def _summary_for(tpl: Template) -> str:
+    if tpl.description:
+        return tpl.description
+    return tpl.goal.split("\n", 1)[0]
+
+
+templates_app = typer.Typer(
+    name="templates",
+    help="Discover, inspect, and copy bundled Orchestra starter templates.",
+    invoke_without_command=True,
+    no_args_is_help=False,
+    add_completion=False,
+)
+
+
+@templates_app.callback()
+def _templates_root(ctx: typer.Context) -> None:
+    """Default to ``templates list`` when no subcommand is given."""
+    if ctx.invoked_subcommand is None:
+        _do_list(ctx, tag=None, fmt="table")
+
+
+def _render_templates_table(
+    state: _GlobalState,
+    tpls: list[Template],
+    *,
+    title: str,
+) -> None:
     table = Table(
-        title="bundled Orchestra templates",
+        title=title,
         border_style="#8B5CF6",
         box=box.ROUNDED,
         title_style="bold #B69EFE",
@@ -284,46 +384,160 @@ def templates(ctx: typer.Context) -> None:
     table.add_column("name", style="bold white")
     table.add_column("mode", style="cyan")
     table.add_column("pattern", style="white")
-    table.add_column("combined", justify="center")
-    table.add_column("goal", style="dim")
+    table.add_column("tags", style="dim")
+    table.add_column("summary", style="dim")
     for tpl in tpls:
         badge_colour = _PATTERN_STYLES.get(tpl.pattern, "white")
+        summary = _summary_for(tpl)
+        if len(summary) > 70:
+            summary = summary[:69] + "…"
         table.add_row(
             tpl.name,
             tpl.mode,
             f"[{badge_colour}]{tpl.pattern}[/{badge_colour}]",
-            "●" if tpl.combined else "·",
-            tpl.goal[:60] + ("…" if len(tpl.goal) > 60 else ""),
+            ", ".join(tpl.tags) if tpl.tags else "—",
+            summary,
         )
     state.console.print(table)
+
+
+@templates_app.command("list")
+def _templates_list(
+    ctx: typer.Context,
+    tag: Annotated[
+        str | None,
+        typer.Option(
+            "--tag",
+            help=(
+                "Restrict the list to templates carrying this tag. "
+                "Common tags: research, debate, business, technical, "
+                "fast, deep, local-docs, web-search."
+            ),
+        ),
+    ] = None,
+    fmt: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format: 'table' (default, grouped by category) or 'json'.",
+        ),
+    ] = "table",
+) -> None:
+    """List bundled templates, grouped by primary category."""
+    _do_list(ctx, tag=tag, fmt=fmt)
+
+
+def _do_list(ctx: typer.Context, *, tag: str | None, fmt: str) -> None:
+    state = _state(ctx)
+    tpls = _filter_by_tag(list_templates(), tag)
+
+    use_json = state.json or fmt.lower() == "json"
+    if use_json:
+        payload = {
+            "ok": True,
+            "count": len(tpls),
+            "filter_tag": tag,
+            "templates": [
+                {
+                    "name": t.name,
+                    "description": t.description,
+                    "version": t.version,
+                    "author": t.author,
+                    "tags": list(t.tags),
+                    "mode": t.mode,
+                    "pattern": t.pattern,
+                    "combined": t.combined,
+                    "primary_category": _primary_category(t),
+                }
+                for t in tpls
+            ],
+        }
+        typer.echo(json.dumps(payload))
+        return
+
+    if not tpls:
+        state.console.print(
+            Text(f"no templates match tag {tag!r}", style="yellow")
+        )
+        return
+
+    if tag:
+        _render_templates_table(
+            state,
+            tpls,
+            title=f"templates · tag={tag} ({len(tpls)})",
+        )
+    else:
+        for cat, items in _bucket_by_category(tpls).items():
+            _render_templates_table(
+                state,
+                items,
+                title=f"{_CATEGORY_LABEL.get(cat, cat)} ({len(items)})",
+            )
+
     state.console.print(
-        Text("→ copy one with: grok-orchestra init <name> --out my-spec.yaml", style="dim")
+        Text(
+            "→ inspect: grok-orchestra templates show <name>\n"
+            "→ copy:    grok-orchestra templates copy <name> [path]\n"
+            "→ run:     grok-orchestra run <name> --dry-run",
+            style="dim",
+        )
     )
 
 
-@app.command()
-def init(
+@templates_app.command("show")
+def _templates_show(
     ctx: typer.Context,
     template_name: Annotated[
-        str, typer.Argument(help="Name of the bundled template (see `templates`).")
+        str, typer.Argument(help="Name of the bundled template to print.")
+    ],
+) -> None:
+    """Print a bundled template's YAML to stdout."""
+    state = _state(ctx)
+    try:
+        yaml_text = render_template_yaml(template_name)
+    except FileNotFoundError as exc:
+        _emit_error(state, exc, title="grok-orchestra · templates show")
+        raise typer.Exit(code=EXIT_CONFIG) from exc
+    typer.echo(yaml_text, nl=False)
+
+
+@templates_app.command("copy")
+def _templates_copy(
+    ctx: typer.Context,
+    template_name: Annotated[
+        str, typer.Argument(help="Name of the bundled template to copy.")
     ],
     out: Annotated[
         str | None,
-        typer.Option("--out", "-o", help="Destination path (default: ./<name>.yaml)."),
+        typer.Argument(help="Destination path (default: ./<name>.yaml)."),
     ] = None,
 ) -> None:
-    """Copy a bundled template to disk."""
+    """Copy a bundled template to disk for editing."""
+    _do_copy(ctx, template_name, out)
+
+
+def _do_copy(
+    ctx: typer.Context,
+    template_name: str,
+    out: str | None,
+) -> None:
     state = _state(ctx)
     destination = out or f"./{template_name}.yaml"
     try:
         template = get_template(template_name)
         written = copy_template(template_name, destination)
     except (FileNotFoundError, FileExistsError) as exc:
-        _emit_error(state, exc, title="grok-orchestra · init")
+        _emit_error(state, exc, title="grok-orchestra · templates copy")
         raise typer.Exit(code=EXIT_CONFIG) from exc
 
     if state.json:
-        typer.echo(json.dumps({"ok": True, "template": template.name, "written": str(written)}))
+        typer.echo(
+            json.dumps(
+                {"ok": True, "template": template.name, "written": str(written)}
+            )
+        )
         return
 
     body = Text()
@@ -332,10 +546,34 @@ def init(
     body.append(f"dest:   {written}\n", style="white")
     body.append("\nnext:\n", style="bold yellow")
     body.append(f"  grok-orchestra validate {written}\n", style="white")
-    body.append(f"  grok-orchestra run {written} --dry-run\n", style="white")
+    body.append(f"  grok-orchestra dry-run  {written}\n", style="white")
+    body.append(f"  grok-orchestra run      {written}\n", style="white")
     state.console.print(
-        Panel(body, title=f"grok-orchestra · init {template.name}", border_style="#8B5CF6", box=box.ROUNDED)
+        Panel(
+            body,
+            title=f"grok-orchestra · templates copy {template.name}",
+            border_style="#8B5CF6",
+            box=box.ROUNDED,
+        )
     )
+
+
+app.add_typer(templates_app, name="templates")
+
+
+@app.command()
+def init(
+    ctx: typer.Context,
+    template_name: Annotated[
+        str, typer.Argument(help="Name of the bundled template (see `templates list`).")
+    ],
+    out: Annotated[
+        str | None,
+        typer.Option("--out", "-o", help="Destination path (default: ./<name>.yaml)."),
+    ] = None,
+) -> None:
+    """Copy a bundled template to disk (alias for `templates copy`)."""
+    _do_copy(ctx, template_name, out)
 
 
 # --------------------------------------------------------------------------- #
@@ -346,7 +584,12 @@ def init(
 @app.command()
 def run(
     ctx: typer.Context,
-    spec: Annotated[str, typer.Argument(help="Path to an Orchestra YAML spec.")],
+    spec: Annotated[
+        str,
+        typer.Argument(
+            help="Path to an Orchestra YAML spec, or the slug of a bundled template.",
+        ),
+    ],
     mode: Annotated[
         str | None,
         typer.Option("--mode", "-m", help="Override mode (native | simulated | auto)."),
@@ -365,13 +608,52 @@ def run(
     ] = False,
 ) -> None:
     """Run an Orchestra spec through the configured pattern."""
+    del force  # reserved for future pattern-level overrides; CLI contract stays.
+    _do_run(ctx, spec=spec, mode=mode, dry_run=dry_run, verbose=verbose)
+
+
+@app.command(name="dry-run")
+def dry_run_cmd(
+    ctx: typer.Context,
+    spec: Annotated[
+        str,
+        typer.Argument(
+            help="Path to an Orchestra YAML spec, or the slug of a bundled template.",
+        ),
+    ],
+    mode: Annotated[
+        str | None,
+        typer.Option("--mode", "-m", help="Override mode (native | simulated | auto)."),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Raise log level to DEBUG for this command."),
+    ] = False,
+) -> None:
+    """Validate + replay a canned stream — no API calls."""
+    _do_run(ctx, spec=spec, mode=mode, dry_run=True, verbose=verbose)
+
+
+def _do_run(
+    ctx: typer.Context,
+    *,
+    spec: str,
+    mode: str | None,
+    dry_run: bool,
+    verbose: bool,
+) -> None:
     state = _state(ctx)
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
-    del force  # reserved for future pattern-level overrides; CLI contract stays.
 
     try:
-        config = load_orchestra_yaml(Path(spec))
+        spec_path = _resolve_spec_path(spec)
+    except FileNotFoundError as exc:
+        _emit_error(state, exc, title="grok-orchestra · run")
+        raise typer.Exit(code=EXIT_CONFIG) from exc
+
+    try:
+        config = load_orchestra_yaml(spec_path)
     except OrchestraConfigError as exc:
         _emit_error(state, exc)
         raise typer.Exit(code=exit_code_for(exc)) from exc

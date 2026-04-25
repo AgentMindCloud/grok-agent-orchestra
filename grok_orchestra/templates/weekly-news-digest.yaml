@@ -1,0 +1,88 @@
+# -----------------------------------------------------------------------------
+# Template: weekly-news-digest
+#
+# !!! requires v0.3+ for full live web search
+#   Web search lands as a first-class tool routing target in v0.3.
+#   Earlier releases dispatch the routing hint to the runtime but the
+#   `web_search` tool returns a deterministic stub — fine for `dry-run`,
+#   not useful for live runs. Use `--dry-run` until v0.3 ships.
+#
+# Purpose
+#   Native 4-agent run that produces a researched bullet digest with
+#   inline citations for a topic, scoped to a date range.
+#
+# Required env
+#   XAI_API_KEY                    required for `run`.
+#
+# Estimated cost
+#   ≈ 7–11 k tokens per run.
+#
+# Expected output
+#   A digest of 8–12 bullets, each ≤ 30 words, each with an inline
+#   citation. A "Themes" section at the bottom groups the bullets into
+#   2–3 narrative arcs.
+#
+# Example invocation
+#   grok-orchestra templates copy weekly-news-digest ./digest.yaml
+#   $EDITOR ./digest.yaml             # set topic + date range in `goal`
+#   grok-orchestra dry-run ./digest.yaml
+#   grok-orchestra run ./digest.yaml
+# -----------------------------------------------------------------------------
+
+name: weekly-news-digest
+description: Topic + date-range news digest with inline citations and themes. (web search is full-fidelity in v0.3+)
+version: 0.9.0
+author: AgentMindCloud
+tags: [research, web-search, fast]
+
+inputs:
+  topic:
+    type: string
+    description: Subject to dig into (e.g. "AI agent frameworks").
+    required: true
+  date_range:
+    type: string
+    description: Inclusive ISO date range, e.g. "2026-04-18..2026-04-25".
+    required: true
+
+expected_outputs: |
+  A bullet digest (8–12 bullets, ≤ 30 words each, inline-cited) plus
+  a "Themes" section with 2–3 narrative arcs across the bullets.
+
+goal: |
+  Topic: <REPLACE WITH TOPIC>
+  Date range: <REPLACE WITH ISO YYYY-MM-DD..YYYY-MM-DD>
+
+  Constraints:
+    - Each bullet ≤ 30 words.
+    - Inline citation in [domain] form at the end of each bullet.
+    - Surface only items inside the date range. If a story broke
+      earlier but only became important inside the range, say so.
+    - End with a "Themes" section: 2–3 named arcs that group the
+      bullets.
+
+orchestra:
+  mode: native
+  agent_count: 4
+  reasoning_effort: medium
+  include_verbose_streaming: true
+  orchestration:
+    pattern: native
+    fallback_on_rate_limit:
+      enabled: true
+      fallback_model: grok-4.20-0309
+      lowered_effort: medium
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search, x_search]
+    Benjamin: []
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

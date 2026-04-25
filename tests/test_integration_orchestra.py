@@ -59,10 +59,13 @@ def test_every_bundled_template_runs_in_dry_run(slug: str, path: Path) -> None:
     assert result.final_content.strip(), f"{slug}: empty final_content"
 
 
-def test_all_ten_non_combined_templates_present() -> None:
-    """Catalog sanity: we ship exactly eight non-combined templates."""
+def test_non_combined_template_floor_holds() -> None:
+    """Catalog sanity: we ship at least the 8 originals after the
+    template-expansion session added 8 more (16 total). New non-combined
+    templates may land here over time — this test guards the floor, not
+    the ceiling, so it doesn't lock the catalog at a fixed count."""
     slugs = [slug for slug, _ in _NON_COMBINED]
-    assert len(slugs) == 8, f"expected 8 non-combined templates, got {len(slugs)}: {slugs}"
+    assert len(slugs) >= 8, f"expected ≥ 8 non-combined templates, got {len(slugs)}: {slugs}"
 
 
 def test_every_template_produces_reasoning_tokens() -> None:

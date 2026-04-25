@@ -1,0 +1,108 @@
+# -----------------------------------------------------------------------------
+# Template: paper-summarizer
+#
+# Purpose
+#   Take an arXiv URL or a PDF path, produce a structured summary:
+#   problem, method, results, limitations, what's next. Lucas vetoes
+#   any "results" claim that is not directly attributable to the
+#   paper's own numbers (i.e. Harper paraphrasing the authors'
+#   marketing rather than the actual reported results).
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 12–18 k tokens per run.
+#
+# Expected output
+#   A single Markdown card with these sections (in this order):
+#     ### Problem
+#     ### Method
+#     ### Results            ← numeric, with table refs
+#     ### Limitations
+#     ### What's next
+#   ≤ 600 words total.
+#
+# Example invocation
+#   grok-orchestra templates copy paper-summarizer ./paper.yaml
+#   $EDITOR ./paper.yaml               # paste the arXiv URL or PDF path
+#   grok-orchestra dry-run ./paper.yaml
+#   grok-orchestra run ./paper.yaml
+# -----------------------------------------------------------------------------
+
+name: paper-summarizer
+description: Structured summary of an arXiv paper or PDF — problem, method, results, limitations, what's next.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, technical, deep]
+
+inputs:
+  paper_url_or_path:
+    type: string
+    description: arXiv URL (https://arxiv.org/abs/...) or path to a local PDF.
+    required: true
+  audience:
+    type: string
+    description: Who the summary is for (e.g. "ML practitioner", "PM").
+    default: ML practitioner
+
+expected_outputs: |
+  A Markdown card (≤ 600 words) with sections: Problem, Method,
+  Results, Limitations, What's next. Numeric results cite the
+  table/figure they came from.
+
+goal: |
+  Paper: <REPLACE WITH ARXIV URL OR PDF PATH>
+  Audience: <REPLACE WITH AUDIENCE — e.g. "ML practitioner">
+
+  Phase 1 — Harper (researcher):
+    Extract the paper's stated problem, method, results, limitations,
+    and explicit "future work" hooks. For numeric results, cite the
+    table or figure number.
+
+  Phase 2 — Benjamin (logician):
+    Stress-test the method's logical structure. Flag any claim that
+    overstates what the experiments actually show (effect size,
+    statistical significance, generalisation).
+
+  Phase 3 — Grok (coordinator):
+    Compose a Markdown card with sections in this order:
+      ### Problem
+      ### Method
+      ### Results
+      ### Limitations
+      ### What's next
+    ≤ 600 words. Inline cite (Authors, Year, Tab N / Fig N).
+
+  Phase 4 — Lucas (contrarian):
+    Veto any "results" claim that paraphrases the authors' rhetoric
+    instead of citing a specific number from a specific table/figure.
+
+orchestra:
+  mode: simulated
+  debate_rounds: 1
+  include_verbose_streaming: true
+  orchestration:
+    pattern: hierarchical
+    config:
+      max_depth: 2
+      coordinator: Grok
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   [web_search]
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.85
+  max_veto_retries: 1
+
+deploy:
+  target: stdout
+  post_to_x: false

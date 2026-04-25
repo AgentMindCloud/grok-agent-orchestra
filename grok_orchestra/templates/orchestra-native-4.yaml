@@ -28,6 +28,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-native-4
+description: Daily 3-tweet X-thread workhorse on the native 4-agent endpoint.
+version: 1.0.0
+author: AgentMindCloud
+tags: [research, fast, web-search]
+
 goal: |
   Draft a 3-tweet X thread on today's most-discussed topic in AI agent
   orchestration. Requirements:

@@ -33,6 +33,11 @@
 # -----------------------------------------------------------------------------
 
 name: orchestra-debate-loop-policy
+description: Iterate up to 5 rounds toward a balanced 280-char policy summary, with mid-loop veto.
+version: 1.0.0
+author: AgentMindCloud
+tags: [debate, deep]
+
 goal: |
   Draft the most balanced 280-character summary of the current public
   policy debate around AI agent autonomy.

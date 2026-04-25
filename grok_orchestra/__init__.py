@@ -26,3 +26,33 @@ except ImportError as exc:  # pragma: no cover - environment guard
         "Orchestra shares Bridge's XAIClient and safety primitives and will not "
         "import without them."
     ) from exc
+
+
+def _install_section_shim() -> None:
+    """Make ``grok_build_bridge._console.section`` accept both signatures.
+
+    Real Bridge ships ``section(title: str)``; the Orchestra runtimes were
+    written against an older Bridge that exposed ``section(console, title)``.
+    Rather than touch ~30 call sites, we wrap once on import so callers
+    using either shape route to Bridge's real implementation. The shim
+    is idempotent — re-importing this module is safe.
+    """
+    try:
+        from grok_build_bridge import _console as _bridge_console
+    except ImportError:  # pragma: no cover - guarded by the import above
+        return
+
+    section = getattr(_bridge_console, "section", None)
+    if section is None or getattr(section, "_orchestra_compat", False):
+        return
+
+    def _shim(*args: object) -> None:
+        # Accept (title,) directly or (console, title) for back-compat.
+        title = args[1] if len(args) >= 2 else args[0]
+        section(str(title))  # type: ignore[misc]
+
+    _shim._orchestra_compat = True  # type: ignore[attr-defined]
+    _bridge_console.section = _shim  # type: ignore[attr-defined]
+
+
+_install_section_shim()

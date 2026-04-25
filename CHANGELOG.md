@@ -6,6 +6,50 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **8 new certified templates** + retrofit metadata on the existing 10
+  (description, version, author, tags) so every template is filterable.
+  Catalog now ships 18 templates total. New templates:
+  `deep-research-hierarchical`, `debate-loop-with-local-docs`
+  (requires v0.3+), `competitive-analysis`,
+  `due-diligence-investor-memo`, `red-team-the-plan`,
+  `weekly-news-digest` (web-search full-fidelity in v0.3+),
+  `paper-summarizer`, `product-launch-brief`.
+- **`templates` sub-command group** — `templates list` (with
+  `--tag <tag>` filter and `--format {table,json}`),
+  `templates show <name>` (prints raw YAML to stdout),
+  `templates copy <name> [path]` (alias for `init`). Bare
+  `templates` defaults to `list` for back-compat.
+- **`dry-run <spec>`** — top-level shortcut for `run --dry-run`. Both
+  `run` and `dry-run` now accept either a YAML path or the slug of a
+  bundled template (e.g. `grok-orchestra dry-run red-team-the-plan`).
+- **Category grouping** in `templates list` — templates are bucketed
+  into Research / Business / Technical / Debate / Fast / Deep /
+  Local-docs / Web-search based on their first recognised tag.
+- **`tests/test_templates.py`** — every shipped template parses,
+  validates, and exposes the metadata fields the catalog UI needs.
+  Plus a stable-shape "snapshot" assertion on `templates list` JSON.
+
+### Changed
+- README "Templates" section now lists all 18 templates in a single
+  table with pattern + tag columns and runnable CLI examples.
+
+### Fixed
+- **Bridge schema strictness** — `load_orchestra_yaml` no longer
+  routes Orchestra-only specs through `grok_build_bridge.parser.load_yaml`,
+  whose strict `additionalProperties: false` schema rejected
+  `goal:` / `orchestra:` / `safety:` / `deploy:` etc. Bridge's
+  validator still runs on `combined: true` specs (which carry a real
+  `build:` block).
+- **`_console.section` signature mismatch** — Orchestra runtimes call
+  `section(console, title)` but real Bridge ships `section(title)`.
+  Installed a shim in `grok_orchestra/__init__.py` that accepts both.
+- **`deploy_to_target` signature mismatch** — Bridge's
+  `deploy_to_target(generated_dir, config)` is incompatible with the
+  free-text final content Orchestra produces. `target: stdout` now
+  short-circuits to `console.print(final_content)` and returns the
+  `stdout://` sentinel instead of dispatching to Bridge.
+
 ## [0.1.0] - 2026-04-25
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok

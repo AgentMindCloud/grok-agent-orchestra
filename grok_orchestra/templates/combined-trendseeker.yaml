@@ -38,6 +38,11 @@
 # -----------------------------------------------------------------------------
 
 name: combined-trendseeker
+description: Bridge codegen → Orchestra debate → Lucas veto → deploy. Cron-ready flagship combined run.
+version: 1.0.0
+author: AgentMindCloud
+tags: [business, research, web-search]
+
 goal: |
   Every day, surface the single most-discussed tech topic on X and
   ship a 3-tweet thread about it:

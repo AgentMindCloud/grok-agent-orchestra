@@ -1,0 +1,99 @@
+# -----------------------------------------------------------------------------
+# Template: debate-loop-with-local-docs
+#
+# !!! requires v0.3+
+#   The `report_source: local` directive below is interpreted by the
+#   local-docs ingest layer that ships in v0.3. On older releases the
+#   field is silently ignored — Harper falls back to web search, which
+#   defeats the purpose of this template. Track the rollout in
+#   docs/RELEASING.md and the v0.3 milestone.
+#
+# Purpose
+#   Iteratively debate the contents of a local document corpus until
+#   the team reaches consensus on the answer. Drop PDFs, .md files,
+#   or .txt notes into ./docs/ before running.
+#
+# Required env
+#   XAI_API_KEY                    required.
+#
+# Estimated cost
+#   ≈ 18–35 k tokens per run, depending on iterations + document size.
+#
+# Expected output
+#   A consensus answer (≤ 400 words) plus a "what every iteration
+#   added" diff log so you can audit how the team converged.
+#
+# Example invocation
+#   mkdir -p ./docs && cp ~/Downloads/whitepaper.pdf ./docs/
+#   grok-orchestra templates copy debate-loop-with-local-docs ./local-debate.yaml
+#   $EDITOR ./local-debate.yaml        # set `goal` to your question
+#   grok-orchestra dry-run ./local-debate.yaml
+#   grok-orchestra run ./local-debate.yaml
+# -----------------------------------------------------------------------------
+
+name: debate-loop-with-local-docs
+description: Debate the contents of a local PDF/Markdown corpus until consensus. (requires v0.3+)
+version: 0.3.0-dev
+author: AgentMindCloud
+tags: [research, deep, local-docs, debate]
+
+# requires v0.3+ — runtime ignores `report_source` on older releases.
+report_source: local
+report_path: ./docs
+
+inputs:
+  question:
+    type: string
+    description: The question the team should answer from the local corpus.
+    required: true
+  doc_dir:
+    type: string
+    description: Directory of PDFs/Markdown to debate over.
+    default: ./docs
+
+expected_outputs: |
+  A consensus answer (≤ 400 words), plus a per-iteration diff log
+  showing what each iteration added or removed.
+
+goal: |
+  Question (from the local doc corpus in ./docs): <REPLACE>
+
+  Constraints:
+    - Cite documents by filename + page (or section heading).
+    - If two documents disagree, surface the disagreement explicitly.
+    - Answer ≤ 400 words. No hedging filler.
+
+  Iteration loop:
+    Round 1 — Harper extracts the strongest evidence from each doc.
+    Round 2 — Benjamin stress-tests the logic of Harper's synthesis.
+    Round 3 — Lucas vetoes overreach; Grok rewrites toward consensus.
+  Stop when consensus_threshold is reached or iterations are exhausted.
+
+orchestra:
+  mode: simulated
+  include_verbose_streaming: true
+  orchestration:
+    pattern: debate-loop
+    config:
+      iterations: 4
+      consensus_threshold: 0.80
+      max_rounds: 1
+  agents:
+    - {name: Grok,     role: coordinator}
+    - {name: Harper,   role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas,    role: contrarian}
+  tool_routing:
+    Grok:     []
+    Harper:   []          # local-docs only — no web searches
+    Benjamin: [code_execution]
+    Lucas:    []
+
+safety:
+  lucas_veto_enabled: true
+  confidence_threshold: 0.80
+  max_veto_retries: 0       # loop iteration handles rewrites
+
+deploy:
+  target: stdout
+  post_to_x: false
