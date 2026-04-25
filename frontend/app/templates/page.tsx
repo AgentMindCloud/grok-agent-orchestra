@@ -1,4 +1,15 @@
+import type { Metadata } from "next";
+
 import { TemplateBrowser } from "@/components/template-browser";
+
+export const metadata: Metadata = {
+  title: "Templates",
+  description:
+    "Browse the certified Agent Orchestra YAML templates — research, business, debate, code-review patterns.",
+};
+
+// Templates rarely change between runs; let Next cache the shell.
+export const revalidate = 300;
 
 export default function TemplatesPage(): JSX.Element {
   return (

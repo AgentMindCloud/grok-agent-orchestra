@@ -15,7 +15,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/tui-demo.gif" alt="Rich TUI demo — Grok / Harper / Benjamin / Lucas debate streamed live, ending with a Lucas veto verdict." width="780" />
+  <img src="docs/images/hero.gif" alt="Agent Orchestra — pick a template, watch Grok / Harper / Benjamin debate in role-coloured lanes while Lucas adjudicates from the judge bench, then download the citation-rich report." width="780" />
+</p>
+
+<p align="center">
+  <em>Hero capture is generated locally per release — see <a href="frontend/README.md">frontend/README.md</a>. The classic Rich-TUI demo lives at <code>docs/images/tui-demo.gif</code>.</em>
 </p>
 
 ---
@@ -69,8 +73,9 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Native Grok multi-agent endpoint | ✅ | ❌ |
 | Runs free on your laptop (Ollama, no keys) | ✅ Documented + smoke-tested | 🟡 Possible, not surfaced |
 | Local docs ingest | 🟡 Roadmap | ✅ |
-| Web UI | ✅ Live debate stream + Next.js 14 dashboard | ✅ |
+| Web UI | ✅ Modern Next.js with real-time tree + lane views | ✅ |
 | Typed frontend client (TS) | ✅ `frontend/lib/api-client.ts` + WS hook | 🟡 |
+| Optional auth (shared password) | ✅ env-gated, off by default | ❌ |
 | Live web research | ✅ Tavily + cited findings | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |

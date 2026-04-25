@@ -1,11 +1,13 @@
 {
   "name": "grok-orchestra-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Next.js 14 dashboard for grok-agent-orchestra (parity-with-v1; rich viz lands in 16b).",
+  "description": "Next.js 14 dashboard for grok-agent-orchestra — courtroom debate viz, optional auth, deploy-ready.",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "build:export": "NEXT_BUILD_TARGET=export next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start -p 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -35,6 +37,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.2.5",
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^20.16.5",

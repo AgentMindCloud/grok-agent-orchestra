@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { RecentRuns } from "@/components/recent-runs";
 import { RunTrigger } from "@/components/run-trigger";
 import { TemplatePicker } from "@/components/template-picker";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Pick a template, hit Run, and watch the Grok / Harper / Benjamin / Lucas debate stream live.",
+};
 
 export default function HomePage(): JSX.Element {
   return (

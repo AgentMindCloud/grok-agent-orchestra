@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
+
 import { SettingsForm } from "@/components/settings-form";
+
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Configure backend URL, default workflow, model aliases, tracing, and theme.",
+};
 
 export default function SettingsPage(): JSX.Element {
   return (

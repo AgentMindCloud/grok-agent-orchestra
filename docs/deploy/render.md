@@ -63,7 +63,29 @@ services:
       sizeGB: 1
 ```
 
+## Frontend on Render
+
+The Render image bundles the static Next.js export at ``/`` so a
+single web service serves both. Two reasons to split anyway:
+
+1. You want the snappy global edge / preview deploys of Vercel.
+2. You want to point multiple frontends at the same backend.
+
+In either case, deploy the backend as above and follow
+[Vercel](vercel.md) for the frontend. Set
+``GROK_ORCHESTRA_CORS_ORIGINS`` on the Render env to the public URL
+of your frontend so the browser can reach the backend.
+
+## Auth
+
+To gate runs, add ``GROK_ORCHESTRA_AUTH_PASSWORD`` (under env-var
+group → secret) and set ``NEXT_PUBLIC_AUTH_REQUIRED=true`` on the
+matching frontend deploy. Off by default — the local-development
+flow is unchanged.
+
 ## See also
 
+- [Vercel](vercel.md) — managed frontend pointed at this Render
+  backend.
 - [Docker](docker.md) — what the image contains.
 - [Fly.io](fly.md) — alternative managed deploy.

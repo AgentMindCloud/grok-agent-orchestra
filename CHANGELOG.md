@@ -9,7 +9,93 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+### Added — Frontend launch polish (Prompt 16d / 4)
+
+- **Optional shared-password auth (off by default).** When the
+  backend env var ``GROK_ORCHESTRA_AUTH_PASSWORD`` is set, the
+  expensive endpoints (``POST /api/run``, ``WS /ws/runs/*``) require
+  either an HttpOnly session cookie set by ``POST /api/auth/login``
+  or an ``Authorization: Bearer <password>`` header. Cheap endpoints
+  (``GET /api/health``, ``/api/templates``) stay open so the login
+  page can render. Sessions are stateless HMAC tokens (24 h TTL,
+  rotating the password invalidates every existing session).
+  ``GET /api/auth/status`` is the single source of truth the
+  frontend reads to decide whether to render the login UI; when
+  auth is unset, ``required: false`` and there is zero UI change.
+  Frontend ships ``middleware.ts`` that gates every route behind
+  ``NEXT_PUBLIC_AUTH_REQUIRED=true``, ``app/login/page.tsx``, and
+  ``components/login-form.tsx``. Tests
+  (``tests/test_web_auth.py``) cover the off-default,
+  cookie-unlock, header-unlock, and open-when-disabled paths.
+- **Settings page expansion.** New ``frontend/lib/settings.ts``
+  store with versioned localStorage schema. ``settings-form.tsx``
+  rewritten as a five-card form: Backend (API base URL),
+  Defaults (workflow + model), Model aliases (UI editor for the
+  YAML alias map from Prompt 9 — alias / provider / model rows
+  with add + remove), Tracing (LangSmith enable + project name —
+  the API key stays server-side), Appearance (theme + density).
+  Density toggle writes ``data-density`` on ``<html>`` for future
+  CSS hooks.
+- **Branded error pages.** ``app/error.tsx`` (with reset button +
+  digest display + Sentry hand-off) and ``app/not-found.tsx``
+  (orange 404 + dashboard / templates jump links).
+- **Optional Sentry.** ``frontend/lib/sentry.ts`` lazy-imports
+  ``@sentry/nextjs`` only when both ``NEXT_PUBLIC_SENTRY_DSN`` +
+  ``NEXT_PUBLIC_SENTRY_ENVIRONMENT`` are set; the dependency is
+  not in ``package.json`` so users who don&rsquo;t enable it pay zero
+  install + bundle cost.
+- **SEO + metadata.** ``app/layout.tsx`` rewritten with full
+  ``Metadata`` (title template, description, keywords, OG, Twitter,
+  icons, canonical, JSON-LD ``SoftwareApplication`` schema) +
+  ``Viewport`` export with theme-color per scheme. Per-page
+  ``metadata`` exports for ``/``, ``/templates``, ``/settings``,
+  ``/login``, and ``generateMetadata`` for ``/runs/[runId]``.
+- **Sitemap + robots + OG image.** ``app/sitemap.ts`` (Next.js
+  built-in, lists the three indexable pages with priorities),
+  ``app/robots.ts`` (disallows ``/runs/*`` + ``/login``),
+  ``app/opengraph-image.tsx`` (Edge-runtime ``ImageResponse``
+  generating a 1200×630 hero with the orange-gradient palette).
+- **Performance pass.**
+  - ``RunDetailView`` is now ``next/dynamic``-imported with
+    ``ssr: false`` + a ``SkeletonLanes`` fallback. Keeps the
+    framer-motion + Radix surface out of the dashboard root chunk;
+    the run page hydrates only when needed.
+  - ``next.config.mjs`` adds an opt-in ``@next/bundle-analyzer``
+    hook (``ANALYZE=true pnpm build``) and a webpack ``fallback.fs:
+    false`` shim so Sentry's lazy import doesn&rsquo;t bring Node
+    polyfills into the browser bundle.
+  - Inter + JetBrains Mono get ``display: "swap"`` so first paint
+    isn&rsquo;t font-blocked.
+  - ``poweredByHeader: false`` strips the legacy ``X-Powered-By``
+    response header.
+- **Templates page caching.** Added ``export const revalidate =
+  300;`` so Next caches the page shell for 5 minutes (templates
+  rarely change between runs).
+- **Vercel preset.** ``frontend/vercel.json`` with security headers
+  (X-Frame-Options DENY, no-sniff, strict referrer, locked-down
+  Permissions-Policy) + framework auto-detect.
+- **Frontend CI.** ``.github/workflows/frontend.yml`` runs
+  ``pnpm lint``, ``typecheck``, ``test``, ``build`` (Node mode),
+  ``build`` (static export) on every PR and main push. Path-
+  filtered so backend-only PRs skip it.
+- **Deploy docs.** New ``docs/deploy/vercel.md`` covers the
+  frontend-on-Vercel path with the matching backend CORS settings.
+  ``docs/deploy/docker.md`` and ``docs/deploy/render.md`` gained
+  *Frontend* + *Auth* sections explaining the bundled static
+  export and the ``GROK_ORCHESTRA_AUTH_PASSWORD`` flow.
+- **README.** Hero image switched to ``docs/images/hero.gif``
+  (placeholder; capture script lives at
+  ``scripts/capture-demo.mjs`` from 16b). Comparison-table Web UI
+  row updated to *"Modern Next.js with real-time tree + lane
+  views"*; new *"Optional auth (shared password)"* row.
+
+### Hand-off
+
+The frontend is launch-ready. Crossed the line from "great repo"
+to flagship. Tag ``v1.0.0`` lands with this commit. Prompts 17
+(Claude Skill) and 18 (VS Code extension) are next, both extending
+reach rather than touching the core.
+
 - **Courtroom-style debate visualization (Prompt 16b / 4).**
   Replaces the parity-with-v1 grid from 16a with a layout that
   treats the run page like a writers' room: three role lanes

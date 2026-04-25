@@ -26,6 +26,11 @@ from grok_orchestra._templates import (
     templates_json_payload,
 )
 from grok_orchestra.parser import OrchestraConfigError, resolve_mode
+from grok_orchestra.web.auth import (
+    auth_dep,
+    register_auth_routes,
+    ws_auth_ok,
+)
 from grok_orchestra.web.registry import RunRegistry
 from grok_orchestra.web.runner import parse_yaml_text, start_run
 
@@ -284,7 +289,13 @@ def create_app() -> FastAPI:
     # POST /api/run  +  GET /api/runs[/{id}]  +  WS /ws/runs/{id}
     # ------------------------------------------------------------------ #
 
-    @app.post("/api/run")
+    # Auth routes — always registered. When the env-gated password is
+    # unset, every endpoint reports "required: false" and the cookie
+    # gates are no-ops. See grok_orchestra/web/auth.py for the threat
+    # model.
+    register_auth_routes(app)
+
+    @app.post("/api/run", dependencies=[auth_dep])
     async def run_endpoint(body: RunBody) -> dict[str, Any]:
         try:
             parse_yaml_text(body.yaml)  # validate before persisting
@@ -443,7 +454,13 @@ def create_app() -> FastAPI:
     async def runs_ws(ws: WebSocket, run_id: str) -> None:
         import contextlib
 
+        # WebSocket can't return 401 — accept first, then close with
+        # a policy-violation code if the session cookie is missing.
         await ws.accept()
+        if not ws_auth_ok(ws):
+            await ws.send_json({"type": "error", "message": "authentication required"})
+            await ws.close(code=4401)
+            return
         registry: RunRegistry = app.state.registry
         run = registry.get(run_id)
         if run is None:
