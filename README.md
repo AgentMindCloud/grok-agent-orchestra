@@ -79,6 +79,36 @@ grok-orchestra --help         # subcommand list
 
 Set `XAI_API_KEY` for live runs. For offline previews use `--dry-run` — every template ships with a canned-stream replay client, so you don't need a key to see how a pattern behaves.
 
+### Run in Docker
+
+The fastest path to a working dashboard — no Python install on the host:
+
+```bash
+git clone https://github.com/agentmindcloud/grok-agent-orchestra.git
+cd grok-agent-orchestra
+cp .env.example .env                  # paste XAI_API_KEY (optional for simulated runs)
+docker compose up --build
+# → http://localhost:8000
+```
+
+Or with `docker run` directly:
+
+```bash
+docker build -t grok-agent-orchestra:0.1.0 .
+docker run --rm -p 8000:8000 \
+  --env-file .env \
+  -v "$PWD/workspace:/app/workspace" \
+  grok-agent-orchestra:0.1.0
+```
+
+For hot-reload during development:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+The image binds to `0.0.0.0:8000` by default, runs as the unprivileged `orchestra` user, and ships a `/api/health` HEALTHCHECK so `docker ps` reports container readiness.
+
 ### Web UI
 
 Optional dashboard with live WebSocket-streamed debates. Install the `[web]` extra and run:

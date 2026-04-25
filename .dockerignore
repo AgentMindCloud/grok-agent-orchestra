@@ -1,0 +1,71 @@
+# Keep the build context lean — every byte slows `docker build`.
+
+# Version control
+.git/
+.gitattributes
+.gitignore
+.github/
+
+# Python build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+MANIFEST
+
+# Virtual envs
+.venv/
+venv/
+env/
+.python-version
+
+# Tooling caches / coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests + docs (not needed in the runtime image)
+tests/
+docs/
+launch/
+examples/
+
+# Heavy media — keep image bytes out of the build context.
+docs/images/
+*.gif
+*.mp4
+*.webm
+
+# Secrets — defense in depth even though .env shouldn't be tracked.
+.env
+.env.*
+!.env.example
+
+# Compose state + workspace bind mount
+workspace/
+.docker/
+
+# Orchestra runtime artefacts
+.orchestra/
+logs/
+*.log

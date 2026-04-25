@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Docker support.** New multi-stage `Dockerfile` (python:3.11-slim
+  builder + slim runtime, venv-copy pattern so the runtime image
+  carries no compilers / git), `.dockerignore` to keep the build
+  context lean, `docker-compose.yml` for the one-command quickstart
+  (`docker compose up --build` → http://localhost:8000), and a
+  `docker-compose.dev.yml` overlay that bind-mounts `grok_orchestra/`
+  on top of the venv for hot-reload development with
+  `uvicorn --reload`. Image runs as a non-root `orchestra` user, ships
+  a `/api/health`-based HEALTHCHECK, and is labelled with the OCI
+  metadata triple (title / description / source / version / licenses).
+- **`.env.example` expanded** to document every env var the stack
+  knows about today (XAI_API_KEY, ORCHESTRA_MODE, LOG_LEVEL) plus
+  reserved placeholders for the planned adapter providers
+  (OPENAI_API_KEY, ANTHROPIC_API_KEY) and the X deploy target.
+- **README "Run in Docker" section** with both the
+  `docker compose up --build` quickstart and a raw `docker run`
+  invocation, plus the dev-overlay command for hot-reload.
+
+### Added
 - **FastAPI web UI** at `grok-orchestra serve` (new top-level CLI
   command) with WebSocket-streamed multi-agent debates. Install the
   `[web]` extra (`fastapi`, `uvicorn[standard]`, `websockets`,

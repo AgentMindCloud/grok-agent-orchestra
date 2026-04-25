@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Development overlay — apply on top of docker-compose.yml.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Bind-mounts the package source over the image's installed copy so edits to
+# `grok_orchestra/web/main.py` (for example) trigger uvicorn's --reload watcher
+# without a rebuild. The bind-mount layers on top of the venv at
+# /opt/orchestra/, replacing only the pure-Python source paths — wheels, deps,
+# and the entry-point script keep working.
+# -----------------------------------------------------------------------------
+
+services:
+  orchestra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder            # keep gcc/git available for editable installs
+    volumes:
+      # Mount the source tree on top of the installed package so live edits
+      # round-trip into the running uvicorn worker.
+      - ./grok_orchestra:/opt/orchestra/lib/python3.11/site-packages/grok_orchestra
+      # Persist tests too, in case devs want to run pytest inside the container.
+      - ./tests:/app/tests
+    command:
+      - "serve"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--reload"
+      - "--no-browser"
+    environment:
+      # Force-flush logs so `docker compose logs -f` shows debate stream output.
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: "DEBUG"
