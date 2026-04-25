@@ -176,6 +176,10 @@ def __getattr__(name: str) -> Any:  # pragma: no cover - exercised by tests
         from grok_orchestra.sources.fetcher import HTTPFetcher as _HTTPFetcher
 
         return _HTTPFetcher
+    if name == "MCPSource":
+        from grok_orchestra.sources.mcp_source import MCPSource as _MCPSource
+
+        return _MCPSource
     raise AttributeError(name)
 
 
@@ -203,6 +207,17 @@ def build_sources(
             from grok_orchestra.sources.web import WebSource
 
             out.append(WebSource.from_config(spec))
+        elif kind == "mcp":
+            from grok_orchestra.sources.mcp_source import MCPSource
+
+            try:
+                out.append(MCPSource.from_config(spec))
+            except SourceError as exc:
+                import logging as _logging
+
+                _logging.getLogger(__name__).warning(
+                    "MCP source skipped: %s", exc
+                )
         # `local` (Prompt 7), `vector`, etc. wire in here without
         # touching the runner.
     return tuple(out)

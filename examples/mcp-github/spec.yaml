@@ -1,0 +1,44 @@
+# Connect Harper to a public GitHub repo via the official
+# @modelcontextprotocol/server-github MCP server, then ask the orchestra
+# to summarise recent issues.
+#
+# Setup:
+#   pip install "grok-agent-orchestra[mcp]"
+#   export GITHUB_TOKEN=ghp_...                # any token with public_repo scope
+#   grok-orchestra dry-run -f examples/mcp-github/spec.yaml
+#
+# The dry-run path uses the simulated MCP client and never spawns the
+# real Node subprocess; use `grok-orchestra run` for the live path.
+
+name: mcp-github-issue-summary
+goal: |
+  Summarize the 5 most recently-opened issues on
+  modelcontextprotocol/servers and group them by theme. Cite each
+  issue by URL.
+
+orchestra:
+  mode: simulated
+  agent_count: 4
+  reasoning_effort: medium
+  debate_rounds: 2
+  orchestration: {pattern: native, config: {}}
+  agents:
+    - {name: Grok, role: coordinator}
+    - {name: Harper, role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas, role: contrarian}
+
+sources:
+  - type: mcp
+    allow_mutations: false               # read-only; blocks create/delete tools
+    allowed_roles: [Harper]              # only Harper can call MCP tools
+    servers:
+      - name: github
+        transport: stdio
+        command: npx
+        args: ["-y", "@modelcontextprotocol/server-github"]
+        env:
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}
+
+safety: {lucas_veto_enabled: true, confidence_threshold: 0.75}
+deploy: {target: stdout}

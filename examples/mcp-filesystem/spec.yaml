@@ -1,0 +1,52 @@
+# Read a local docs folder via the MCP filesystem server. Functionally
+# equivalent to LocalDocsSource — included as a portability example for
+# users who already have an MCP filesystem server configured (e.g. via
+# Claude Desktop's mcp-config) and want to reuse it from Orchestra.
+#
+# Setup:
+#   pip install "grok-agent-orchestra[mcp]"
+#   grok-orchestra run -f examples/mcp-filesystem/spec.yaml
+
+name: mcp-filesystem-readme-summary
+goal: |
+  Read every Markdown file under ./docs and produce a one-paragraph
+  summary plus a links index. Lucas should flag any file that contains
+  TODO markers as "incomplete documentation".
+
+orchestra:
+  mode: simulated
+  agent_count: 4
+  reasoning_effort: medium
+  debate_rounds: 1
+  orchestration: {pattern: native, config: {}}
+  agents:
+    - {name: Grok, role: coordinator}
+    - {name: Harper, role: researcher}
+    - {name: Benjamin, role: logician}
+    - {name: Lucas, role: contrarian}
+
+sources:
+  - type: mcp
+    allow_mutations: false
+    allowed_roles: [Harper, Benjamin]
+    max_resources_per_run: 30
+    servers:
+      - name: filesystem
+        transport: stdio
+        command: npx
+        args:
+          - "-y"
+          - "@modelcontextprotocol/server-filesystem"
+          - "./docs"
+
+      # Multi-server example — uncomment + set a token to combine MCP
+      # filesystem reads with GitHub issue context in the same run.
+      # - name: github
+      #   transport: stdio
+      #   command: npx
+      #   args: ["-y", "@modelcontextprotocol/server-github"]
+      #   env:
+      #     GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}
+
+safety: {lucas_veto_enabled: true, confidence_threshold: 0.75}
+deploy: {target: stdout}

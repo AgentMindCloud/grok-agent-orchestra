@@ -75,6 +75,7 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
 | Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
 | Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
+| MCP (Model Context Protocol) client | ✅ stdio + HTTP transports, read-only gate | ❌ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
 

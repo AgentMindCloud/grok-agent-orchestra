@@ -201,6 +201,7 @@ nav:
     - Templates: guides/templates.md
     - Local docs: guides/local-docs.md
     - Web search: guides/web-search.md
+    - MCP (Model Context Protocol): guides/mcp.md
     - Multi-provider LLM: guides/multi-provider-llm.md
     - Reports & export: guides/reports-and-export.md
     - Image generation: guides/image-generation.md

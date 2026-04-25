@@ -133,6 +133,13 @@ images = [
 js = [
     "playwright>=1.42,<2",
 ]
+# Optional MCP (Model Context Protocol) client. Default-OFF: enabled per
+# template via `sources: - type: mcp`. Plug in private GitHub repos,
+# databases, internal docs, Slack history, etc. as research sources.
+mcp = [
+    "mcp>=1.0,<2",
+    "anyio>=4,<5",
+]
 # Docs site build deps. Default-OFF: only the GitHub Pages workflow + the
 # `mkdocs serve` development loop need these. End users never install them.
 docs-build = [

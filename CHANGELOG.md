@@ -10,6 +10,57 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **MCP (Model Context Protocol) client as a Source.**
+  - New ``grok_orchestra.sources.mcp_source`` module — peer to
+    ``LocalDocsSource`` and ``WebSource``. One ``MCPSource`` connects
+    to one-or-many MCP servers and exposes their tools + resources
+    to Harper.
+  - **Transports:** ``stdio`` (subprocess), ``http`` (with Bearer
+    auth), and ``websocket``. The MCP SDK is imported lazily inside
+    ``grok_orchestra.sources._mcp_backend`` so the package stays
+    importable without the ``[mcp]`` extra.
+  - **Multi-server config** with per-server overrides for
+    ``allow_mutations`` and ``allowed_roles``. One server's connect
+    failure does not tank the run — its ``ServerStatus.error`` is
+    recorded and the rest of the orchestra continues.
+  - **Tool namespacing.** Every tool surfaces as
+    ``<server-name>__<tool-name>`` so multi-server runs cannot
+    collide (``github__search_issues``, ``filesystem__read_file``).
+  - **Permission gates (read-only by default).** Tool names matching
+    common mutation tokens (``write|create|update|delete|exec|...``,
+    matched on word/underscore boundaries) are blocked unless
+    ``allow_mutations: true`` opts in. A second gate restricts which
+    roles may call MCP tools (default ``[Harper]``).
+  - **Env interpolation** — ``${VAR}`` resolves at YAML-parse time
+    inside ``MCPServerConfig.from_dict``. Resolved values flow to
+    the subprocess / HTTP client only — never to Documents, briefs,
+    span attributes, or LLM prompts. ``MCPServerConfig.public_dict()``
+    returns a trace-safe summary with env *keys* but no values.
+  - **Per-run resource cache** keyed by ``<server>::<uri>`` — multi-
+    role references to the same MCP doc cost one read. Tool calls
+    are not cached (side-effecting in general).
+  - **Tracing.** Three new ``SpanKind`` values:
+    ``mcp_connect``, ``mcp_tool_call``, ``mcp_resource_get`` (with
+    ``server`` / ``transport`` / ``tool`` / ``latency_ms`` / ``bytes``
+    attributes). Tool arguments and resource bodies are intentionally
+    excluded — those can carry secrets.
+  - ``[mcp]`` extra under ``[project.optional-dependencies]``:
+    ``mcp>=1.0,<2`` + ``anyio>=4,<5``.
+  - ``examples/mcp-github/spec.yaml`` and
+    ``examples/mcp-filesystem/spec.yaml`` demonstrate the official
+    ``@modelcontextprotocol/server-github`` and
+    ``@modelcontextprotocol/server-filesystem`` integrations,
+    including a commented-out multi-server block.
+  - ``docs/guides/mcp.md`` covers transports, namespacing, gates,
+    caching, tracing, and the security model. The architecture
+    overview's main Mermaid diagram now lists ``mcp`` alongside
+    ``web_search`` / ``local_docs``. Comparison table on the README
+    + the docs site flips the MCP row to ✅ — closes the only
+    capability gap vs hand-rolled MCP wrappers.
+  - ``tests/test_mcp_source.py``, ``tests/test_mcp_permissions.py``,
+    ``tests/test_mcp_yaml.py`` — 32 tests, every external call
+    mocked through a ``client_factory`` injection point. No live
+    MCP servers spawned in CI.
 - **Full documentation site (MkDocs Material, versioned).**
   - New ``[docs-build]`` extra: ``mkdocs``, ``mkdocs-material``,
     ``mkdocs-include-markdown-plugin``, ``mkdocs-mermaid2-plugin``,

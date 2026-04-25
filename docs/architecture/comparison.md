@@ -18,6 +18,7 @@ feature line-up so you can pick the right tool.
 | **Web UI** | ✅ FastAPI + WebSocket dashboard | ✅ Next.js dashboard |
 | **Report formats** | ✅ MD + PDF (WeasyPrint) + DOCX | ✅ MD + PDF + DOCX |
 | **Inline images** | ✅ Flux + Grok + SD providers, cached | ❌ |
+| **MCP (Model Context Protocol) client** | ✅ stdio + HTTP transports, read-only gate, env interpolation | ❌ |
 | **Tracing** | ✅ LangSmith / Langfuse / OTLP, opt-in | ✅ LangSmith |
 | **Templates** | ✅ 18 certified, YAML-first | 🟡 Report types only |
 | **Three-tier deploy** | ✅ Demo / Local Ollama / Cloud BYOK | ✅ Local / Cloud |

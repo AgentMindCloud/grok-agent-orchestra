@@ -22,7 +22,7 @@ flowchart TB
   F --> RT
   H --> RT
 
-  RT --> SRC[(Source layer · web_search / local_docs)]
+  RT --> SRC[(Source layer · web_search / local_docs / mcp)]
   RT --> LLM[(LLM layer · Grok / OpenAI / Anthropic / Ollama / …)]
   RT --> TR[(Tracer · LangSmith / Langfuse / OTLP / NoOp)]
 

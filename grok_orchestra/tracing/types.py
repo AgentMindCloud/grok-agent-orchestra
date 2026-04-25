@@ -35,6 +35,9 @@ SpanKind = Literal[
     "pdf_render",
     "docx_render",
     "image_generation",   # reserved for Prompt 11
+    "mcp_connect",        # MCPSource: open one server (stdio/http/ws)
+    "mcp_tool_call",      # MCPSource: invoke a namespaced MCP tool
+    "mcp_resource_get",   # MCPSource: read an MCP resource (cached per-run)
     "generic",
 ]
 
