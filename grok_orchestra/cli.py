@@ -434,25 +434,13 @@ def _do_list(ctx: typer.Context, *, tag: str | None, fmt: str) -> None:
 
     use_json = state.json or fmt.lower() == "json"
     if use_json:
-        payload = {
-            "ok": True,
-            "count": len(tpls),
-            "filter_tag": tag,
-            "templates": [
-                {
-                    "name": t.name,
-                    "description": t.description,
-                    "version": t.version,
-                    "author": t.author,
-                    "tags": list(t.tags),
-                    "mode": t.mode,
-                    "pattern": t.pattern,
-                    "combined": t.combined,
-                    "primary_category": _primary_category(t),
-                }
-                for t in tpls
-            ],
-        }
+        # Single source of truth — the web layer (`/api/templates`) calls
+        # the same helper, so JSON shape is guaranteed identical.
+        from grok_orchestra._templates import templates_json_payload
+
+        payload = templates_json_payload(
+            tag=tag, primary_category=_primary_category
+        )
         typer.echo(json.dumps(payload))
         return
 
@@ -574,6 +562,78 @@ def init(
 ) -> None:
     """Copy a bundled template to disk (alias for `templates copy`)."""
     _do_copy(ctx, template_name, out)
+
+
+# --------------------------------------------------------------------------- #
+# `serve` — local web UI dashboard. Lazy-imports the [web] extras so users
+# without `pip install 'grok-agent-orchestra[web]'` don't pay any startup
+# cost on every other command.
+# --------------------------------------------------------------------------- #
+
+
+@app.command()
+def serve(
+    ctx: typer.Context,
+    host: Annotated[
+        str, typer.Option("--host", help="Interface to bind. 127.0.0.1 keeps it local-only.")
+    ] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="TCP port.")] = 8000,
+    reload: Annotated[
+        bool, typer.Option("--reload", help="Hot-reload on file changes (dev).")
+    ] = False,
+    no_browser: Annotated[
+        bool,
+        typer.Option(
+            "--no-browser",
+            help="Don't auto-open the dashboard in the default browser.",
+        ),
+    ] = False,
+) -> None:
+    """Start the local web dashboard.
+
+    Requires the ``[web]`` extra:
+
+    .. code-block:: bash
+
+        pip install 'grok-agent-orchestra[web]'
+        grok-orchestra serve
+    """
+    state = _state(ctx)
+
+    try:
+        import uvicorn  # type: ignore[import-not-found]
+
+        from grok_orchestra.web.main import create_app
+    except ModuleNotFoundError as exc:
+        msg = (
+            "The web UI requires the [web] extra. Install it with:\n"
+            "    pip install 'grok-agent-orchestra[web]'\n"
+            f"(missing module: {exc.name})"
+        )
+        _emit_error(state, RuntimeError(msg), title="grok-orchestra · serve")
+        raise typer.Exit(code=EXIT_CONFIG) from exc
+
+    url = f"http://{host}:{port}/"
+    state.console.log(f"[bold #B69EFE]grok-orchestra serve[/bold #B69EFE] → {url}")
+
+    if not no_browser:
+        # Delay slightly so the server is up before the browser hits it.
+        import threading
+        import webbrowser
+
+        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+
+    if reload:
+        # ``--reload`` requires uvicorn to import the app by string so
+        # the file-watcher can re-import on change.
+        uvicorn.run(
+            "grok_orchestra.web.main:app",
+            host=host,
+            port=port,
+            reload=True,
+        )
+    else:
+        uvicorn.run(create_app(), host=host, port=port)
 
 
 # --------------------------------------------------------------------------- #

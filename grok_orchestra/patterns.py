@@ -30,6 +30,7 @@ from grok_build_bridge.deploy import deploy_to_target
 from grok_build_bridge.safety import audit_x_post
 from grok_build_bridge.xai_client import XAIClient
 
+from grok_orchestra._events import EventCallback, emit, event_dict
 from grok_orchestra._roles import (
     BENJAMIN,
     GROK,
@@ -83,6 +84,8 @@ _FENCE_RE = re.compile(r"^\s*```(?:json)?\s*(.*?)\s*```\s*$", re.DOTALL)
 def run_hierarchical(
     config: Mapping[str, Any],
     client: XAIClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Two-team hierarchical pattern.
 
@@ -96,6 +99,7 @@ def run_hierarchical(
     started = time.monotonic()
     console = _console.console
     _console.section(console, "🎼  Pattern: hierarchical")
+    emit(event_callback, event_dict("pattern_started", pattern="hierarchical"))
 
     if client is None:
         client = XAIClient()
@@ -103,21 +107,27 @@ def run_hierarchical(
 
     # --- Phase 1: research team -----------------------------------------
     _console.section(console, "🔬  ResearchTeam (Harper + Benjamin)")
+    emit(event_callback, event_dict("pattern_phase_started", phase="ResearchTeam"))
     research_cfg = _subteam_config(
         config, agents=[HARPER, BENJAMIN], rounds=1, goal=goal
     )
-    research_result = run_simulated_orchestra(research_cfg, client=client)
+    research_result = run_simulated_orchestra(
+        research_cfg, client=client, event_callback=event_callback
+    )
     research_output = research_result.final_content
 
     # --- Phase 2: critique team -----------------------------------------
     _console.section(console, "🛡  CritiqueTeam (Lucas + Grok)")
+    emit(event_callback, event_dict("pattern_phase_started", phase="CritiqueTeam"))
     critique_goal = (
         f"{goal}\n\nResearch findings to stress-test:\n{research_output}"
     )
     critique_cfg = _subteam_config(
         config, agents=[LUCAS, GROK], rounds=1, goal=critique_goal
     )
-    critique_result = run_simulated_orchestra(critique_cfg, client=client)
+    critique_result = run_simulated_orchestra(
+        critique_cfg, client=client, event_callback=event_callback
+    )
     critique_output = critique_result.final_content
 
     # --- Phase 3: final synthesis ---------------------------------------
@@ -168,6 +178,8 @@ def run_hierarchical(
 def run_dynamic_spawn(
     config: Mapping[str, Any],
     client: XAIClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Classify the goal into N sub-tasks, debate each concurrently, synthesise.
 
@@ -183,6 +195,7 @@ def run_dynamic_spawn(
     started = time.monotonic()
     console = _console.console
     _console.section(console, "🎼  Pattern: dynamic-spawn")
+    emit(event_callback, event_dict("pattern_started", pattern="dynamic-spawn"))
 
     if client is None:
         client = XAIClient()
@@ -247,6 +260,8 @@ def run_dynamic_spawn(
 def run_debate_loop(
     config: Mapping[str, Any],
     client: XAIClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Iterate full simulated rounds with a mid-loop Lucas veto each time.
 
@@ -260,6 +275,7 @@ def run_debate_loop(
     started = time.monotonic()
     console = _console.console
     _console.section(console, "🎼  Pattern: debate-loop")
+    emit(event_callback, event_dict("pattern_started", pattern="debate-loop"))
 
     if client is None:
         client = XAIClient()
@@ -275,13 +291,16 @@ def run_debate_loop(
 
     for i in range(1, iterations + 1):
         _console.section(console, f"🔁  iteration {i}/{iterations}")
+        emit(event_callback, event_dict("debate_round_started", round=i))
         round_cfg = _subteam_config(
             config,
             agents=[GROK, HARPER, BENJAMIN, LUCAS],
             rounds=1,
             goal=goal,
         )
-        round_result = run_simulated_orchestra(round_cfg, client=client)
+        round_result = run_simulated_orchestra(
+            round_cfg, client=client, event_callback=event_callback
+        )
         transcript.extend(round_result.debate_transcript)
         total_reasoning += round_result.total_reasoning_tokens
         final_content = round_result.final_content
@@ -334,6 +353,8 @@ def run_debate_loop(
 def run_parallel_tools(
     config: Mapping[str, Any],
     client: OrchestraClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Native multi-agent run with explicit per-agent tool routing.
 
@@ -345,6 +366,7 @@ def run_parallel_tools(
     """
     console = _console.console
     _console.section(console, "🎼  Pattern: parallel-tools")
+    emit(event_callback, event_dict("pattern_started", pattern="parallel-tools"))
 
     orch = dict(config.get("orchestra", {}) or {})
     routing_raw: Mapping[str, Sequence[str]] = orch.get("tool_routing") or {}
@@ -353,7 +375,9 @@ def run_parallel_tools(
             "[yellow]parallel-tools called without tool_routing; "
             "running native with default tools.[/yellow]"
         )
-        return run_native_orchestra(config, client=client)
+        return run_native_orchestra(
+            config, client=client, event_callback=event_callback
+        )
 
     # Materialise per-agent tool sets so any unknown tool name fails loud
     # before we hit the native endpoint. The native runtime itself takes the
@@ -371,7 +395,9 @@ def run_parallel_tools(
     native_cfg: dict[str, Any] = copy.deepcopy(_to_mutable(config))
     native_cfg["required_tools"] = union_names
 
-    result = run_native_orchestra(native_cfg, client=client)
+    result = run_native_orchestra(
+        native_cfg, client=client, event_callback=event_callback
+    )
 
     _audit_tool_routing(result.debate_transcript, routing_raw, console=console)
 
@@ -397,7 +423,9 @@ def run_parallel_tools(
 def run_recovery(
     config: Mapping[str, Any],
     client: XAIClient | None = None,
-    primary_fn: Callable[[Mapping[str, Any], Any], OrchestraResult] | None = None,
+    primary_fn: Callable[..., OrchestraResult] | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Wrap ``primary_fn`` with one degraded retry on transient failures.
 
@@ -422,8 +450,21 @@ def run_recovery(
     lowered_effort = fallback_cfg.get("lowered_effort", "low")
     fallback_model = fallback_cfg.get("fallback_model")
 
+    def _invoke(cfg: Any, cl: Any) -> OrchestraResult:
+        # Introspect, never catch TypeError — see dispatcher._accepts_event_callback.
+        import inspect
+
+        if event_callback is not None:
+            try:
+                sig = inspect.signature(primary_fn)
+                if "event_callback" in sig.parameters:
+                    return primary_fn(cfg, cl, event_callback=event_callback)
+            except (TypeError, ValueError):
+                pass
+        return primary_fn(cfg, cl)
+
     try:
-        return primary_fn(config, client)
+        return _invoke(config, client)
     except (RateLimitError, ToolExecutionError, TimeoutError) as exc:
         console.log(
             f"[yellow]recovery triggered by {type(exc).__name__}: {exc}[/yellow]"
@@ -439,7 +480,7 @@ def run_recovery(
             + (f", fallback_model={fallback_model}" if fallback_model else "")
             + "[/yellow]"
         )
-        return primary_fn(degraded, client)
+        return _invoke(degraded, client)
 
 
 # --------------------------------------------------------------------------- #

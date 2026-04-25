@@ -7,32 +7,78 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- **8 new certified templates** + retrofit metadata on the existing 10
-  (description, version, author, tags) so every template is filterable.
-  Catalog now ships 18 templates total. New templates:
+- **FastAPI web UI** at `grok-orchestra serve` (new top-level CLI
+  command) with WebSocket-streamed multi-agent debates. Install the
+  `[web]` extra (`fastapi`, `uvicorn[standard]`, `websockets`,
+  `jinja2`, `python-multipart`). HTTP surface:
+  `/`, `/api/health`, `/api/templates[?tag=]`,
+  `/api/templates/{name}`, `/api/validate`, `/api/dry-run`,
+  `/api/run`, `/api/runs[/{id}]`, `/ws/runs/{id}`. State is in-memory
+  (last 50 runs); production should swap in Redis/SQLite. Server
+  binds to `127.0.0.1` by default; no auth in v1.
+- **Single-file HTML dashboard** at
+  `grok_orchestra/web/templates/index.html` — Tailwind + CodeMirror
+  via CDN, no JS build step. Three-pane layout: template picker /
+  YAML editor + Run button / live debate stream with role-coloured
+  lanes (Grok=violet, Harper=cyan, Benjamin=amber, Lucas=red). Lucas
+  verdict banner + final-output copy-to-clipboard. Mobile-responsive
+  (≥ 375px).
+- **`event_callback` runtime hook** — `run_orchestra`,
+  `run_simulated_orchestra`, `run_native_orchestra`, every pattern,
+  and `run_recovery` now accept an optional callback that receives
+  every stream event (`MultiAgentEvent` shape) plus synthetic
+  lifecycle events (`run_started`, `debate_round_started`,
+  `role_started`, `role_completed`, `lucas_started`, `lucas_passed`,
+  `lucas_veto`, `pattern_started`, `pattern_phase_started`,
+  `run_completed`, `run_failed`). The callback is `None` by default —
+  the CLI is byte-for-byte unchanged.
+- **`grok_orchestra/_events.py`** — small shared module exposing the
+  `EventCallback` type, `event_dict()` factory, and
+  `stream_event_to_dict()` helper. Both the CLI runtimes and the web
+  layer route through these.
+- **`tests/test_event_callback.py`** locks the event-shape contract;
+  `tests/test_web_endpoints.py`, `tests/test_simulated_run.py`,
+  `tests/test_websocket.py` exercise the full FastAPI stack via
+  `TestClient` (synchronous) — every test passes regardless of
+  whether `[web]` is installed (skips cleanly otherwise).
+- **`templates_json_payload(...)`** in `grok_orchestra/_templates.py` —
+  shared helper so the CLI's `_do_list` and the web's `/api/templates`
+  cannot drift on field names.
+
+### Changed
+- The dispatcher now invokes pattern functions with `event_callback`
+  via signature inspection (`inspect.signature`) rather than
+  `try/except TypeError`, so a runtime `TypeError` raised during
+  orchestration propagates instead of triggering a silent retry.
+
+- **(templates session)** 8 new certified templates + retrofit
+  metadata on the existing 10 (description, version, author, tags) so
+  every template is filterable. Catalog ships 18 templates total. New:
   `deep-research-hierarchical`, `debate-loop-with-local-docs`
   (requires v0.3+), `competitive-analysis`,
   `due-diligence-investor-memo`, `red-team-the-plan`,
   `weekly-news-digest` (web-search full-fidelity in v0.3+),
   `paper-summarizer`, `product-launch-brief`.
-- **`templates` sub-command group** — `templates list` (with
-  `--tag <tag>` filter and `--format {table,json}`),
-  `templates show <name>` (prints raw YAML to stdout),
-  `templates copy <name> [path]` (alias for `init`). Bare
-  `templates` defaults to `list` for back-compat.
-- **`dry-run <spec>`** — top-level shortcut for `run --dry-run`. Both
-  `run` and `dry-run` now accept either a YAML path or the slug of a
-  bundled template (e.g. `grok-orchestra dry-run red-team-the-plan`).
-- **Category grouping** in `templates list` — templates are bucketed
-  into Research / Business / Technical / Debate / Fast / Deep /
-  Local-docs / Web-search based on their first recognised tag.
-- **`tests/test_templates.py`** — every shipped template parses,
-  validates, and exposes the metadata fields the catalog UI needs.
-  Plus a stable-shape "snapshot" assertion on `templates list` JSON.
+- **(templates session)** `templates` sub-command group —
+  `templates list` (with `--tag <tag>` and `--format {table,json}`),
+  `templates show <name>`, `templates copy <name> [path]`. Bare
+  `templates` defaults to `list`.
+- **(templates session)** `dry-run <spec>` top-level shortcut for
+  `run --dry-run`. Both `run` and `dry-run` now accept a YAML path or
+  the slug of a bundled template.
+- **(templates session)** Category grouping in `templates list`,
+  shared with the web dashboard's left rail.
+- **(templates session)** `tests/test_templates.py` — every shipped
+  template parses, validates, and exposes the metadata fields.
 
-### Changed
-- README "Templates" section now lists all 18 templates in a single
-  table with pattern + tag columns and runnable CLI examples.
+### Fixed
+- `runtime_simulated.py` and `runtime_native.py` now short-circuit
+  `target: stdout` deploys with `console.print(final_content)` +
+  `stdout://` sentinel — same fix that landed in `patterns.py` and
+  `combined.py` last session, but those two runtimes still had the
+  direct `deploy_to_target(final_content, deploy_cfg)` call which
+  fails on real Bridge (`unsupported operand type(s) for /:
+  'str' and 'str'`). All four call sites are now consistent.
 
 ### Fixed
 - **Bridge schema strictness** — `load_orchestra_yaml` no longer

@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grok Agent Orchestra · v{{ version }}</title>
+
+  <!-- Tailwind via CDN — no build step. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            grok: { 500: "#FF7A00", 400: "#FF9333" },
+            ink:  { 950: "#08090C", 900: "#0F1116", 800: "#171A21", 700: "#22262F" },
+            role: {
+              grok:    "#A78BFA",
+              harper:  "#22D3EE",
+              benjamin:"#FBBF24",
+              lucas:   "#F87171",
+            },
+          },
+          fontFamily: {
+            mono: ["ui-monospace","SFMono-Regular","Menlo","Consolas","monospace"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- CodeMirror 5 from CDN — small, no module shenanigans. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/dracula.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/yaml/yaml.min.js"></script>
+
+  <style>
+    body { background: #08090C; }
+    .role-bar { width: 4px; border-radius: 2px; }
+    .role-grok     .role-bar { background: #A78BFA; }
+    .role-harper   .role-bar { background: #22D3EE; }
+    .role-benjamin .role-bar { background: #FBBF24; }
+    .role-lucas    .role-bar { background: #F87171; }
+    .CodeMirror { height: 100%; min-height: 320px; font-family: ui-monospace,Menlo,Consolas,monospace; }
+    /* Smooth append for streaming tokens. */
+    .bubble-body { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="text-slate-100 font-sans antialiased min-h-full">
+
+<!-- Bootstrap data — list of templates baked into the SSR response so the
+     dashboard renders instantly without an extra round trip. -->
+<script id="bootstrap" type="application/json">{{ bootstrap_json | safe }}</script>
+
+<header class="border-b border-ink-700 bg-ink-900/80 backdrop-blur sticky top-0 z-10">
+  <div class="max-w-[1400px] mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-md bg-grok-500/15 border border-grok-500/40 grid place-items-center">
+      <span class="text-grok-400 text-sm">▸</span>
+    </div>
+    <div>
+      <h1 class="text-base font-semibold tracking-tight">Grok Agent Orchestra</h1>
+      <p class="text-xs text-slate-400">v{{ version }} · local dashboard</p>
+    </div>
+    <div class="ml-auto flex items-center gap-2 text-xs">
+      <span id="status" class="px-2 py-1 rounded bg-ink-800 text-slate-300">idle</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-4 py-4 grid gap-4 md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_minmax(360px,520px)]">
+
+  <!-- LEFT: Templates -->
+  <aside class="bg-ink-900 border border-ink-700 rounded-xl p-3 h-fit">
+    <h2 class="text-xs uppercase tracking-wider text-slate-400 mb-2">Templates</h2>
+    <input id="filter" type="search" placeholder="filter…"
+           class="w-full mb-3 px-2 py-1 text-sm bg-ink-800 border border-ink-700 rounded text-slate-100 placeholder-slate-500 focus:outline-none focus:border-grok-500" />
+    <nav id="template-list" class="space-y-3 text-sm max-h-[60vh] overflow-y-auto pr-1"></nav>
+  </aside>
+
+  <!-- CENTER: editor + run controls + final output -->
+  <section class="space-y-4">
+    <div class="bg-ink-900 border border-ink-700 rounded-xl">
+      <div class="flex items-center justify-between p-3 border-b border-ink-700">
+        <div>
+          <h2 id="picked-name" class="text-sm font-semibold text-slate-100">no template selected</h2>
+          <p id="picked-desc" class="text-xs text-slate-400">pick one from the left to begin</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-300 flex items-center gap-1 cursor-pointer">
+            <input id="simulated" type="checkbox" checked class="accent-grok-500" />
+            simulated
+          </label>
+          <button id="run" class="px-3 py-1.5 rounded-md bg-grok-500 hover:bg-grok-400 text-ink-950 text-sm font-semibold disabled:opacity-50 transition">
+            ▶ Run
+          </button>
+        </div>
+      </div>
+      <div id="editor-host" class="p-0"></div>
+    </div>
+
+    <div class="bg-ink-900 border border-ink-700 rounded-xl p-3">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-xs uppercase tracking-wider text-slate-400">Final output</h3>
+        <button id="copy" class="text-xs px-2 py-1 rounded bg-ink-800 hover:bg-ink-700 text-slate-200">copy</button>
+      </div>
+      <pre id="final" class="text-sm whitespace-pre-wrap font-mono text-slate-200 min-h-[80px]">—</pre>
+    </div>
+  </section>
+
+  <!-- RIGHT: live debate stream -->
+  <aside class="bg-ink-900 border border-ink-700 rounded-xl p-3 lg:sticky lg:top-[68px] h-fit">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-xs uppercase tracking-wider text-slate-400">Live debate</h2>
+      <span id="reasoning-pill" class="text-[11px] px-2 py-0.5 rounded bg-ink-800 text-slate-300">0 reasoning tokens</span>
+    </div>
+    <div id="lanes" class="grid gap-2 max-h-[70vh] overflow-y-auto pr-1">
+      <!-- Lanes injected by JS. -->
+    </div>
+    <div id="lucas-banner" class="hidden mt-3 rounded-md p-2 text-xs"></div>
+  </aside>
+
+</main>
+
+<script>
+  // ==== bootstrap + state =====================================================
+  const bootstrap = JSON.parse(document.getElementById("bootstrap").textContent);
+  const ROLE_ORDER = ["Grok", "Harper", "Benjamin", "Lucas"];
+  const ROLE_CLASS = {
+    Grok: "role-grok",
+    Harper: "role-harper",
+    Benjamin: "role-benjamin",
+    Lucas: "role-lucas",
+  };
+  const NATIVE_AGENT_TO_ROLE = ["Grok", "Harper", "Benjamin", "Lucas"];
+  let editor;
+  let pickedName = null;
+  let activeRunId = null;
+  let activeWS = null;
+
+  // ==== DOM helpers ===========================================================
+  const $ = (sel) => document.querySelector(sel);
+
+  function renderTemplateList(filter = "") {
+    const host = $("#template-list");
+    host.innerHTML = "";
+    const buckets = new Map();
+    const tpls = bootstrap.templates.filter((t) =>
+      !filter || t.name.includes(filter) || (t.tags || []).some((tg) => tg.includes(filter))
+    );
+    for (const t of tpls) {
+      const cat = t.primary_category || "other";
+      if (!buckets.has(cat)) buckets.set(cat, []);
+      buckets.get(cat).push(t);
+    }
+    const order = ["research", "business", "technical", "debate", "fast", "deep", "local-docs", "web-search", "other"];
+    const labels = {
+      research: "Research", business: "Business", technical: "Technical",
+      debate: "Debate", fast: "Fast", deep: "Deep", "local-docs": "Local Docs",
+      "web-search": "Web search", other: "Other",
+    };
+    for (const cat of order) {
+      if (!buckets.has(cat)) continue;
+      const block = document.createElement("div");
+      const h = document.createElement("h3");
+      h.className = "text-[11px] uppercase tracking-wider text-slate-500 mt-2";
+      h.textContent = `${labels[cat] || cat} (${buckets.get(cat).length})`;
+      block.appendChild(h);
+      for (const t of buckets.get(cat)) {
+        const a = document.createElement("button");
+        a.className = "w-full text-left px-2 py-1 rounded hover:bg-ink-800 text-slate-200 truncate";
+        a.textContent = t.name;
+        a.title = t.description || "";
+        a.onclick = () => pickTemplate(t.name);
+        block.appendChild(a);
+      }
+      host.appendChild(block);
+    }
+  }
+
+  async function pickTemplate(name) {
+    pickedName = name;
+    $("#picked-name").textContent = name;
+    const tpl = bootstrap.templates.find((t) => t.name === name);
+    $("#picked-desc").textContent = tpl ? tpl.description : "";
+    const r = await fetch(`/api/templates/${encodeURIComponent(name)}`);
+    if (!r.ok) return;
+    const j = await r.json();
+    editor.setValue(j.yaml || "");
+  }
+
+  function ensureLane(role) {
+    let lane = document.getElementById("lane-" + role);
+    if (lane) return lane;
+    lane = document.createElement("div");
+    lane.id = "lane-" + role;
+    lane.className = `flex gap-2 ${ROLE_CLASS[role] || ""}`;
+    lane.innerHTML = `
+      <div class="role-bar self-stretch"></div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <span>${role}</span>
+          <span data-role-pill class="text-[10px] px-1.5 py-0.5 rounded bg-ink-800 text-slate-300 hidden">0</span>
+        </div>
+        <div data-role-bubbles class="space-y-1 mt-1 text-sm font-mono text-slate-100"></div>
+      </div>`;
+    $("#lanes").appendChild(lane);
+    return lane;
+  }
+
+  function openBubble(role, round) {
+    const lane = ensureLane(role);
+    const bubbles = lane.querySelector("[data-role-bubbles]");
+    const bubble = document.createElement("div");
+    bubble.className = "bubble bubble-body bg-ink-800/60 border border-ink-700 rounded px-2 py-1";
+    bubble.dataset.role = role;
+    bubble.dataset.round = String(round || 0);
+    bubble.dataset.open = "1";
+    bubble.textContent = "";
+    bubbles.appendChild(bubble);
+    bubble.scrollIntoView({ block: "end", behavior: "smooth" });
+    return bubble;
+  }
+
+  function currentBubble(role) {
+    const lane = document.getElementById("lane-" + role);
+    if (!lane) return null;
+    const bubbles = lane.querySelectorAll("[data-role-bubbles] .bubble[data-open='1']");
+    return bubbles.length ? bubbles[bubbles.length - 1] : null;
+  }
+
+  function appendToken(role, text) {
+    let b = currentBubble(role) || openBubble(role, 0);
+    b.textContent += text;
+    b.scrollIntoView({ block: "end" });
+  }
+
+  function closeBubble(role) {
+    const b = currentBubble(role);
+    if (b) b.dataset.open = "0";
+  }
+
+  function bumpReasoning(role, n) {
+    const lane = ensureLane(role);
+    const pill = lane.querySelector("[data-role-pill]");
+    pill.classList.remove("hidden");
+    pill.textContent = (parseInt(pill.textContent || "0", 10) + (n || 0)) + " r";
+    const total = (parseInt($("#reasoning-pill").dataset.total || "0", 10) + (n || 0));
+    $("#reasoning-pill").dataset.total = String(total);
+    $("#reasoning-pill").textContent = total + " reasoning tokens";
+  }
+
+  function showLucas(kind, payload) {
+    const banner = $("#lucas-banner");
+    banner.classList.remove("hidden");
+    if (kind === "passed") {
+      banner.className = "mt-3 rounded-md p-2 text-xs bg-emerald-500/10 border border-emerald-400/40 text-emerald-300";
+      banner.textContent = `✅ Lucas approved · confidence ${payload.confidence?.toFixed?.(2) ?? payload.confidence}`;
+    } else {
+      banner.className = "mt-3 rounded-md p-2 text-xs bg-red-500/10 border border-red-400/40 text-red-300";
+      banner.textContent = `⛔ Lucas blocked: ${payload.reason || "unsafe"}`;
+    }
+  }
+
+  function resetStream() {
+    $("#lanes").innerHTML = "";
+    $("#lucas-banner").classList.add("hidden");
+    $("#final").textContent = "—";
+    $("#reasoning-pill").textContent = "0 reasoning tokens";
+    $("#reasoning-pill").dataset.total = "0";
+    for (const role of ROLE_ORDER) ensureLane(role);
+  }
+
+  function setStatus(text, tone = "idle") {
+    const el = $("#status");
+    el.textContent = text;
+    el.className = "px-2 py-1 rounded text-xs " + (
+      tone === "running" ? "bg-grok-500/20 text-grok-400 border border-grok-500/40"
+      : tone === "ok"    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"
+      : tone === "fail"  ? "bg-red-500/15 text-red-300 border border-red-500/40"
+      : "bg-ink-800 text-slate-300"
+    );
+  }
+
+  function roleFromEvent(ev) {
+    if (ev.role) return ev.role;
+    if (ev.agent_id != null && NATIVE_AGENT_TO_ROLE[ev.agent_id]) {
+      return NATIVE_AGENT_TO_ROLE[ev.agent_id];
+    }
+    return "Grok";
+  }
+
+  function handleEvent(ev) {
+    switch (ev.type) {
+      case "snapshot_begin":
+      case "snapshot_end":
+      case "ping":
+      case "close":
+        return;
+      case "run_started":
+        setStatus("running", "running");
+        return;
+      case "debate_round_started":
+        return;
+      case "role_started":
+        openBubble(ev.role, ev.round);
+        return;
+      case "role_completed":
+        closeBubble(ev.role);
+        return;
+      case "lucas_started":
+        return;
+      case "lucas_passed":
+        showLucas("passed", ev);
+        return;
+      case "lucas_veto":
+        showLucas("blocked", ev);
+        return;
+      case "run_completed":
+        setStatus("completed", "ok");
+        $("#final").textContent = ev.final_output || "";
+        return;
+      case "run_failed":
+        setStatus("failed", "fail");
+        $("#final").textContent = `error: ${ev.error || "unknown"}`;
+        return;
+      case "stream":
+        if (ev.kind === "token" && ev.text) {
+          appendToken(roleFromEvent(ev), ev.text);
+        } else if (ev.kind === "reasoning_tick" && ev.reasoning_tokens) {
+          bumpReasoning(roleFromEvent(ev), ev.reasoning_tokens);
+        } else if (ev.kind === "tool_call" && ev.tool_name) {
+          appendToken(roleFromEvent(ev), `\n🔧 ${ev.tool_name}\n`);
+        } else if (ev.kind === "final" && ev.text) {
+          appendToken(roleFromEvent(ev), ev.text);
+        }
+        return;
+    }
+  }
+
+  // ==== run lifecycle =========================================================
+  async function startRun() {
+    if (activeWS) {
+      try { activeWS.close(); } catch {}
+      activeWS = null;
+    }
+    resetStream();
+    const yamlText = editor.getValue();
+    const simulated = $("#simulated").checked;
+    setStatus("submitting…", "running");
+    const r = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ yaml: yamlText, inputs: {}, simulated, template_name: pickedName }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      setStatus("submit failed", "fail");
+      $("#final").textContent = err.detail || "submit failed";
+      return;
+    }
+    const { run_id } = await r.json();
+    activeRunId = run_id;
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${proto}//${location.host}/ws/runs/${run_id}`);
+    activeWS = ws;
+    ws.onmessage = (msg) => {
+      try { handleEvent(JSON.parse(msg.data)); } catch {}
+    };
+    ws.onclose = () => { activeWS = null; };
+  }
+
+  // ==== boot ==================================================================
+  document.addEventListener("DOMContentLoaded", () => {
+    editor = CodeMirror(document.getElementById("editor-host"), {
+      mode: "yaml",
+      theme: "dracula",
+      lineNumbers: true,
+      indentUnit: 2,
+      tabSize: 2,
+      value: "# pick a template on the left to load its YAML…\n",
+    });
+    renderTemplateList();
+    $("#filter").addEventListener("input", (e) => renderTemplateList(e.target.value.trim().toLowerCase()));
+    $("#run").addEventListener("click", startRun);
+    $("#copy").addEventListener("click", () => {
+      navigator.clipboard.writeText($("#final").textContent || "");
+    });
+    // Pre-select the canonical demo template if it ships.
+    const demo = bootstrap.templates.find((t) => t.name === "red-team-the-plan")
+              || bootstrap.templates.find((t) => t.name === "orchestra-simulated-truthseeker")
+              || bootstrap.templates[0];
+    if (demo) pickTemplate(demo.name);
+  });
+</script>
+</body>
+</html>

@@ -20,6 +20,12 @@ from grok_build_bridge.deploy import deploy_to_target
 from grok_build_bridge.safety import audit_x_post
 from grok_build_bridge.xai_client import XAIClient
 
+from grok_orchestra._events import (
+    EventCallback,
+    emit,
+    event_dict,
+    stream_event_to_dict,
+)
 from grok_orchestra._roles import (
     AVAILABLE_ROLES,
     DEFAULT_ROLE_ORDER,
@@ -53,6 +59,8 @@ __all__ = [
 def run_simulated_orchestra(
     config: Mapping[str, Any],
     client: XAIClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Execute a simulated Orchestra run as a visible named-role debate.
 
@@ -68,6 +76,7 @@ def run_simulated_orchestra(
     """
     started = time.monotonic()
     console = _console.console
+    emit(event_callback, event_dict("run_started", mode="simulated"))
 
     # ----- Phase 1: Setup ------------------------------------------------- #
     _console.section(console, "🎯  Resolve roles")
@@ -97,9 +106,23 @@ def run_simulated_orchestra(
 
     with DebateTUI(goal=goal, agent_count=len(roles), console=console) as tui:
         for round_num in range(1, debate_rounds + 1):
+            emit(
+                event_callback,
+                event_dict("debate_round_started", round=round_num),
+            )
             for role in roles:
                 tui.start_role_turn(
                     role.name, role.display_role, round_num, color=role.color
+                )
+                emit(
+                    event_callback,
+                    event_dict(
+                        "role_started",
+                        role=role.name,
+                        round=round_num,
+                        color=role.color,
+                        display_role=role.display_role,
+                    ),
                 )
                 messages = _build_role_messages(role, goal, transcript)
                 turn_events, turn_text, turn_reasoning = _stream_single_call(
@@ -107,6 +130,8 @@ def run_simulated_orchestra(
                     messages=messages,
                     tools=per_role_tools.get(role),
                     tui=tui,
+                    event_callback=event_callback,
+                    role_name=role.name,
                 )
                 total_reasoning += turn_reasoning
                 stream_events.extend(turn_events)
@@ -115,10 +140,29 @@ def run_simulated_orchestra(
                 )
                 if total_reasoning:
                     tui.render_reasoning(total_reasoning)
+                emit(
+                    event_callback,
+                    event_dict(
+                        "role_completed",
+                        role=role.name,
+                        round=round_num,
+                        output=turn_text,
+                    ),
+                )
 
         # ----- Phase 3: Final synthesis ---------------------------------- #
         tui.start_role_turn(
             GROK.name, "synthesiser", debate_rounds + 1, color=GROK.color
+        )
+        emit(
+            event_callback,
+            event_dict(
+                "role_started",
+                role=GROK.name,
+                round=debate_rounds + 1,
+                color=GROK.color,
+                display_role="synthesiser",
+            ),
         )
         synth_messages = _build_synthesis_messages(goal, transcript)
         synth_events, final_content, synth_reasoning = _stream_single_call(
@@ -126,10 +170,21 @@ def run_simulated_orchestra(
             messages=synth_messages,
             tools=None,
             tui=tui,
+            event_callback=event_callback,
+            role_name=GROK.name,
         )
         stream_events.extend(synth_events)
         total_reasoning += synth_reasoning
         tui.render_reasoning(total_reasoning)
+        emit(
+            event_callback,
+            event_dict(
+                "role_completed",
+                role=GROK.name,
+                round=debate_rounds + 1,
+                output=final_content,
+            ),
+        )
         tui.finalize()
 
     # ----- Phase 4: Safety audit ----------------------------------------- #
@@ -145,9 +200,28 @@ def run_simulated_orchestra(
     _console.section(console, "🚫  Lucas veto")
     veto_report: Mapping[str, Any] | None = None
     if safety_cfg.get("lucas_veto_enabled", True):
+        emit(event_callback, event_dict("lucas_started"))
         final_content, veto_report = _run_lucas_veto(
             final_content, config, client=client, console=console
         )
+        if veto_report is not None and bool(veto_report.get("approved", True)):
+            emit(
+                event_callback,
+                event_dict(
+                    "lucas_passed",
+                    confidence=float(veto_report.get("confidence", 0.0)),
+                ),
+            )
+        elif veto_report is not None:
+            emit(
+                event_callback,
+                event_dict(
+                    "lucas_veto",
+                    reason="; ".join(map(str, veto_report.get("reasons", []) or []))
+                    or "blocked",
+                    blocked_content=final_content,
+                ),
+            )
     else:
         console.log("[dim]skipped (safety.lucas_veto_enabled=false)[/dim]")
 
@@ -156,8 +230,15 @@ def run_simulated_orchestra(
     deploy_url: str | None = None
     veto_approved = veto_report is None or bool(veto_report.get("approved", True))
     if deploy_cfg and veto_approved:
-        deploy_url = deploy_to_target(final_content, deploy_cfg)
-        console.log(f"[dim]deploy_to_target → {deploy_url}[/dim]")
+        if str(deploy_cfg.get("target", "")).lower() == "stdout":
+            # Bridge's deploy_to_target expects a generated_dir, not free
+            # text — `target: stdout` short-circuits to a print + sentinel
+            # URL (same shape as patterns.py / combined.py).
+            console.print(final_content)
+            deploy_url = "stdout://"
+        else:
+            deploy_url = deploy_to_target(final_content, deploy_cfg)
+            console.log(f"[dim]deploy_to_target → {deploy_url}[/dim]")
     elif not veto_approved:
         console.log("[yellow]deploy skipped (veto denied)[/yellow]")
     else:
@@ -167,6 +248,16 @@ def run_simulated_orchestra(
     _console.section(console, "✅  Done")
     duration = time.monotonic() - started
     success = veto_approved
+    emit(
+        event_callback,
+        event_dict(
+            "run_completed",
+            success=success,
+            final_output=final_content,
+            duration_seconds=duration,
+            total_reasoning_tokens=total_reasoning,
+        ),
+    )
     return OrchestraResult(
         success=success,
         mode="simulated",
@@ -481,8 +572,15 @@ def _stream_single_call(
     messages: list[dict[str, str]],
     tools: list[Any] | None,
     tui: DebateTUI,
+    event_callback: EventCallback = None,
+    role_name: str | None = None,
 ) -> tuple[list[MultiAgentEvent], str, int]:
-    """Run a single agent call, stream into the TUI, and collect outputs."""
+    """Run a single agent call, stream into the TUI, and collect outputs.
+
+    When ``event_callback`` is set every stream event is mirrored onto
+    it as a ``{"type": "stream", "role": <role_name>, ...}`` dict for
+    the web UI to render in the role's lane.
+    """
     events: list[MultiAgentEvent] = []
     parts: list[str] = []
     reasoning = 0
@@ -497,6 +595,14 @@ def _stream_single_call(
         )
         events.append(ev)
         tui.record_event(ev)
+        if event_callback is not None:
+            payload: dict[str, Any] = {
+                "type": "stream",
+                **stream_event_to_dict(ev),
+            }
+            if role_name is not None:
+                payload["role"] = role_name
+            emit(event_callback, payload)
         if ev.kind in ("token", "final") and ev.text:
             parts.append(ev.text)
         elif ev.kind == "reasoning_tick" and ev.reasoning_tokens:

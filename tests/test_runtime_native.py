@@ -210,9 +210,13 @@ def test_lucas_veto_skipped_when_disabled() -> None:
 
 def test_deploy_called_when_target_present() -> None:
     client = _FakeClient([MultiAgentEvent(kind="final", text="done")])
+    spec = _spec()
+    # Non-stdout target — stdout short-circuits Bridge per the
+    # signature mismatch fix (see runtime_native phase 5).
+    spec["deploy"] = {"target": "x", "post_to_x": True}
     with patch("grok_orchestra.runtime_native.deploy_to_target") as m_deploy:
         m_deploy.return_value = "https://example.test/x"
-        result = run_native_orchestra(_spec(), client=client)
+        result = run_native_orchestra(spec, client=client)
 
     m_deploy.assert_called_once()
     assert result.deploy_url == "https://example.test/x"

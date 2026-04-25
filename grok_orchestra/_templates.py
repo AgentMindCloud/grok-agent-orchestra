@@ -20,7 +20,7 @@ neither reach the executor nor cause validation failures.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
@@ -34,6 +34,7 @@ __all__ = [
     "get_template",
     "list_templates",
     "render_template_yaml",
+    "templates_json_payload",
 ]
 
 
@@ -148,6 +149,51 @@ def render_template_yaml(name: str) -> str:
     """
     template = get_template(name)
     return template.path.read_text(encoding="utf-8")
+
+
+def templates_json_payload(
+    *,
+    tag: str | None = None,
+    primary_category: Callable[[Template], str] | None = None,
+) -> dict[str, Any]:
+    """Return the JSON-serialisable payload `templates list --format json` emits.
+
+    The CLI (`_do_list` in ``grok_orchestra.cli``) and the web layer
+    (``GET /api/templates``) both call this so they cannot drift on
+    field names or filtering semantics.
+
+    ``primary_category`` is injected by the caller because the
+    category-bucket ordering lives in the CLI. We default to a no-op
+    when called outside the CLI (e.g. from web tests that don't care
+    about the bucket label).
+    """
+    selected = list_templates()
+    if tag:
+        needle = tag.strip().lower()
+        selected = [t for t in selected if needle in t.tags]
+
+    def _category(t: Template) -> str:
+        return primary_category(t) if primary_category else "other"
+
+    return {
+        "ok": True,
+        "count": len(selected),
+        "filter_tag": tag,
+        "templates": [
+            {
+                "name": t.name,
+                "description": t.description,
+                "version": t.version,
+                "author": t.author,
+                "tags": list(t.tags),
+                "mode": t.mode,
+                "pattern": t.pattern,
+                "combined": t.combined,
+                "primary_category": _category(t),
+            }
+            for t in selected
+        ],
+    }
 
 
 def copy_template(name: str, out_path: str | Path) -> Path:

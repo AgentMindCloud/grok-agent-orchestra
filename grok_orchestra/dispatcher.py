@@ -19,6 +19,7 @@ from typing import Any
 
 from grok_build_bridge.xai_client import XAIClient
 
+from grok_orchestra._events import EventCallback
 from grok_orchestra.multi_agent_client import OrchestraClient
 from grok_orchestra.parser import resolve_mode
 from grok_orchestra.patterns import (
@@ -69,6 +70,8 @@ _NATIVE_PATTERNS: frozenset[str] = frozenset({"native", "parallel-tools"})
 def run_orchestra(
     config: Mapping[str, Any],
     client: Any | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Resolve mode + pattern, build a client, dispatch to the matching pattern.
 
@@ -82,6 +85,11 @@ def run_orchestra(
         :class:`DryRunOrchestraClient` or :class:`DryRunSimulatedClient`
         here. When ``None``, a default client is constructed based on
         the resolved pattern.
+    event_callback:
+        Optional sink for runtime events — used by the FastAPI web
+        layer to stream the debate over WebSocket. ``None`` keeps the
+        synchronous CLI behaviour byte-for-byte. See
+        :mod:`grok_orchestra._events`.
     """
     pattern = _pattern_name(config)
     if pattern == "native":
@@ -106,8 +114,41 @@ def run_orchestra(
         client = _build_client(pattern)
 
     if _fallback_enabled(config):
-        return run_recovery(config, client, primary_fn=pattern_fn)
+        return run_recovery(
+            config,
+            client,
+            primary_fn=pattern_fn,
+            event_callback=event_callback,
+        )
+    return _call_pattern(pattern_fn, config, client, event_callback)
+
+
+def _call_pattern(
+    pattern_fn: PatternFn,
+    config: Mapping[str, Any],
+    client: Any,
+    event_callback: EventCallback,
+) -> OrchestraResult:
+    """Invoke ``pattern_fn`` with the optional ``event_callback`` if it accepts one.
+
+    We *introspect* the signature rather than catching ``TypeError`` —
+    a runtime ``TypeError`` raised during the actual orchestration must
+    propagate, never trigger a silent retry that would run the run
+    twice and corrupt observability.
+    """
+    if event_callback is not None and _accepts_event_callback(pattern_fn):
+        return pattern_fn(config, client, event_callback=event_callback)
     return pattern_fn(config, client)
+
+
+def _accepts_event_callback(fn: Any) -> bool:
+    import inspect
+
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return False
+    return "event_callback" in sig.parameters
 
 
 def _module_attr(name: str) -> Any:

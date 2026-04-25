@@ -21,6 +21,12 @@ from grok_build_bridge import _console
 from grok_build_bridge.deploy import deploy_to_target
 from grok_build_bridge.safety import audit_x_post
 
+from grok_orchestra._events import (
+    EventCallback,
+    emit,
+    event_dict,
+    stream_event_to_dict,
+)
 from grok_orchestra._tools import build_tool_set
 from grok_orchestra.multi_agent_client import (
     MultiAgentEvent,
@@ -65,6 +71,8 @@ class OrchestraResult:
 def run_native_orchestra(
     config: Mapping[str, Any],
     client: OrchestraClient | None = None,
+    *,
+    event_callback: EventCallback = None,
 ) -> OrchestraResult:
     """Execute a native Orchestra run against ``grok-4.20-multi-agent-0309``.
 
@@ -86,6 +94,7 @@ def run_native_orchestra(
     """
     started = time.monotonic()
     console = _console.console
+    emit(event_callback, event_dict("run_started", mode="native"))
 
     # ----- Phase 1: resolve ------------------------------------------------ #
     _console.section(console, "🎯  Resolve config")
@@ -129,6 +138,16 @@ def run_native_orchestra(
         for ev in stream:
             transcript.append(ev)
             tui.record_event(ev)
+            # Mirror every stream event onto the optional sink. Web UI
+            # groups by ``agent_id`` into role lanes 0-3 (Grok / Harper
+            # / Benjamin / Lucas) — the multi-agent endpoint does not
+            # expose canonical role names so the lane mapping is
+            # display-only.
+            if event_callback is not None:
+                emit(
+                    event_callback,
+                    {"type": "stream", **stream_event_to_dict(ev)},
+                )
             if ev.kind == "reasoning_tick" and ev.reasoning_tokens:
                 total_reasoning += ev.reasoning_tokens
                 tui.render_reasoning(total_reasoning)
@@ -156,9 +175,28 @@ def run_native_orchestra(
     _console.section(console, "🚫  Lucas veto")
     veto_report: Mapping[str, Any] | None = None
     if safety_cfg.get("lucas_veto_enabled", True):
+        emit(event_callback, event_dict("lucas_started"))
         final_content, veto_report = _run_lucas_veto(
             final_content, config, client=client, console=console
         )
+        if veto_report is not None and bool(veto_report.get("approved", True)):
+            emit(
+                event_callback,
+                event_dict(
+                    "lucas_passed",
+                    confidence=float(veto_report.get("confidence", 0.0)),
+                ),
+            )
+        elif veto_report is not None:
+            emit(
+                event_callback,
+                event_dict(
+                    "lucas_veto",
+                    reason="; ".join(map(str, veto_report.get("reasons", []) or []))
+                    or "blocked",
+                    blocked_content=final_content,
+                ),
+            )
     else:
         console.log("[dim]skipped (safety.lucas_veto_enabled=false)[/dim]")
 
@@ -168,8 +206,14 @@ def run_native_orchestra(
     if deploy_cfg and not rate_limited:
         veto_approved = veto_report is None or bool(veto_report.get("approved", True))
         if veto_approved:
-            deploy_url = deploy_to_target(final_content, deploy_cfg)
-            console.log(f"[dim]deploy_to_target → {deploy_url}[/dim]")
+            if str(deploy_cfg.get("target", "")).lower() == "stdout":
+                # See runtime_simulated:_maybe_deploy / patterns.py — Bridge's
+                # deploy_to_target expects a generated_dir.
+                console.print(final_content)
+                deploy_url = "stdout://"
+            else:
+                deploy_url = deploy_to_target(final_content, deploy_cfg)
+                console.log(f"[dim]deploy_to_target → {deploy_url}[/dim]")
         else:
             console.log("[yellow]deploy skipped (veto denied)[/yellow]")
     else:
@@ -192,6 +236,16 @@ def run_native_orchestra(
         veto_report=veto_report,
         deploy_url=deploy_url,
         duration_seconds=duration,
+    )
+    emit(
+        event_callback,
+        event_dict(
+            "run_completed",
+            success=success,
+            final_output=final_content,
+            duration_seconds=duration,
+            total_reasoning_tokens=total_reasoning,
+        ),
     )
     return result
 

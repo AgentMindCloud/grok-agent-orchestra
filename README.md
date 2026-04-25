@@ -35,7 +35,7 @@
 | Safety veto layer | ✅ Lucas (fail-closed) | ❌ |
 | Native Grok multi-agent endpoint | ✅ | ❌ |
 | Local docs ingest | 🟡 Roadmap | ✅ |
-| Web UI | 🟡 Roadmap | ✅ |
+| Web UI | ✅ Live debate stream | ✅ |
 | `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
 
 🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
@@ -78,6 +78,22 @@ grok-orchestra --help         # subcommand list
 ```
 
 Set `XAI_API_KEY` for live runs. For offline previews use `--dry-run` — every template ships with a canned-stream replay client, so you don't need a key to see how a pattern behaves.
+
+### Web UI
+
+Optional dashboard with live WebSocket-streamed debates. Install the `[web]` extra and run:
+
+```bash
+pip install 'grok-agent-orchestra[web]'
+grok-orchestra serve              # → opens http://127.0.0.1:8000
+grok-orchestra serve --no-browser # CI / headless
+```
+
+Pick a template from the left rail, leave **Simulated** on for an offline demo, and click **Run** — Grok / Harper / Benjamin / Lucas appear as colour-coded lanes with streaming tokens, then Lucas's verdict banner, then the final output card.
+
+![Web UI dashboard](docs/images/web-ui.png)
+
+The dashboard exposes a small JSON API (`/api/templates`, `/api/run`, `/api/runs/{id}`, `/ws/runs/{id}`); see [`grok_orchestra/web/main.py`](grok_orchestra/web/main.py) for the contract. State is in-memory and the server binds to `127.0.0.1` by default — production needs persistence (Redis/SQLite) and auth, neither of which ships in v1.
 
 ## Run your first orchestration
 
@@ -209,7 +225,7 @@ Grouped by theme. Status emojis: ✅ shipped · 🟡 in progress · ⏳ planned.
 - **Distribution** — 🟡 PyPI publish (v0.1.0) · ⏳ Docker image · ⏳ Homebrew tap.
 - **Adapters** — ⏳ provider adapter layer (OpenAI / Anthropic / local) so the same YAML targets non-Grok engines.
 - **Knowledge** — ⏳ local docs ingest with citation-preserving retrieval · ⏳ structured corpus templates.
-- **Surfaces** — ⏳ web UI for live debate inspection · ⏳ exportable HTML transcripts · ⏳ Discord bot.
+- **Surfaces** — ✅ web UI with live WebSocket debate stream · ⏳ exportable HTML transcripts · ⏳ Discord bot.
 - **Veto depth** — ⏳ pluggable veto stacks (legal / brand / PII gates chained before Lucas) · ⏳ veto replay tooling.
 - **Reliability** — ✅ recovery pattern w/ fallback model · ⏳ richer cost/latency budgets · ⏳ distributed run mode.
 

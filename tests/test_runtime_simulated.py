@@ -348,9 +348,13 @@ def test_lucas_veto_consulted_when_enabled() -> None:
 
 def test_deploy_called_when_target_present() -> None:
     client = _ScriptedClient()
+    spec = _spec(debate_rounds=1)
+    # Use a non-stdout target — stdout short-circuits Bridge per the
+    # signature mismatch fix (see runtime_simulated:_maybe_deploy).
+    spec["deploy"] = {"target": "x", "post_to_x": True}
     with patch("grok_orchestra.runtime_simulated.deploy_to_target") as m_deploy:
         m_deploy.return_value = "https://example.test/sim"
-        result = run_simulated_orchestra(_spec(debate_rounds=1), client=client)
+        result = run_simulated_orchestra(spec, client=client)
     m_deploy.assert_called_once()
     assert result.deploy_url == "https://example.test/sim"
 
