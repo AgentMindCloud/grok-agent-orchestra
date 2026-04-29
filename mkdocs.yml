@@ -220,6 +220,7 @@ nav:
     - Render: deploy/render.md
     - Fly.io: deploy/fly.md
   - Integrations:
+    - Build Bridge: integrations/build-bridge.md
     - Claude Skill: integrations/claude-skill.md
     - VS Code extension: integrations/vscode.md
   - Blog:
