@@ -1,0 +1,19 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / discussion
+    url: https://github.com/agentmindcloud/grok-agent-orchestra/discussions
+    about: |
+      "How do I…?", "Should we…?", "What's the right pattern for…?"
+      Use Discussions — no template, faster signal-to-noise than an
+      issue thread.
+  - name: Bridge-side bug
+    url: https://github.com/agentmindcloud/grok-build-bridge/issues
+    about: |
+      If the failure happens before Orchestra runs (Bridge raises,
+      `grok-build-bridge run` exits non-zero, `safety_scan_generated_code`
+      blocks), file it on the Bridge repo instead.
+  - name: Security report
+    url: https://github.com/agentmindcloud/grok-agent-orchestra/security/advisories/new
+    about: |
+      Suspected vulnerability — please use the private advisory
+      channel, not a public issue. See SECURITY.md.

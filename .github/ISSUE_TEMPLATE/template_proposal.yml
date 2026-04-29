@@ -1,0 +1,89 @@
+name: Template proposal
+description: Propose a new bundled template under `grok_orchestra/templates/`.
+title: "[template] "
+labels: [template, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Templates are first-class artefacts. Read
+        [`docs/guides/templates.md`](https://github.com/agentmindcloud/grok-agent-orchestra/blob/main/docs/guides/templates.md)
+        before filing — the certification process is short but real
+        (matching test in `tests/test_templates_certified.py`,
+        index entry in `INDEX.yaml`).
+
+  - type: input
+    id: slug
+    attributes:
+      label: Template slug
+      description: |
+        Lowercase-kebab. Becomes
+        `grok_orchestra/templates/<slug>.yaml`.
+      placeholder: "policy-brief-fast"
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: One-line title
+      description: |
+        What it does, in user-visible words. Used by the marketplace
+        index card.
+      placeholder: "Two-pass policy brief with adversarial review"
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal / use case
+      description: |
+        When would a user reach for this template? Who is it for?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: pattern
+    attributes:
+      label: Underlying pattern
+      options:
+        - "deep-research"
+        - "debate-then-veto"
+        - "coder-critic"
+        - "round-robin"
+        - "dynamic-spawn"
+        - "combined (Bridge + Orchestra)"
+        - "other (explain in scope)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: roles
+    attributes:
+      label: Role layout
+      description: |
+        Which of Grok / Harper / Benjamin / Lucas are present?
+        Any non-default model assignments? Any extra prompt-simulated
+        roles?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: Expected output shape
+      description: |
+        What does a successful run produce? (MD report, PDF, DOCX,
+        Bridge-deployed artefact, …) Roughly how long, how many
+        citations.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Out-of-scope risks
+      description: |
+        Where could Lucas reasonably veto? What goals should this
+        template **not** be used for?

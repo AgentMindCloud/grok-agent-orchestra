@@ -1,0 +1,88 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+title: "[bug] "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please fill in the four high-signal
+        fields below — issues without a reproducer or traceback
+        usually have to be closed pending more info.
+
+        > Orchestra is a [Build Bridge](https://github.com/agentmindcloud/grok-build-bridge)
+        > add-on. If the failure happens before Orchestra runs (Bridge
+        > raises, `safety_scan_generated_code` blocks, etc.), file on
+        > the Bridge repo instead.
+
+  - type: input
+    id: orchestra-version
+    attributes:
+      label: Orchestra version
+      description: Output of `grok-orchestra --version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Build Bridge version
+      description: Output of `pip show grok-build-bridge | grep Version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Python + OS
+      description: e.g. "Python 3.12.2 on macOS 14.4 (arm64)".
+      placeholder: "Python 3.x on …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: |
+        The smallest YAML + command line that triggers the bug.
+        Redact API keys.
+      placeholder: |
+        # bug.yaml
+        version: "1"
+        ...
+
+        $ grok-orchestra orchestrate bug.yaml --dry-run
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual behaviour
+      description: One sentence each is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Full traceback / log output
+      description: |
+        The complete stack — not abridged. Paste as a code block.
+        For multi-event runs, attach `orchestra-events.jsonl` if it
+        exists.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: |
+        Anything else that might matter — recently bumped a dep,
+        running with a non-default `XAI_BASE_URL`, etc.

@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a new capability or behaviour change.
+title: "[feat] "
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Big-shape proposals (new role, new
+        runtime mode, new extra) usually start as a Discussion —
+        link it here once there's consensus on the direction.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: |
+        What user-visible pain or missing capability are you trying
+        to address? Avoid prescribing the solution in this field.
+      placeholder: "Today, users have to … which means …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: |
+        What would the user-facing experience look like after this
+        lands? CLI flags, YAML keys, expected output. Pseudo-code is
+        welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        What did you consider and reject? "I tried X but it doesn't
+        work because …"
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / affected areas
+      description: |
+        Which subsystems would this touch? (CLI, runtime, web, VS
+        Code extension, templates, docs, …)
+
+  - type: dropdown
+    id: bridge-impact
+    attributes:
+      label: Bridge contract impact
+      options:
+        - "None — Orchestra-only change"
+        - "Reads more from Bridge — would need a Bridge-side guarantee"
+        - "Adds a new Bridge integration mode (Mode C…)"
+        - "Not sure"
+    validations:
+      required: true

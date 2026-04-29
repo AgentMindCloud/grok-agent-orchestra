@@ -1,0 +1,16 @@
+# GitHub Sponsors / funding routing.
+#
+# Every key below is intentionally commented out — the project doesn't
+# have a donations channel set up yet, but shipping the file makes the
+# `community/standards` checklist green and gives a one-line edit point
+# the day a sponsor account exists.
+#
+# To enable a channel, uncomment the relevant line and replace the
+# placeholder with the real handle. Multiple channels are allowed.
+
+# github: agentmindcloud
+# ko_fi: agentmindcloud
+# open_collective: agent-orchestra
+# tidelift: pypi/grok-agent-orchestra
+# custom:
+#   - https://agentmind.cloud/sponsor
