@@ -74,8 +74,9 @@ lands. Do **not** post until they're real.
 > 🐳 Multi-arch Docker on GHCR
 
 > **9/** The whole thing is BYOK + fail-closed-by-default + Apache-
-> 2.0. It runs free on your laptop with Ollama if you want zero
-> credits to leak.
+> 2.0. It pairs with Build Bridge (the runtime under it) and the
+> [adapters] extra lets you point Harper / Benjamin at a local
+> Ollama model so only Lucas burns cloud credits.
 >
 > Code: github.com/agentmindcloud/grok-agent-orchestra
 > Docs: agentmindcloud.github.io/grok-agent-orchestra
@@ -235,7 +236,7 @@ contested-research goals where adversarial review actually matters.
 the safety gate. Per the published rubric, the third-party judge
 agreed with the veto on {{HEADLINE_VETOES_AGREED}} of those.
 
-Apache-2.0. Bring your own keys. Runs free on a laptop with Ollama.
+Apache-2.0. BYOK. Pairs with Grok Build Bridge.
 
 Repo: https://github.com/agentmindcloud/grok-agent-orchestra
 Round-1 report: https://github.com/agentmindcloud/grok-agent-orchestra/blob/main/benchmarks/results/latest.md

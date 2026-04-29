@@ -9,7 +9,11 @@ hide:
 
 **Multi-agent research with visible debate and enforceable safety vetoes — powered by Grok.**
 
-> Multi-agent research that runs free on your laptop OR scales up with your favorite cloud LLM.
+> A [Grok Build Bridge](https://github.com/agentmindcloud/grok-build-bridge)
+> add-on. Bridge does generate / scan / deploy; Orchestra adds the
+> visible debate and the enforceable Lucas veto on top. See the
+> [pairing guide](integrations/build-bridge.md) for the two
+> integration modes.
 
 Four named roles — **Grok** (executive), **Harper** (research), **Benjamin** (logic),
 **Lucas** (veto) — argue on screen and ship a citation-rich report. Lucas's strict-JSON
@@ -57,8 +61,8 @@ which tiers are configured.
 
 | Tier | Setup | Cost | Best for |
 | --- | --- | --- | --- |
-| **Demo** | `pip install grok-agent-orchestra` | $0 | First five minutes; the README hero GIF |
-| **Local** | `+ ollama pull llama3.1:8b` and the `[adapters]` extra | $0 | Privacy-sensitive runs; offline laptops |
+| **Demo** | Bridge installed; canned event streams | Bridge-side cost only | First five minutes; replaying a fixture run |
+| **Local** | `+ ollama pull llama3.1:8b` and the `[adapters]` extra | LLM cost only | Privacy-sensitive runs; offline iteration |
 | **Cloud** | `+ XAI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Pay-as-you-go | Production, customer-facing reports |
 
 ## Bring your own key (BYOK)
@@ -73,6 +77,8 @@ transit. See [Tracing](guides/tracing.md) and the
 
 - [GitHub](https://github.com/agentmindcloud/grok-agent-orchestra)  ·  give it a
   star to follow releases.
-- [PyPI](https://pypi.org/project/grok-agent-orchestra/)  ·  `pip install
-  grok-agent-orchestra`.
-- Discord — _coming soon_; the invite will land here when it does.
+- [GitHub Discussions](https://github.com/agentmindcloud/grok-agent-orchestra/discussions)
+  for "should we…?" questions; [Issues](https://github.com/agentmindcloud/grok-agent-orchestra/issues)
+  for "this is broken" reports.
+- [Build Bridge](https://github.com/agentmindcloud/grok-build-bridge)  ·  the
+  upstream Orchestra pairs with.

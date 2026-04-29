@@ -5,21 +5,27 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/grok-agent-orchestra/"><img alt="PyPI" src="https://img.shields.io/badge/pypi-coming%20in%20v0.1.0-C026D3?style=flat-square" /></a>
+  <a href="https://github.com/agentmindcloud/grok-build-bridge"><img alt="Requires Build Bridge" src="https://img.shields.io/badge/requires-grok--build--bridge-ff6b35?style=flat-square" /></a>
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-00C2A8?style=flat-square" /></a>
-  <a href="#"><img alt="Docker pulls" src="https://img.shields.io/badge/docker-coming%20soon-2496ED?style=flat-square&logo=docker&logoColor=white" /></a>
   <a href="https://agentmindcloud.github.io/grok-agent-orchestra/"><img alt="Docs" src="https://img.shields.io/badge/docs-mkdocs--material-FF6B35?style=flat-square&logo=read-the-docs&logoColor=white" /></a>
-  <a href="#"><img alt="Discord" src="https://img.shields.io/badge/discord-coming%20soon-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
   <a href="https://github.com/agentmindcloud/grok-agent-orchestra/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/agentmindcloud/grok-agent-orchestra?style=flat-square&logo=github" /></a>
 </p>
 
+> **⚠ Requires [Grok Build Bridge](https://github.com/agentmindcloud/grok-build-bridge).**
+> Agent Orchestra is a Bridge add-on — it shares Bridge's `XAIClient`,
+> safety primitives, and the combined-runtime hooks. Install Bridge
+> first; Orchestra imports raise `RuntimeError` with a clear hint if
+> Bridge is missing. See
+> [docs/integrations/build-bridge.md](docs/integrations/build-bridge.md)
+> for the full pairing guide (Mode A: Bridge-led, Mode B: Orchestra-led).
+
 <p align="center">
-  <img src="docs/images/hero.gif" alt="Agent Orchestra — pick a template, watch Grok / Harper / Benjamin debate in role-coloured lanes while Lucas adjudicates from the judge bench, then download the citation-rich report." width="780" />
+  <img src="docs/images/hero.svg" alt="Agent Orchestra — pick a template, watch Grok / Harper / Benjamin debate in role-coloured lanes while Lucas adjudicates from the judge bench, then download the citation-rich report." width="780" />
 </p>
 
 <p align="center">
-  <em>Hero capture is generated locally per release — see <a href="frontend/README.md">frontend/README.md</a>. The classic Rich-TUI demo lives at <code>docs/images/tui-demo.gif</code>.</em>
+  <em>Hero is a branded SVG illustration — real screenshots replace it post-launch when <code>scripts/capture-demo.mjs</code> runs against a live stack. The Rich-TUI mockup lives at <code>docs/images/tui-demo.svg</code>.</em>
 </p>
 
 ---
@@ -29,8 +35,7 @@
 - **Visible debate, not a black box.** Four named roles (Grok, Harper, Benjamin, Lucas) argue on screen. Every turn, every tool call, every reasoning gauge streams into a Rich TUI you can actually read while it happens.
 - **Lucas veto = enforceable quality / safety gate.** A separate `grok-4.20-0309` pass with strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed, low-confidence, or timed-out → exit code 4 → nothing ships.
 - **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4.20-multi-agent-0309` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Bring your own key from any provider via the LiteLLM adapter — same orchestration, your choice of engine.
-
-> **Multi-agent research that runs free on your laptop OR scales up with your favorite cloud LLM.**
+- **Bridge-paired by design.** The combined runtime (`combined: true`) drives Bridge's generate → scan → Orchestra's debate → Lucas veto → Bridge's deploy in one TUI. The lighter Mode A drops a single `safety.lucas_veto_enabled: true` line into a Bridge YAML and Lucas gates the deploy.
 
 ## Three-tier capability matrix
 
@@ -38,9 +43,9 @@ Pick the tier that matches what you have on hand right now. `grok-orchestra doct
 
 | Tier | Setup | Cost | Quality | Best for |
 | --- | --- | --- | --- | --- |
-| **Demo mode** | None — works on a fresh `pip install` | $0 | Pre-canned, deterministic | First five minutes; demos; the README hero GIF |
-| **Local mode** (Ollama) | `ollama pull llama3.1:8b` + `pip install 'grok-agent-orchestra[adapters]'` | $0 | Solid for drafts; below cloud frontier | Privacy-sensitive runs; offline laptops; CI without keys |
-| **Cloud mode** (BYOK) | Set `XAI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Pay-as-you-go (your invoice) | Ship-grade | Production research, customer-facing reports |
+| **Demo mode** | Bridge installed; canned event streams | Bridge-side cost only | Pre-canned, deterministic | First five minutes; demos; replaying a fixture run |
+| **Local mode** (Ollama) | Bridge + `ollama pull llama3.1:8b` + `pip install 'grok-agent-orchestra[adapters]'` | LLM cost only — no SaaS layer | Solid for drafts; below cloud frontier | Privacy-sensitive runs; offline iteration |
+| **Cloud mode** (BYOK) | Bridge + `XAI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Pay-as-you-go (your invoice) | Ship-grade | Production research, customer-facing reports |
 
 Capabilities by tier:
 
@@ -60,7 +65,7 @@ Honest tradeoffs:
 - **Local mode** swaps in a real LLM, but `llama3.1:8b` is materially below `claude-3-5-sonnet` / `grok-4.20` on long-context synthesis. The visible debate + Lucas veto still keep failure modes loud — the *reasoning quality* tracks the model.
 - **Cloud mode** is the production path. Mixing a cloud-grade Lucas with a local Harper is a pragmatic middle ground (`mode_label="mixed"` in the run summary).
 
-Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
+Bridge sits underneath every tier — Orchestra never bypasses it. Run `grok-orchestra doctor` to see which tiers your machine has live right now.
 
 ## Compared to GPT-Researcher
 
@@ -71,13 +76,13 @@ Run `grok-orchestra doctor` to see which tiers your laptop has live right now.
 | Multi-agent debate | ✅ Visible & streamed | ❌ Hidden |
 | Safety veto layer | ✅ Lucas (fail-closed) | ❌ |
 | Native Grok multi-agent endpoint | ✅ | ❌ |
-| Runs free on your laptop (Ollama, no keys) | ✅ Documented + smoke-tested | 🟡 Possible, not surfaced |
+| Build Bridge integration | ✅ Mode A (Bridge-led) + Mode B (combined runtime) | n/a |
 | Local docs ingest | 🟡 Roadmap | ✅ |
 | Web UI | ✅ Modern Next.js with real-time tree + lane views | ✅ |
 | Typed frontend client (TS) | ✅ `frontend/lib/api-client.ts` + WS hook | 🟡 |
 | Optional auth (shared password) | ✅ env-gated, off by default | ❌ |
 | Live web research | ✅ Tavily + cited findings | ✅ |
-| `pip install` from PyPI | ✅ from v0.1.0 | ✅ |
+| `pip install` from PyPI | 🟡 alpha-paired with Bridge — install from GitHub today | ✅ |
 | Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
 | Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
 | Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
@@ -161,8 +166,10 @@ A first-party [VS Code extension](extensions/vscode/) lives at
 current YAML**, and watch the role-coloured debate stream in a
 side-panel webview while the Lucas judge bench tracks the verdict.
 
+**Marketplace publishing is intentionally disabled until a v1.x
+release** — install from a local `.vsix` build:
+
 ```bash
-# Build + install locally (until the Marketplace listing lands)
 cd extensions/vscode
 npm install
 npm run package
@@ -184,22 +191,29 @@ Full guide: **[docs/integrations/vscode.md](docs/integrations/vscode.md)**.
 
 Pick the install path that fits your situation. They produce the same `grok-orchestra` CLI.
 
-### From PyPI
+### From GitHub (today)
 
-```bash
-pip install grok-agent-orchestra
-```
-
-Available from `v0.1.0` onward.
-
-### From GitHub
-
-If you need a tip-of-`main` build before the next release. The sibling [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) installs from git too:
+Bridge first, Orchestra second — Orchestra raises a friendly
+`RuntimeError` at import time if Bridge isn't on `PYTHONPATH`:
 
 ```bash
 pip install git+https://github.com/agentmindcloud/grok-build-bridge.git
 pip install git+https://github.com/agentmindcloud/grok-agent-orchestra.git
 ```
+
+### From PyPI (when both ship)
+
+Both packages are on the alpha → 0.2 → 1.0 path. The day Bridge
+publishes to PyPI, the install becomes:
+
+```bash
+pip install grok-build-bridge   # Bridge first
+pip install grok-agent-orchestra
+```
+
+Until then the GitHub install above is the supported path. The
+[Build Bridge pairing guide](docs/integrations/build-bridge.md)
+covers troubleshooting.
 
 ### Editable / dev install
 
@@ -231,7 +245,7 @@ docker run --rm -p 8000:8000 \
 # → http://localhost:8000
 ```
 
-Pin a specific version in production — `:latest` is fine for evals, but production should track an explicit `:v0.1.0` (or `:0.1`) tag so the image you ship in CI matches what you smoke-tested.
+Pin a specific version in production — `:latest` is fine for evals, but production should track an explicit version tag so the image you ship in CI matches what you smoke-tested. The first published image will be tagged `:v0.1.0` to match the source release.
 
 Or build + run from a fresh clone with `docker compose`:
 
@@ -377,7 +391,7 @@ When a backend is active, the dashboard's run-detail panel grows a **🔭 View t
 
 **Scrubber.** Every span passes through `grok_orchestra.tracing.scrubber` before it leaves the box. Credential-shaped strings (`sk-…`, `tvly-…`, `Bearer …`, AWS / GCP keys, …) and sensitive field names (`Authorization`, `*_API_KEY`, `*_SECRET_KEY`, `*_TOKEN`) are redacted in-place; long strings are truncated to 4 KiB. Backends never see a raw key.
 
-![LangSmith trace](docs/images/trace-langsmith.png)
+![LangSmith trace](docs/images/trace-langsmith.svg)
 
 Full reference: [`docs/observability.md`](docs/observability.md).
 
@@ -462,7 +476,7 @@ curl -O http://localhost:8000/api/runs/<run-id>/report.docx
 
 The PDF carries a cover page with a confidence meter (Lucas's verdict score) and footnoted citations. The DOCX uses Word's built-in `Heading 1` / `List Number` styles so the TOC field works without manual fixing.
 
-![Report sample](docs/images/report-sample.png)
+![Report sample](docs/images/report-sample.svg)
 
 ### Web UI
 
@@ -476,13 +490,15 @@ grok-orchestra serve --no-browser # CI / headless
 
 Pick a template from the left rail, leave **Simulated** on for an offline demo, and click **Run** — Grok / Harper / Benjamin / Lucas appear as colour-coded lanes with streaming tokens, then Lucas's verdict banner, then the final output card.
 
-![Web UI dashboard](docs/images/web-ui.png)
+![Web UI dashboard](docs/images/web-ui.svg)
 
 The dashboard exposes a small JSON API (`/api/templates`, `/api/run`, `/api/runs/{id}`, `/ws/runs/{id}`); see [`grok_orchestra/web/main.py`](grok_orchestra/web/main.py) for the contract. State is in-memory and the server binds to `127.0.0.1` by default — production needs persistence (Redis/SQLite) and auth, neither of which ships in v1.
 
 #### Modern frontend (Next.js 14)
 
 A production-grade dashboard lives under [`frontend/`](frontend/) — Next.js 14 (App Router) + Tailwind + shadcn/ui, with a typed API client and a WebSocket hook with auto-reconnect. The classic single-file dashboard remains available at `/classic/` as a fallback.
+
+![Courtroom view](docs/images/web-ui-modern.svg)
 
 ```bash
 cd frontend
@@ -501,7 +517,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # → http://localhost:3000  (Next.js dev)
 ```
 
-A future production image will ship the Next.js static export pre-baked at `/`. _Screenshot placeholder: `docs/images/web-ui-modern.png` (lands with 16b)._
+A future production image will ship the Next.js static export pre-baked at `/`. The courtroom-view illustration above lives at [`docs/images/web-ui-modern.svg`](docs/images/web-ui-modern.svg).
 
 ## Run your first orchestration
 
@@ -630,10 +646,10 @@ grok-orchestra run red-team-the-plan                   # live (needs XAI_API_KEY
 
 Grouped by theme. Status emojis: ✅ shipped · 🟡 in progress · ⏳ planned.
 
-- **Distribution** — 🟡 PyPI publish (v0.1.0) · ⏳ Docker image · ⏳ Homebrew tap.
+- **Distribution** — 🟡 PyPI publish (paired with Bridge release) · ⏳ Docker image · ⏳ Homebrew tap.
 - **Adapters** — ⏳ provider adapter layer (OpenAI / Anthropic / local) so the same YAML targets non-Grok engines.
 - **Knowledge** — ⏳ local docs ingest with citation-preserving retrieval · ⏳ structured corpus templates.
-- **Surfaces** — ✅ web UI with live WebSocket debate stream · ⏳ exportable HTML transcripts · ⏳ Discord bot.
+- **Surfaces** — ✅ web UI with live WebSocket debate stream · ⏳ exportable HTML transcripts · ⏳ Slack-style notifier hooks.
 - **Veto depth** — ⏳ pluggable veto stacks (legal / brand / PII gates chained before Lucas) · ⏳ veto replay tooling.
 - **Reliability** — ✅ recovery pattern w/ fallback model · ⏳ richer cost/latency budgets · ⏳ distributed run mode.
 

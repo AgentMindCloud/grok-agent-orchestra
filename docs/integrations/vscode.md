@@ -22,12 +22,9 @@ Lucas judge bench that mirrors the Next.js courtroom view.
 
 ## Install
 
-### From the Marketplace (after first publish)
-
-Search for **"Agent Orchestra"** in the VS Code Extensions panel.
-Publisher: `agentmindcloud`.
-
-### From source (today)
+**Marketplace publishing is intentionally disabled until a v1.x
+release.** The extension is build-from-source only — the artefact is
+a `.vsix` file you sideload with `code --install-extension`.
 
 ```bash
 git clone https://github.com/agentmindcloud/grok-agent-orchestra
@@ -37,6 +34,11 @@ npm run package
 npm run vsce:package        # → agent-orchestra.vsix
 code --install-extension agent-orchestra.vsix
 ```
+
+The CI workflow at `.github/workflows/vscode-extension.yml` lints,
+type-checks, bundles, and packages the `.vsix` on every PR so the
+build step stays honest. The publish step is commented out until a
+Marketplace listing is ready.
 
 ## Two transports — auto-detected
 
