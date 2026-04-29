@@ -1,13 +1,11 @@
 # -----------------------------------------------------------------------------
 # VS Code extension CI — lint + typecheck + esbuild bundle + vsix package on
-# every PR / main push that touches `extensions/vscode/`. On version tags
-# (`vscode-v*`) it also publishes to the VS Code Marketplace via vsce.
+# every PR / main push that touches `extensions/vscode/`.
 #
-# Marketplace publish requires one secret (set in repo Settings → Secrets):
-#   VSCE_PAT   — Personal Access Token from
-#                https://dev.azure.com/{org}/_usersSettings/tokens
-#                with `Marketplace → Manage` scope. Document this in
-#                `docs/integrations/vscode.md`.
+# Marketplace publishing is intentionally disabled until a v1.x release. The
+# `vscode-v*` tag trigger and the `Publish to VS Code Marketplace` step are
+# commented out below; re-enable both (and provision the VSCE_PAT secret)
+# the day the extension goes public.
 # -----------------------------------------------------------------------------
 
 name: vscode-extension
@@ -15,7 +13,7 @@ name: vscode-extension
 on:
   push:
     branches: [main]
-    tags: ["vscode-v*"]
+    # tags: ["vscode-v*"]   # disabled — Marketplace publish reactivates with v1.x.
     paths:
       - "extensions/vscode/**"
       - ".github/workflows/vscode-extension.yml"
@@ -62,7 +60,6 @@ jobs:
         run: npm run package
 
       - name: Package vsix (no publish)
-        if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/vscode-v')
         run: npm run vsce:package
 
       - name: Upload .vsix as artefact
@@ -72,8 +69,12 @@ jobs:
           name: agent-orchestra.vsix
           path: extensions/vscode/agent-orchestra.vsix
 
-      - name: Publish to VS Code Marketplace
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/vscode-v')
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npm run vsce:publish -- -p "$VSCE_PAT"
+      # Marketplace publish — intentionally disabled until v1.x. Re-enable
+      # this step (and the `vscode-v*` tag trigger above) the day the
+      # extension goes public, after provisioning the VSCE_PAT secret.
+      #
+      # - name: Publish to VS Code Marketplace
+      #   if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/vscode-v')
+      #   env:
+      #     VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      #   run: npm run vsce:publish -- -p "$VSCE_PAT"

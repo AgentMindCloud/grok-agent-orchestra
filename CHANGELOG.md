@@ -4,10 +4,89 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> **Headline for the next release:** *Multi-agent research that runs free on
-> your laptop OR scales up with your favorite cloud LLM.*
+> **Headline for the next release:** *Bridge-paired v0.1.0 — visible
+> debate, enforceable Lucas veto, and a documented pairing with the
+> Grok Build Bridge runtime.*
 
 ## [Unreleased]
+
+### Added — Launch-prep pass (Bridge-paired v0.1.0)
+
+- **`docs/integrations/build-bridge.md`** — canonical pairing guide
+  covering install order, Mode A (Bridge-led, the
+  `safety.lucas_veto_enabled: true` hook) and Mode B (Orchestra-led,
+  the `combined: true` runtime), the shared CLI / exit-code matrix,
+  the exact Bridge surface Orchestra imports, and the alpha-pin
+  caveat. Wired into the Integrations nav in `mkdocs.yml`.
+- **Community standards files** — `CONTRIBUTING.md`, `SUPPORT.md`,
+  `.github/FUNDING.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, and four
+  issue templates (`config.yml`, `bug_report.yml`,
+  `feature_request.yml`, `template_proposal.yml`). The Community
+  Standards page on GitHub now goes green.
+- **Six branded SVG illustrations** under `docs/images/` —
+  `hero.svg`, `tui-demo.svg`, `web-ui.svg`, `web-ui-modern.svg`,
+  `report-sample.svg`, `trace-langsmith.svg`. Each carries a
+  `<desc>` noting it's an illustration not a screenshot. Replaces
+  the empty `*.png.placeholder` markers; real screenshots will land
+  post-launch via `scripts/capture-demo.mjs`.
+- **CI Bridge stub at `tools/bridge-stub/`** — a minimal installable
+  shim that satisfies Orchestra's `grok-build-bridge>=0.1,<1`
+  runtime dep in environments where the real Bridge package isn't on
+  PyPI yet (currently: `safety-scan` + `docs` workflows). Drop the
+  day Bridge publishes.
+
+### Changed — Bridge-paired reframing
+
+- **`README.md`** — added a prominent "Requires Build Bridge" callout
+  near the top, dropped the "PyPI coming in v0.1.0", "Docker coming
+  soon", and "Discord coming soon" badges, switched all image
+  references from `.gif`/`.png` to the new branded `.svg`s, dropped
+  the "free on your laptop, no keys" framing in favour of accurate
+  per-tier cost language, reframed install order as "Bridge first,
+  Orchestra second", reframed the VS Code section as
+  build-from-source-only, removed the Discord roadmap entry.
+- **`docs/index.md`**, **`docs/community/launch-posts.md`** — same
+  reframing: drop Discord, drop "runs free on your laptop with
+  Ollama" pitch, replace with Bridge-paired + adapters-extra story.
+- **`docs/integrations/vscode.md`**, **`extensions/vscode/README.md`**,
+  **`extensions/vscode/CHANGELOG.md`** — drop Marketplace install
+  recipe; only the local-build-`.vsix`-sideload flow is documented.
+  Marketplace publishing reactivates with v1.x.
+- **`.github/workflows/vscode-extension.yml`** — `vsce publish` step
+  + `vscode-v*` tag trigger commented out with reactivation
+  instructions.
+- **`frontend/README.md`** — added a one-paragraph note explaining
+  that the first contributor to run `pnpm install` should commit
+  the resulting `pnpm-lock.yaml`.
+
+### Fixed
+
+- **`safety-scan` CI job** — `pip-audit` couldn't resolve
+  `grok-build-bridge` from PyPI and bailed before scanning the rest
+  of the deps. Filter the line out before passing
+  `requirements.txt` to pip-audit (an unpublished package can't
+  have a known CVE).
+- **`docs` CI job** — `mkdocstrings` imports `grok_orchestra.*` to
+  render API reference pages, which transitively imports
+  `grok_build_bridge`. Install the new `tools/bridge-stub/` shim
+  before installing Orchestra.
+- **Latent `[tracing]` ResolutionImpossible** — `langfuse 2.x` pins
+  `packaging<25` while every published `xai-sdk` pins
+  `packaging>=25,<26`, so `pip install [tracing]` has been broken
+  since the project started. Drop `langfuse` from the `tracing`
+  extra (`langsmith` + `opentelemetry` remain). Update the runtime
+  ImportError hint in `grok_orchestra/tracing/langfuse_tracer.py` to
+  recommend the OTLP tracer or a manual langfuse install. The
+  langfuse 3.x adapter migration is queued for a later release.
+
+### Removed
+
+- Local `v1.0.0` git tag (was never pushed; aspirational; the
+  Bridge-paired release line uses `v0.1.0`).
+- The empty `docs/images/*.png.placeholder` marker files (replaced
+  by the real SVG illustrations).
+
+## Earlier
 
 ### Added — Public head-to-head benchmark harness (Prompt 19)
 

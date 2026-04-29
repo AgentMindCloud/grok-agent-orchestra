@@ -6,7 +6,7 @@ inside a side-panel webview; Lucas's strict-JSON pass either approves
 or vetoes the synthesis before it ships. The full framework lives at
 [**grok-agent-orchestra**](https://github.com/agentmindcloud/grok-agent-orchestra).
 
-![Agent Orchestra · debate panel](https://raw.githubusercontent.com/agentmindcloud/grok-agent-orchestra/main/docs/images/web-ui-debate.gif)
+![Agent Orchestra · debate panel](https://raw.githubusercontent.com/agentmindcloud/grok-agent-orchestra/main/docs/images/web-ui-modern.svg)
 
 ## Features
 
@@ -21,18 +21,32 @@ or vetoes the synthesis before it ships. The full framework lives at
   configured backend) + a Recent runs tree.
 - **Status bar** showing transport availability (local CLI / remote
   HTTP / offline).
-- **Two transports, auto-detected**: local
-  `pip install grok-agent-orchestra` CLI or a remote FastAPI at
+- **Two transports, auto-detected**: a local `grok-orchestra` CLI on
+  `$PATH` (Bridge + Orchestra installed) or a remote FastAPI at
   `agentOrchestra.serverUrl`. Local wins when both are available.
+
+> **Marketplace publishing is intentionally disabled until a v1.x
+> release.** Build from source and sideload the `.vsix` — see below.
+
+## Install (build from source)
+
+```bash
+git clone https://github.com/agentmindcloud/grok-agent-orchestra
+cd grok-agent-orchestra/extensions/vscode
+npm install
+npm run package
+npm run vsce:package          # → agent-orchestra.vsix
+code --install-extension agent-orchestra.vsix
+```
 
 ## Quickstart
 
-1. Install the extension.
+1. Install the extension as above.
 2. Either:
-   - **Local**: `pip install grok-agent-orchestra` somewhere on your
-     `$PATH`. The status bar shows "Orchestra · local".
-   - **Remote**: run `grok-orchestra serve` (or any other
-     deployment of the FastAPI) and set `agentOrchestra.serverUrl`.
+   - **Local**: install Bridge then Orchestra so `grok-orchestra` is on
+     your `$PATH`. The status bar shows "Orchestra · local".
+   - **Remote**: run `grok-orchestra serve` (or any other deployment of
+     the FastAPI) and set `agentOrchestra.serverUrl`.
 3. Open any `*.orchestra.yaml` file (or use the built-in templates
    via the Activity Bar) and run `Agent Orchestra: Run current YAML`.
 

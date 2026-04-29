@@ -14,6 +14,12 @@ pnpm install
 pnpm dev          # http://localhost:3000
 ```
 
+> **Note on the lockfile.** `pnpm-lock.yaml` is intentionally **not**
+> checked in yet — this dir hasn't had its first contributor run on a
+> known-clean environment. The first PR that runs `pnpm install` here
+> should commit the resulting `pnpm-lock.yaml` so subsequent installs
+> are deterministic. Don't ship a stub lockfile.
+
 In a separate terminal, run the FastAPI backend:
 
 ```bash

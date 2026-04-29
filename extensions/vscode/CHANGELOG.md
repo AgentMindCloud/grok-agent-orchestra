@@ -2,7 +2,10 @@
 
 ## [0.1.0] — Unreleased
 
-Initial release. Tracks the parent repo's v1.0.0 baseline.
+Initial release. Tracks the parent repo's v0.1.0 (Bridge-paired)
+baseline. Marketplace publishing is intentionally disabled until a
+v1.x release — the extension is build-from-source-only and ships as
+a `.vsix` you sideload with `code --install-extension`.
 
 ### Added
 
@@ -24,12 +27,13 @@ Initial release. Tracks the parent repo's v1.0.0 baseline.
 - Auto-detected transport: prefers `grok-orchestra` CLI on PATH;
   falls back to `agentOrchestra.serverUrl` (FastAPI). Bearer-token
   auth via `agentOrchestra.remoteToken`.
-- Marketplace SVG sources (`media/icon.svg`, `media/banner.svg`)
-  with regeneration steps in `media/README.md`.
+- Branded SVG sources (`media/icon.svg`, `media/banner.svg`) used
+  for the bundled `.vsix`; regeneration steps in `media/README.md`.
 - Smoke test (`test/extension.test.ts`) covering command
   registration, view-container contribution, schema contribution,
   and activation.
 - CI workflow (`.github/workflows/vscode-extension.yml`) running
-  lint + typecheck + esbuild bundle + `vsce package` on every PR;
-  publishing to the Marketplace via `vsce publish` on
-  `vscode-v*` tags.
+  lint + typecheck + esbuild bundle + `vsce package` on every PR
+  so the `.vsix` build stays honest. The `vsce publish` step and
+  the `vscode-v*` tag trigger are commented out — Marketplace
+  publishing reactivates with a v1.x release.
