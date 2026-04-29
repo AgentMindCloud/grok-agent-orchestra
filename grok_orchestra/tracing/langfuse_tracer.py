@@ -45,8 +45,12 @@ class LangfuseTracer:
             from langfuse import Langfuse  # type: ignore[import-not-found]
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError(
-                "Langfuse tracing requires the [tracing] extra: "
-                "pip install 'grok-agent-orchestra[tracing]'"
+                "Langfuse tracing is not bundled with the [tracing] extra: "
+                "langfuse 2.x conflicts with xai-sdk on the `packaging` pin, "
+                "and the langfuse 3.x adapter migration is still in progress. "
+                "Install langfuse manually (`pip install 'langfuse>=2.30,<3'` "
+                "in a separate venv), or — preferred — switch to the OTLP "
+                "tracer by setting OTEL_EXPORTER_OTLP_ENDPOINT."
             ) from exc
 
         self._client = Langfuse(

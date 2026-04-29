@@ -131,7 +131,14 @@ jobs:
       - name: Install safety scanner
         run: pip install pip-audit
       - name: pip-audit — fail on known vulnerabilities in runtime deps
-        run: pip-audit --requirement requirements.txt --strict
+        # `grok-build-bridge` is not on PyPI yet; pip-audit can't resolve
+        # it and bails before scanning the rest. Filter it out — an
+        # unpublished package by definition has no advisory database
+        # entry. Re-include the line once Bridge ships on PyPI and
+        # delete the comment + grep below.
+        run: |
+          grep -v '^grok-build-bridge' requirements.txt > /tmp/req-public.txt
+          pip-audit --requirement /tmp/req-public.txt --strict
 
   build:
     needs: [lint, test, schema-check]

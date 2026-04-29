@@ -39,11 +39,13 @@ jobs:
 
       - name: Install package + docs extras
         run: |
-          # grok-build-bridge isn't on PyPI yet; install in stub mode so
-          # mkdocstrings can import grok_orchestra.* without the real
-          # bridge dependency. The conftest.py pattern from tests/ does
-          # this for the test runner; here we install a tiny shim.
+          # grok-build-bridge isn't on PyPI yet, but mkdocstrings has to
+          # import grok_orchestra.* to render API reference pages. Install
+          # the local CI stub at tools/bridge-stub/ first so the import
+          # chain in grok_orchestra/__init__.py succeeds. Drop this line
+          # the day Bridge lands on PyPI.
           python -m pip install --upgrade pip
+          pip install ./tools/bridge-stub
           pip install -e ".[docs-build,adapters,publish,images,tracing,web,search]" || \
             pip install -e ".[docs-build]"
 

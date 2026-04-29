@@ -118,7 +118,12 @@ adapters = [
 # is set (LANGSMITH_API_KEY / LANGFUSE_PUBLIC_KEY / OTEL_EXPORTER_*).
 tracing = [
     "langsmith>=0.1.50,<1",
-    "langfuse>=2.30,<3",
+    # langfuse 2.x pins packaging<25 which conflicts with every published
+    # xai-sdk (>=25,<26). langfuse 3.x is OpenTelemetry-native and removes
+    # the legacy `client.trace()` API our adapter relies on. Until the
+    # langfuse_tracer.py migration to 3.x lands, install langfuse manually
+    # (`pip install 'langfuse>=2.30,<3'` in a separate venv) or — preferred
+    # — use the OTLP tracer via `OTEL_EXPORTER_OTLP_ENDPOINT`.
     "opentelemetry-api>=1.24,<2",
     "opentelemetry-sdk>=1.24,<2",
 ]
