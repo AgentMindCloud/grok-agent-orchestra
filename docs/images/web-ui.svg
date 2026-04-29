@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Orchestra dashboard — classic layout</title>
+  <desc id="desc">Branded illustration (not a screenshot). Mockup of the Next.js dashboard with a left sidebar listing recent runs, a four-lane debate stream in the middle, and a Lucas verdict card at the bottom-right.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#101010"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="800" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <rect x="0" y="0" width="1280" height="56" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="24" y="36" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="600" fill="#ff6b35">Agent Orchestra</text>
+  <text x="200" y="38" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#888888">— dashboard</text>
+
+  <!-- Sidebar -->
+  <rect x="0" y="56" width="240" height="744" fill="#0d0d0d" stroke="#262626" stroke-width="1"/>
+  <g font-family="Inter, system-ui, sans-serif" font-size="13" fill="#cccccc">
+    <text x="20" y="92" font-weight="600" fill="#888888">RECENT RUNS</text>
+    <rect x="14" y="106" width="212" height="44" rx="6" fill="#1a0d05" stroke="#ff6b35" stroke-width="1"/>
+    <text x="24" y="124">policy-brief-fast</text>
+    <text x="24" y="142" font-size="11" fill="#888888">2 min ago · approved</text>
+
+    <rect x="14" y="160" width="212" height="44" rx="6" fill="#141414"/>
+    <text x="24" y="178">market-scan-2026</text>
+    <text x="24" y="196" font-size="11" fill="#888888">14 min ago · approved</text>
+
+    <rect x="14" y="214" width="212" height="44" rx="6" fill="#141414"/>
+    <text x="24" y="232">x-trend-analyzer</text>
+    <text x="24" y="250" font-size="11" fill="#e85a5a">28 min ago · vetoed</text>
+
+    <text x="20" y="300" font-weight="600" fill="#888888">TEMPLATES</text>
+    <text x="20" y="324">deep-research</text>
+    <text x="20" y="346">debate-then-veto</text>
+    <text x="20" y="368">coder-critic</text>
+    <text x="20" y="390">combined-trendseeker</text>
+  </g>
+
+  <!-- Main panel header -->
+  <text x="270" y="92" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="600" fill="#ffffff">policy-brief-fast</text>
+  <text x="270" y="116" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#888888">debate-then-veto · 2 rounds · streaming</text>
+
+  <!-- Lane: Grok -->
+  <rect x="270" y="140" width="980" height="140" rx="8" fill="#150a04" stroke="#ff6b35" stroke-width="1.5"/>
+  <text x="288" y="166" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#ff6b35">Grok · planner</text>
+  <text x="288" y="194" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#cccccc">Decomposed into 3 sub-questions; assigned to Harper.</text>
+  <text x="288" y="216" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#888888">tool calls: 2 · tokens: 1,420</text>
+
+  <!-- Lane: Harper -->
+  <rect x="270" y="296" width="980" height="140" rx="8" fill="#0a1418" stroke="#5fb3d4" stroke-width="1.5"/>
+  <text x="288" y="322" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#5fb3d4">Harper · researcher</text>
+  <text x="288" y="350" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#cccccc">14 citations · 9 unique domains · 11 cleaned</text>
+  <text x="288" y="372" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#888888">tool calls: 14 · tokens: 6,210</text>
+
+  <!-- Lane: Benjamin -->
+  <rect x="270" y="452" width="980" height="140" rx="8" fill="#161105" stroke="#d3a04a" stroke-width="1.5"/>
+  <text x="288" y="478" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#d3a04a">Benjamin · synthesiser</text>
+  <text x="288" y="506" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#cccccc">Draft v1 · 4 sections · 11 inline citations · 1,840 words</text>
+  <text x="288" y="528" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#888888">tool calls: 0 · tokens: 4,012</text>
+
+  <!-- Lucas verdict card -->
+  <rect x="270" y="608" width="980" height="160" rx="8" fill="#1a0808" stroke="#e85a5a" stroke-width="1.5"/>
+  <text x="288" y="636" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#e85a5a">Lucas · safety verdict</text>
+  <text x="288" y="668" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="700" fill="#28c840">APPROVE</text>
+  <text x="288" y="700" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#cccccc">confidence 0.91 · threshold 0.80</text>
+  <text x="288" y="722" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#888888">"Both flagged claims now carry inline citations to primary sources."</text>
+  <rect x="1080" y="652" width="140" height="40" rx="6" fill="#ff6b35"/>
+  <text x="1150" y="678" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">View report →</text>
+</svg>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Orchestra — multi-agent research with visible debate and an enforceable safety veto</title>
+  <desc id="desc">Branded illustration (not a screenshot). Four labelled coloured dots — Grok, Harper, Benjamin, Lucas — connected to a central "debate" node with the Lucas node holding a gate icon. The product wordmark sits to the right.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d0d"/>
+      <stop offset="60%" stop-color="#1a0d05"/>
+      <stop offset="140%" stop-color="#ff6b35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ff6b35" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ff6b35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="400" fill="url(#bg)"/>
+  <circle cx="430" cy="200" r="240" fill="url(#glow)"/>
+
+  <!-- Connecting lines to centre -->
+  <g stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.5">
+    <line x1="430" y1="200" x2="220" y2="110"/>
+    <line x1="430" y1="200" x2="220" y2="290"/>
+    <line x1="430" y1="200" x2="640" y2="110"/>
+    <line x1="430" y1="200" x2="640" y2="290"/>
+  </g>
+
+  <!-- Centre debate node -->
+  <circle cx="430" cy="200" r="38" fill="#1a0d05" stroke="#ff6b35" stroke-width="2"/>
+  <text x="430" y="206" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#ff6b35">debate</text>
+
+  <!-- Role nodes -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="600" fill="#ffffff">
+    <g>
+      <circle cx="220" cy="110" r="26" fill="#ff6b35"/>
+      <text x="180" y="86" text-anchor="end">Grok</text>
+    </g>
+    <g>
+      <circle cx="220" cy="290" r="26" fill="#5fb3d4"/>
+      <text x="180" y="298" text-anchor="end">Harper</text>
+    </g>
+    <g>
+      <circle cx="640" cy="110" r="26" fill="#d3a04a"/>
+      <text x="680" y="86">Benjamin</text>
+    </g>
+    <g>
+      <!-- Lucas with a small gate glyph -->
+      <circle cx="640" cy="290" r="26" fill="#e85a5a"/>
+      <rect x="630" y="282" width="20" height="16" fill="none" stroke="#ffffff" stroke-width="2" rx="2"/>
+      <line x1="640" y1="282" x2="640" y2="298" stroke="#ffffff" stroke-width="2"/>
+      <text x="680" y="298">Lucas</text>
+    </g>
+  </g>
+
+  <!-- Wordmark + tagline -->
+  <g font-family="Inter, system-ui, sans-serif" fill="#ffffff">
+    <text x="820" y="170" font-size="56" font-weight="700">Agent Orchestra</text>
+    <text x="820" y="210" font-size="20" fill="#ff6b35" font-weight="500">Visible debate. Enforceable veto.</text>
+    <text x="820" y="252" font-size="16" fill="#ffffff" fill-opacity="0.7">A Grok Build Bridge add-on.</text>
+    <text x="820" y="278" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace" fill="#ffffff" fill-opacity="0.5">$ grok-orchestra orchestrate spec.yaml</text>
+  </g>
+</svg>

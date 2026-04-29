@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Orchestra dashboard — courtroom layout</title>
+  <desc id="desc">Branded illustration (not a screenshot). Mockup of the modern dashboard with three speaker lanes (Harper / Benjamin / Grok) below a raised Lucas judge bench. Each lane shows speech-bubble cards; the bench shows the verdict.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0d0d"/>
+      <stop offset="100%" stop-color="#1a0d05"/>
+    </linearGradient>
+    <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a0d0d"/>
+      <stop offset="100%" stop-color="#1a0808"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="800" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <rect x="0" y="0" width="1280" height="56" fill="#141414" stroke="#262626" stroke-width="1"/>
+  <text x="24" y="36" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="600" fill="#ff6b35">Agent Orchestra</text>
+  <text x="200" y="38" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#888888">— courtroom view</text>
+
+  <!-- Judge bench (Lucas) -->
+  <rect x="160" y="100" width="960" height="170" rx="14" fill="url(#bench)" stroke="#e85a5a" stroke-width="2"/>
+  <text x="640" y="138" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#e85a5a">⚖  LUCAS  ·  THE BENCH</text>
+  <text x="640" y="186" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="42" font-weight="700" fill="#28c840">APPROVE</text>
+  <text x="640" y="218" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#cccccc">confidence 0.91 · threshold 0.80</text>
+  <text x="640" y="246" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#888888">"Both flagged claims carry primary-source citations. Ship."</text>
+
+  <!-- Lane: Harper -->
+  <g>
+    <text x="200" y="312" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#5fb3d4">▌ Harper · researcher</text>
+    <rect x="200" y="324" width="280" height="100" rx="14" fill="#0a1418" stroke="#5fb3d4" stroke-width="1.5"/>
+    <text x="216" y="350" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">14 citations across 9 unique</text>
+    <text x="216" y="368" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">domains; 11 cleaned by</text>
+    <text x="216" y="386" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">trafilatura. Three paywalled.</text>
+    <text x="216" y="412" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 6,210</text>
+
+    <rect x="200" y="440" width="280" height="80" rx="14" fill="#0a1418" stroke="#5fb3d4" stroke-width="1.5"/>
+    <text x="216" y="466" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Round 2: pulled 4 follow-up</text>
+    <text x="216" y="484" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">primaries flagged by Lucas.</text>
+    <text x="216" y="508" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 1,840</text>
+  </g>
+
+  <!-- Lane: Benjamin -->
+  <g>
+    <text x="500" y="312" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#d3a04a">▌ Benjamin · synthesiser</text>
+    <rect x="500" y="324" width="280" height="100" rx="14" fill="#161105" stroke="#d3a04a" stroke-width="1.5"/>
+    <text x="516" y="350" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Draft v1 · 4 sections · 1,840</text>
+    <text x="516" y="368" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">words · 11 inline citations.</text>
+    <text x="516" y="386" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Flagged 2 unsupported claims.</text>
+    <text x="516" y="412" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 4,012</text>
+
+    <rect x="500" y="440" width="280" height="80" rx="14" fill="#161105" stroke="#d3a04a" stroke-width="1.5"/>
+    <text x="516" y="466" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Draft v2 · added citations to</text>
+    <text x="516" y="484" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">flagged claims; tightened intro.</text>
+    <text x="516" y="508" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 1,260</text>
+  </g>
+
+  <!-- Lane: Grok -->
+  <g>
+    <text x="800" y="312" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#ff6b35">▌ Grok · planner</text>
+    <rect x="800" y="324" width="280" height="100" rx="14" fill="#150a04" stroke="#ff6b35" stroke-width="1.5"/>
+    <text x="816" y="350" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Decomposed goal into</text>
+    <text x="816" y="368" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">3 sub-questions. Routed</text>
+    <text x="816" y="386" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">to Harper.</text>
+    <text x="816" y="412" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 1,420</text>
+
+    <rect x="800" y="440" width="280" height="80" rx="14" fill="#150a04" stroke="#ff6b35" stroke-width="1.5"/>
+    <text x="816" y="466" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Round 2 plan: focus on</text>
+    <text x="816" y="484" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#cccccc">Lucas's flagged passages.</text>
+    <text x="816" y="508" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#888888">tokens 740</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="640" y="700" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#888888">2 rounds · 47.3 s · 28,402 in / 6,118 out · $0.42</text>
+  <text x="640" y="722" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="#666666">orchestra-events.jsonl · 318 events</text>
+</svg>
