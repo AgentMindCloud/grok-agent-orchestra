@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Orchestra TUI — four streaming role lanes with a Lucas verdict</title>
+  <desc id="desc">Branded illustration (not a screenshot). Stylised Rich-TUI mockup showing four stacked panels — Grok, Harper, Benjamin, Lucas — with placeholder log lines and a final Lucas verdict bar at the bottom showing "approve" with confidence 0.91.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d0d"/>
+      <stop offset="100%" stop-color="#1a0d05"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg)"/>
+
+  <!-- Terminal chrome -->
+  <rect x="40" y="40" width="1120" height="620" rx="10" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="1"/>
+  <rect x="40" y="40" width="1120" height="32" rx="10" fill="#1c1c1c"/>
+  <circle cx="62" cy="56" r="6" fill="#ff5f57"/>
+  <circle cx="82" cy="56" r="6" fill="#febc2e"/>
+  <circle cx="102" cy="56" r="6" fill="#28c840"/>
+  <text x="600" y="60" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="12" fill="#888888">grok-orchestra orchestrate research.yaml</text>
+
+  <!-- Role lane: Grok -->
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="13">
+    <rect x="60" y="92" width="1080" height="120" fill="#150a04" stroke="#ff6b35" stroke-width="1.5" rx="6"/>
+    <text x="76" y="112" fill="#ff6b35" font-weight="700">▌ Grok · planner</text>
+    <text x="76" y="138" fill="#ffffff" fill-opacity="0.85">▸ split goal into 3 sub-questions; web_search for each</text>
+    <text x="76" y="158" fill="#ffffff" fill-opacity="0.6">▸ tool call: tavily_search(q="agent orchestration 2026")</text>
+    <text x="76" y="178" fill="#ffffff" fill-opacity="0.6">▸ pass control → Harper for citation pull</text>
+  </g>
+
+  <!-- Role lane: Harper -->
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="13">
+    <rect x="60" y="222" width="1080" height="120" fill="#0a1418" stroke="#5fb3d4" stroke-width="1.5" rx="6"/>
+    <text x="76" y="242" fill="#5fb3d4" font-weight="700">▌ Harper · researcher</text>
+    <text x="76" y="268" fill="#ffffff" fill-opacity="0.85">▸ collected 14 candidate citations across 9 unique domains</text>
+    <text x="76" y="288" fill="#ffffff" fill-opacity="0.6">▸ trafilatura cleaned 11/14; 3 dropped (paywall / 403)</text>
+    <text x="76" y="308" fill="#ffffff" fill-opacity="0.6">▸ pass control → Benjamin for synthesis</text>
+  </g>
+
+  <!-- Role lane: Benjamin -->
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="13">
+    <rect x="60" y="352" width="1080" height="120" fill="#161105" stroke="#d3a04a" stroke-width="1.5" rx="6"/>
+    <text x="76" y="372" fill="#d3a04a" font-weight="700">▌ Benjamin · synthesiser</text>
+    <text x="76" y="398" fill="#ffffff" fill-opacity="0.85">▸ draft v1: 4 sections, 11 inline citations, 1,840 words</text>
+    <text x="76" y="418" fill="#ffffff" fill-opacity="0.6">▸ flagged 2 unsupported claims for Lucas review</text>
+    <text x="76" y="438" fill="#ffffff" fill-opacity="0.6">▸ pass control → Lucas for veto</text>
+  </g>
+
+  <!-- Lucas verdict bar -->
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="13">
+    <rect x="60" y="482" width="1080" height="80" fill="#1a0808" stroke="#e85a5a" stroke-width="1.5" rx="6"/>
+    <text x="76" y="504" fill="#e85a5a" font-weight="700">▌ Lucas · safety veto</text>
+    <text x="76" y="528" fill="#ffffff" fill-opacity="0.85">▸ verdict: APPROVE  · confidence: 0.91  · threshold: 0.80</text>
+    <text x="76" y="548" fill="#ffffff" fill-opacity="0.6">▸ both flagged claims now have inline citations; ship.</text>
+  </g>
+
+  <!-- Status footer -->
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="12">
+    <text x="60" y="606" fill="#888888">elapsed: 47.3s · tokens: 28,402 in / 6,118 out · cost: $0.42</text>
+    <text x="60" y="630" fill="#28c840">✓ run complete · exit 0 · artefacts: report.md, orchestra-events.jsonl</text>
+  </g>
+</svg>

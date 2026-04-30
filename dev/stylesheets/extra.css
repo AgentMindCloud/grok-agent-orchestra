@@ -1,0 +1,85 @@
+/* -----------------------------------------------------------------------------
+ * Agent Orchestra — premium accents over Material's default theme.
+ *
+ * Goals:
+ *   - Grok-orange primary that reads on both light + dark.
+ *   - Card grid for the hero.
+ *   - Code blocks with a touch more breathing room than default.
+ *   - Subtle "kbd-style" inline tag for env-var names.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  --md-primary-fg-color:        #FF7A00;
+  --md-primary-fg-color--light: #FF9333;
+  --md-primary-fg-color--dark:  #C45F00;
+  --md-accent-fg-color:         #FF9333;
+  --md-typeset-a-color:         #C45F00;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #FF9333;
+  --md-primary-fg-color--light: #FFB36B;
+  --md-primary-fg-color--dark:  #FF7A00;
+  --md-accent-fg-color:         #FFB36B;
+  --md-typeset-a-color:         #FF9333;
+}
+
+/* Slightly tighter type for body, slightly louder headings. */
+.md-typeset h1 {
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+.md-typeset h2 {
+  letter-spacing: -0.005em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  padding-bottom: 0.25rem;
+}
+
+/* Hero card grid — used on the index page. */
+.orchestra-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 1.5rem 0 2rem;
+}
+.orchestra-card {
+  display: block;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 10px;
+  background: var(--md-default-bg-color);
+  text-decoration: none !important;
+  color: var(--md-default-fg-color) !important;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+.orchestra-card:hover {
+  border-color: var(--md-primary-fg-color);
+  transform: translateY(-2px);
+}
+.orchestra-card h3 {
+  margin: 0 0 0.25rem 0;
+  color: var(--md-primary-fg-color);
+  font-weight: 700;
+}
+.orchestra-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Pill for env-var names so they read like instructions, not prose. */
+.md-typeset code.envvar,
+.md-typeset .envvar {
+  background: var(--md-primary-fg-color--light);
+  color: #1a0d00;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-family: var(--md-code-font-family);
+  font-size: 0.86em;
+}
+
+/* Mermaid diagrams — keep the background transparent so the page tone wins. */
+.mermaid svg { background: transparent !important; }
+
+/* Tighten admonition headers so they don't dominate short notes. */
+.md-typeset .admonition-title { font-weight: 600; letter-spacing: 0; }
