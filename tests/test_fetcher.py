@@ -158,3 +158,12 @@ def test_allowed_domain_acts_as_strict_allowlist(tmp_path: Path) -> None:
         ["https://example.org/x", "https://other.com/y"]
     )
     assert {p.url for p in pages} == {"https://example.org/x"}
+
+
+def test_fetcher_base_class_raises_with_helpful_message() -> None:
+    """The marker base class explains itself when a subclass forgets to override."""
+    from grok_orchestra.sources.fetcher import Fetcher
+
+    base = Fetcher()
+    with pytest.raises(NotImplementedError, match="must be implemented"):
+        base.fetch_many(["https://example.org"])

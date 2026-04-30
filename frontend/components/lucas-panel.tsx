@@ -48,6 +48,9 @@ export function LucasPanel({ state, className }: LucasPanelProps): JSX.Element {
   const liveRegionRef = useRef<HTMLDivElement>(null);
 
   // Announce vetoes to assistive tech via a polite live region.
+  // Depending on `state.verdicts` would re-fire on every push (each new
+  // event mutates the array), re-announcing the same verdict. Keying on
+  // `lastVerdictId` is the intended behaviour.
   useEffect(() => {
     if (!liveRegionRef.current) return;
     const last = state.verdicts.at(-1);
@@ -56,6 +59,7 @@ export function LucasPanel({ state, className }: LucasPanelProps): JSX.Element {
       last.kind === "vetoed"
         ? `Lucas vetoed: ${last.reason ?? "no reason given"}`
         : `Lucas approved with confidence ${last.confidence?.toFixed(2) ?? "n/a"}.`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastVerdictId]);
 
   const conf = state.confidence ?? 0;

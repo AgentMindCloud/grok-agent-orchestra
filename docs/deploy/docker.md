@@ -54,7 +54,7 @@ Smoke-test:
 | `ANTHROPIC_API_KEY` | optional | Per-role override. |
 | `TAVILY_API_KEY` | optional | Web search. |
 | `REPLICATE_API_TOKEN` | optional | Flux image generation. |
-| `LANGSMITH_API_KEY` / `LANGFUSE_*` / `OTEL_*` | optional | Tracing. |
+| `LANGSMITH_API_KEY` / `OTEL_*` | optional | Tracing. |
 | `GROK_ORCHESTRA_WORKSPACE` | optional | Where runs/reports/cache land. Default `~/.grok-orchestra`. |
 
 ## Persistence

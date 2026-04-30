@@ -1,12 +1,18 @@
 # -----------------------------------------------------------------------------
-# Publish grok-agent-orchestra to PyPI on a v*.*.* tag push.
+# Publish grok-agent-orchestra to PyPI.
 #
-# Trusted-publishing (OIDC) is the default — configure the project on
-# https://pypi.org/manage/account/publishing/ with:
-#   owner:   AgentMindCloud
-#   repo:    grok-agent-orchestra
-#   workflow: publish.yml
-#   environment: pypi
+# **Manual-only until OIDC is provisioned.** Trigger via GitHub Actions
+# UI → publish → "Run workflow" → input the tag (`v0.1.0`). To return
+# to auto-publish-on-tag, uncomment the `push.tags` block below after
+# completing the one-time PyPI setup described next.
+#
+# One-time PyPI setup:
+#   https://pypi.org/manage/account/publishing/ — add a pending publisher
+#   with:
+#     owner:    AgentMindCloud
+#     repo:     grok-agent-orchestra
+#     workflow: publish.yml
+#     environment: pypi
 #
 # Token fallback (only if OIDC is unavailable):
 #   1. Generate a project-scoped API token on PyPI.
@@ -19,9 +25,10 @@
 name: publish
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  # Auto-publish-on-tag is currently disabled. Re-enable by uncommenting:
+  # push:
+  #   tags:
+  #     - "v*.*.*"
   workflow_dispatch:
     inputs:
       ref:

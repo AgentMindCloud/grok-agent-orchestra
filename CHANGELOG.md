@@ -10,82 +10,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added — Launch-prep pass (Bridge-paired v0.1.0)
-
-- **`docs/integrations/build-bridge.md`** — canonical pairing guide
-  covering install order, Mode A (Bridge-led, the
-  `safety.lucas_veto_enabled: true` hook) and Mode B (Orchestra-led,
-  the `combined: true` runtime), the shared CLI / exit-code matrix,
-  the exact Bridge surface Orchestra imports, and the alpha-pin
-  caveat. Wired into the Integrations nav in `mkdocs.yml`.
-- **Community standards files** — `CONTRIBUTING.md`, `SUPPORT.md`,
-  `.github/FUNDING.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, and four
-  issue templates (`config.yml`, `bug_report.yml`,
-  `feature_request.yml`, `template_proposal.yml`). The Community
-  Standards page on GitHub now goes green.
-- **Six branded SVG illustrations** under `docs/images/` —
-  `hero.svg`, `tui-demo.svg`, `web-ui.svg`, `web-ui-modern.svg`,
-  `report-sample.svg`, `trace-langsmith.svg`. Each carries a
-  `<desc>` noting it's an illustration not a screenshot. Replaces
-  the empty `*.png.placeholder` markers; real screenshots will land
-  post-launch via `scripts/capture-demo.mjs`.
-- **CI Bridge stub at `tools/bridge-stub/`** — a minimal installable
-  shim that satisfies Orchestra's `grok-build-bridge>=0.1,<1`
-  runtime dep in environments where the real Bridge package isn't on
-  PyPI yet (currently: `safety-scan` + `docs` workflows). Drop the
-  day Bridge publishes.
-
-### Changed — Bridge-paired reframing
-
-- **`README.md`** — added a prominent "Requires Build Bridge" callout
-  near the top, dropped the "PyPI coming in v0.1.0", "Docker coming
-  soon", and "Discord coming soon" badges, switched all image
-  references from `.gif`/`.png` to the new branded `.svg`s, dropped
-  the "free on your laptop, no keys" framing in favour of accurate
-  per-tier cost language, reframed install order as "Bridge first,
-  Orchestra second", reframed the VS Code section as
-  build-from-source-only, removed the Discord roadmap entry.
-- **`docs/index.md`**, **`docs/community/launch-posts.md`** — same
-  reframing: drop Discord, drop "runs free on your laptop with
-  Ollama" pitch, replace with Bridge-paired + adapters-extra story.
-- **`docs/integrations/vscode.md`**, **`extensions/vscode/README.md`**,
-  **`extensions/vscode/CHANGELOG.md`** — drop Marketplace install
-  recipe; only the local-build-`.vsix`-sideload flow is documented.
-  Marketplace publishing reactivates with v1.x.
-- **`.github/workflows/vscode-extension.yml`** — `vsce publish` step
-  + `vscode-v*` tag trigger commented out with reactivation
-  instructions.
-- **`frontend/README.md`** — added a one-paragraph note explaining
-  that the first contributor to run `pnpm install` should commit
-  the resulting `pnpm-lock.yaml`.
-
-### Fixed
-
-- **`safety-scan` CI job** — `pip-audit` couldn't resolve
-  `grok-build-bridge` from PyPI and bailed before scanning the rest
-  of the deps. Filter the line out before passing
-  `requirements.txt` to pip-audit (an unpublished package can't
-  have a known CVE).
-- **`docs` CI job** — `mkdocstrings` imports `grok_orchestra.*` to
-  render API reference pages, which transitively imports
-  `grok_build_bridge`. Install the new `tools/bridge-stub/` shim
-  before installing Orchestra.
-- **Latent `[tracing]` ResolutionImpossible** — `langfuse 2.x` pins
-  `packaging<25` while every published `xai-sdk` pins
-  `packaging>=25,<26`, so `pip install [tracing]` has been broken
-  since the project started. Drop `langfuse` from the `tracing`
-  extra (`langsmith` + `opentelemetry` remain). Update the runtime
-  ImportError hint in `grok_orchestra/tracing/langfuse_tracer.py` to
-  recommend the OTLP tracer or a manual langfuse install. The
-  langfuse 3.x adapter migration is queued for a later release.
-
-### Removed
-
-- Local `v1.0.0` git tag (was never pushed; aspirational; the
-  Bridge-paired release line uses `v0.1.0`).
-- The empty `docs/images/*.png.placeholder` marker files (replaced
-  by the real SVG illustrations).
-
 ## Earlier
 
 ### Added — Public head-to-head benchmark harness (Prompt 19)
@@ -1195,12 +1119,63 @@ reach rather than touching the core.
   short-circuits to `console.print(final_content)` and returns the
   `stdout://` sentinel instead of dispatching to Bridge.
 
-## [0.1.0] - 2026-04-25
+## [0.1.0] - 2026-04-30
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok
 4.20 multi-agent run — either xAI-native (`grok-4.20-multi-agent-0309`) or a
 visible prompt-simulated debate between Grok / Harper / Benjamin / Lucas —
-with a real safety veto before anything ships.
+with a real safety veto before anything ships. **Pairs with
+[Grok Build Bridge](https://github.com/agentmindcloud/grok-build-bridge)**;
+install Bridge first, Orchestra second.
+
+### Added — Launch-prep pass (Bridge-paired)
+
+- **`docs/integrations/build-bridge.md`** — canonical pairing guide
+  covering install order, Mode A (Bridge-led, the
+  `safety.lucas_veto_enabled: true` hook) and Mode B (Orchestra-led,
+  the `combined: true` runtime), the shared CLI / exit-code matrix,
+  the exact Bridge surface Orchestra imports, and the alpha-pin
+  caveat. Wired into the Integrations nav in `mkdocs.yml`.
+- **Community standards files** — `CONTRIBUTING.md`, `SUPPORT.md`,
+  `.github/FUNDING.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, and four
+  issue templates (`config.yml`, `bug_report.yml`,
+  `feature_request.yml`, `template_proposal.yml`).
+- **Six branded SVG illustrations** under `docs/images/` —
+  `hero.svg`, `tui-demo.svg`, `web-ui.svg`, `web-ui-modern.svg`,
+  `report-sample.svg`, `trace-langsmith.svg`. Each carries a
+  `<desc>` noting it's an illustration not a screenshot. Real
+  screenshots land post-launch via `scripts/capture-demo.mjs`.
+- **CI Bridge stub at `tools/bridge-stub/`** — a minimal installable
+  shim that satisfies Orchestra's `grok-build-bridge>=0.1,<1` runtime
+  dep until Bridge ships on PyPI. Used by `safety-scan` + `docs` +
+  `test` workflows.
+- **`POST /api/dry-run` and `POST /api/validate`** are now gated by
+  `auth_dep` when `GROK_ORCHESTRA_AUTH_PASSWORD` is set — closes a
+  quota-burn gap on publicly-exposed deploys with auth enabled.
+- **CI `version-check` job** enforces lockstep across `pyproject.toml`,
+  `grok_orchestra/__init__.py`, `frontend/package.json`,
+  `extensions/vscode/package.json`. Catches the next version-string
+  drift before it ships.
+
+### Removed (pre-launch)
+
+- **Search providers `BraveProvider`, `BingProvider`, `SerpAPIProvider`**
+  shipped as skeletons that raised `SourceError("skeleton")` on first
+  use. Removed to keep the public surface honest. The plug-in interface
+  is unchanged; users can still register their own backends via
+  `@register_provider`. Reinstate via PR with a real implementation +
+  tests.
+- **`StableDiffusionProvider`** — same pattern. `flux` and `grok`
+  remain as image backends.
+- **`LangfuseTracer`** — `langfuse 2.x` had a hard `packaging<25`
+  conflict with `xai-sdk`'s `>=25,<26`, and the 3.x adapter wasn't
+  ready in time. Tracing falls back to `LangSmithTracer` or
+  `OTelTracer` (both supported). The Langfuse adapter returns when
+  the 3.x migration lands.
+- **`stream_debate(events)` async wrapper** in
+  `grok_orchestra/streaming.py` — was a stub raising
+  `NotImplementedError("session 10")`, never imported. Resurrects
+  when the full TUI pipeline ships.
 
 ### Added
 - **Parser + schema**. Draft 2020-12 runtime schema at

@@ -12,8 +12,6 @@ def _scrub_tracer_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Each test starts with no tracing backend selected."""
     for name in (
         "LANGSMITH_API_KEY",
-        "LANGFUSE_PUBLIC_KEY",
-        "LANGFUSE_SECRET_KEY",
         "OTEL_EXPORTER_OTLP_ENDPOINT",
     ):
         monkeypatch.delenv(name, raising=False)

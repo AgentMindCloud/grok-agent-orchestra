@@ -749,14 +749,11 @@ def _trace_info(ctx: typer.Context) -> None:
         "enabled": bool(tracer.enabled),
         "selectors": {
             "LANGSMITH_API_KEY": _bool_env("LANGSMITH_API_KEY"),
-            "LANGFUSE_PUBLIC_KEY": _bool_env("LANGFUSE_PUBLIC_KEY"),
-            "LANGFUSE_SECRET_KEY": _bool_env("LANGFUSE_SECRET_KEY"),
             "OTEL_EXPORTER_OTLP_ENDPOINT": _bool_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
         },
         "config": {
             "LANGSMITH_PROJECT": _os.environ.get("LANGSMITH_PROJECT") or None,
             "LANGSMITH_SAMPLE_RATE": _os.environ.get("LANGSMITH_SAMPLE_RATE") or None,
-            "LANGFUSE_HOST": _os.environ.get("LANGFUSE_HOST") or None,
             "OTEL_SERVICE_NAME": _os.environ.get("OTEL_SERVICE_NAME") or None,
         },
     }
@@ -782,8 +779,8 @@ def _trace_info(ctx: typer.Context) -> None:
     if not snapshot["enabled"]:
         state.console.print(
             Text(
-                "Tracing is OFF. Set LANGSMITH_API_KEY, LANGFUSE_PUBLIC_KEY+LANGFUSE_SECRET_KEY, "
-                "or OTEL_EXPORTER_OTLP_ENDPOINT to enable.",
+                "Tracing is OFF. Set LANGSMITH_API_KEY or "
+                "OTEL_EXPORTER_OTLP_ENDPOINT to enable.",
                 style="dim",
             )
         )
@@ -801,9 +798,8 @@ def _trace_test(ctx: typer.Context) -> None:
         _emit_error(
             state,
             RuntimeError(
-                "tracing is OFF — no backend is selected. Set LANGSMITH_API_KEY / "
-                "LANGFUSE_PUBLIC_KEY+LANGFUSE_SECRET_KEY / OTEL_EXPORTER_OTLP_ENDPOINT "
-                "and retry."
+                "tracing is OFF — no backend is selected. Set LANGSMITH_API_KEY "
+                "or OTEL_EXPORTER_OTLP_ENDPOINT and retry."
             ),
             title="grok-orchestra · trace test",
         )

@@ -219,7 +219,7 @@ def create_app() -> FastAPI:
     # POST /api/validate
     # ------------------------------------------------------------------ #
 
-    @app.post("/api/validate")
+    @app.post("/api/validate", dependencies=[auth_dep])
     async def validate(body: ValidateBody) -> JSONResponse:
         try:
             parsed = parse_yaml_text(body.yaml)
@@ -248,7 +248,7 @@ def create_app() -> FastAPI:
     # POST /api/dry-run  →  synchronous, returns full event list.
     # ------------------------------------------------------------------ #
 
-    @app.post("/api/dry-run")
+    @app.post("/api/dry-run", dependencies=[auth_dep])
     async def dry_run(body: DryRunBody) -> JSONResponse:
         try:
             config = parse_yaml_text(body.yaml)

@@ -2,7 +2,7 @@
 
 Callers don't talk to backend SDKs directly — they go through this
 Protocol. The backend implementations live in
-``grok_orchestra.tracing.{noop,langsmith_tracer,langfuse_tracer,otel_tracer}``.
+``grok_orchestra.tracing.{noop,langsmith_tracer,otel_tracer}``.
 """
 
 from __future__ import annotations

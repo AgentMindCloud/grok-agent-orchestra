@@ -8,8 +8,6 @@ swaps in a real tracer at next call to :func:`get_tracer`:
 Backend       Activator env vars                  Backend lib
 ============= =================================== =================
 LangSmith     ``LANGSMITH_API_KEY``               ``langsmith``
-Langfuse      ``LANGFUSE_PUBLIC_KEY`` +
-              ``LANGFUSE_SECRET_KEY``             ``langfuse``
 OTel / OTLP   ``OTEL_EXPORTER_OTLP_ENDPOINT``     ``opentelemetry-sdk``
 ============= =================================== =================
 
@@ -32,8 +30,8 @@ Span hierarchy
 BYOK contract
 -------------
 Tracer backends are *opt-in*. The framework never embeds a key, never
-logs raw values (including LangSmith / Langfuse / OTLP credentials),
-and runs the :mod:`grok_orchestra.tracing.scrubber` over every span's
+logs raw values (including LangSmith / OTLP credentials), and runs the
+:mod:`grok_orchestra.tracing.scrubber` over every span's
 inputs/outputs/errors before handing them to the backend.
 """
 

@@ -139,6 +139,27 @@ jobs:
               raise SystemExit(1)
           PY
 
+  version-check:
+    # Catches the same drift that put `frontend/package.json` on
+    # `1.0.0` while every other version marker was on `0.1.0`. All four
+    # surfaces ship together; their version strings must match.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: All four version markers in lockstep
+        run: |
+          PY=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          INIT=$(python -c "import re; print(re.search(r'__version__ = \"([^\"]+)\"', open('grok_orchestra/__init__.py').read()).group(1))")
+          FE=$(python -c "import json; print(json.load(open('frontend/package.json'))['version'])")
+          VS=$(python -c "import json; print(json.load(open('extensions/vscode/package.json'))['version'])")
+          echo "pyproject=$PY  __init__=$INIT  frontend=$FE  vscode=$VS"
+          if [ "$PY" != "$INIT" ] || [ "$PY" != "$FE" ] || [ "$PY" != "$VS" ]; then
+            echo "::error::Version drift detected. All four files must declare the same version."
+            exit 1
+          fi
+
   safety-scan:
     runs-on: ubuntu-latest
     steps:
@@ -158,7 +179,7 @@ jobs:
           pip-audit --requirement /tmp/req-public.txt --strict
 
   build:
-    needs: [lint, test, schema-check]
+    needs: [lint, test, schema-check, version-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

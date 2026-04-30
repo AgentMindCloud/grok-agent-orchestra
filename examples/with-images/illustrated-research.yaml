@@ -50,7 +50,7 @@ goal: |
 publisher:
   images:
     enabled: true
-    provider: flux                  # grok | flux | stable_diffusion
+    provider: flux                  # grok | flux
     budget: 4                       # max images this run
     cover: true
     section_illustrations: 2        # adds findings + analysis illustrations

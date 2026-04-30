@@ -128,6 +128,14 @@ Roughly 2–3 minutes from tag push to "Available on PyPI".
 
 In a fresh virtual environment:
 
+> **Note while Bridge isn't on PyPI yet.** `grok-agent-orchestra`'s
+> import guard requires `grok_build_bridge` at runtime, so the
+> verification install needs Bridge available too. Either install the
+> repo-local stub first (`pip install ./tools/bridge-stub`) or
+> `pip install git+https://github.com/agentmindcloud/grok-build-bridge.git@main`
+> before installing Orchestra. Drop this paragraph the day Bridge
+> ships on PyPI.
+
 ```bash
 python -m venv /tmp/verify-orchestra
 source /tmp/verify-orchestra/bin/activate

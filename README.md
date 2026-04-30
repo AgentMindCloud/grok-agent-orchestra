@@ -287,7 +287,7 @@ YAML shape (defaults shown):
 ```yaml
 sources:
   - type: web
-    provider: tavily              # default; serpapi / bing / brave skeletons exist
+    provider: tavily              # default; bring your own via @register_provider
     max_results_per_query: 5
     fetch_top_k: 5
     allow_js: false               # set true to use Playwright fallback (extra: [js])
@@ -369,7 +369,6 @@ Tracing is **opt-in**. The framework ships with a zero-overhead `NoOpTracer` so 
 | Backend | Activator env var(s) |
 | --- | --- |
 | **LangSmith** (primary) | `LANGSMITH_API_KEY` (+ optional `LANGSMITH_PROJECT`, `LANGSMITH_SAMPLE_RATE`) |
-| **Langfuse** | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` (+ optional `LANGFUSE_HOST`) |
 | **OTLP** (Jaeger / Tempo / Honeycomb / …) | `OTEL_EXPORTER_OTLP_ENDPOINT` |
 
 ```bash
@@ -403,7 +402,7 @@ Reports can carry an auto-generated cover + section illustrations. Default OFF; 
 publisher:
   images:
     enabled: true
-    provider: flux              # grok (stub today) | flux | stable_diffusion
+    provider: flux              # grok (stub today) | flux
     budget: 4                   # max images per run
     cover: true
     section_illustrations: 2

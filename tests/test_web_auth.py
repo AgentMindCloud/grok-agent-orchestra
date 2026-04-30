@@ -110,3 +110,46 @@ def test_status_reports_required_under_auth(
         body = r.json()
         assert body["required"] is True
         assert body["authenticated"] is False
+
+
+# --------------------------------------------------------------------------- #
+# /api/dry-run + /api/validate must follow the same gate as /api/run —
+# anonymous quota-burn through dry-run was the original gap.
+# --------------------------------------------------------------------------- #
+
+
+def test_dry_run_requires_session_when_auth_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GROK_ORCHESTRA_AUTH_PASSWORD", "hunter2")
+    with _client() as c:
+        r = c.post("/api/dry-run", json={"yaml": YAML})
+        assert r.status_code == 401
+
+
+def test_dry_run_open_when_auth_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GROK_ORCHESTRA_AUTH_PASSWORD", raising=False)
+    with _client() as c:
+        r = c.post("/api/dry-run", json={"yaml": YAML})
+        # 200 (dry-run completed) or 400 (yaml rejected) — but never 401.
+        assert r.status_code != 401
+
+
+def test_validate_requires_session_when_auth_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GROK_ORCHESTRA_AUTH_PASSWORD", "hunter2")
+    with _client() as c:
+        r = c.post("/api/validate", json={"yaml": YAML})
+        assert r.status_code == 401
+
+
+def test_validate_open_when_auth_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GROK_ORCHESTRA_AUTH_PASSWORD", raising=False)
+    with _client() as c:
+        r = c.post("/api/validate", json={"yaml": YAML})
+        assert r.status_code != 401
