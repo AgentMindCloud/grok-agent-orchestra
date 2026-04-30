@@ -5,11 +5,11 @@ export const metadata = {
   description: "Authenticate to access the Agent Orchestra dashboard.",
 };
 
-interface LoginPageProps {
-  searchParams: { next?: string };
-}
-
-export default function LoginPage({ searchParams }: LoginPageProps): JSX.Element {
+// Statically rendered shell — `?next=…` is read by `LoginForm` via
+// `useSearchParams()` so this page can be pre-rendered for the static
+// export target. Reading `searchParams` here would force dynamic
+// rendering and the export build would fail.
+export default function LoginPage(): JSX.Element {
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center">
       <div className="space-y-6">
@@ -24,7 +24,7 @@ export default function LoginPage({ searchParams }: LoginPageProps): JSX.Element
             to continue.
           </p>
         </div>
-        <LoginForm next={searchParams.next ?? "/"} />
+        <LoginForm />
       </div>
     </div>
   );

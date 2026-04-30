@@ -97,7 +97,7 @@ export class RemoteClient implements OrchestrationClient {
 
     let lastEventCount = 0;
     let lastDetail: ServerRunDetail | undefined;
-    while (true) {
+    for (;;) {
       if (options.signal?.aborted) {
         return this.failure("run cancelled", -1, runId, lastDetail);
       }

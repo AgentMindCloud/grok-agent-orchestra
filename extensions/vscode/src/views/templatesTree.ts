@@ -57,7 +57,7 @@ export class TemplatesTreeProvider implements vscode.TreeDataProvider<Node> {
   }
 
   getTreeItem(node: Node): vscode.TreeItem {
-    if ("kind" in node && node.kind === "category") {
+    if ("kind" in node) {
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.iconPath = new vscode.ThemeIcon("folder");
       item.contextValue = "category";

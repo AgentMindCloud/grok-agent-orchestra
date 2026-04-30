@@ -25,7 +25,10 @@ async function load(): Promise<SentryAPI | null> {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
   if (!dsn) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // `@sentry/nextjs` is an optional runtime dep — never installed by
+    // default, only loaded if a DSN is configured. Type declarations live
+    // alongside this file in `sentry.d.ts` so the dynamic import stays
+    // typed without forcing the package into the dependency tree.
     const Sentry = (await import(/* @vite-ignore */ "@sentry/nextjs").catch(
       () => null,
     )) as { init?: (opts: unknown) => void; captureException?: (e: unknown) => void } | null;

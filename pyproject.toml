@@ -215,6 +215,20 @@ ignore = ["E501"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.coverage.run]
+# Modules gated behind optional extras — `[publish]`, `[tracing]`, `[images]`,
+# `[mcp]`. The base test job intentionally installs only the runtime + web
+# tier, so these files would always show 0% and drag the gate down without
+# representing real lint regressions. Coverage for them lives in dedicated
+# extras-test jobs (langfuse + otel + docx + mcp) once those settle.
+omit = [
+    "grok_orchestra/images_runner.py",
+    "grok_orchestra/publisher/_docx.py",
+    "grok_orchestra/sources/_mcp_backend.py",
+    "grok_orchestra/tracing/langfuse_tracer.py",
+    "grok_orchestra/tracing/otel_tracer.py",
+]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true

@@ -6,7 +6,9 @@ inside a side-panel webview; Lucas's strict-JSON pass either approves
 or vetoes the synthesis before it ships. The full framework lives at
 [**grok-agent-orchestra**](https://github.com/agentmindcloud/grok-agent-orchestra).
 
-![Agent Orchestra · debate panel](https://raw.githubusercontent.com/agentmindcloud/grok-agent-orchestra/main/docs/images/web-ui-modern.svg)
+> The full UI walkthrough lives on the project page — Marketplace
+> publishing rejects SVG previews and the bitmap captures aren't
+> branded yet. Coming back as PNG before the v1.0 listing.
 
 ## Features
 
