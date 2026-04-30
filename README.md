@@ -67,31 +67,6 @@ Honest tradeoffs:
 
 Bridge sits underneath every tier — Orchestra never bypasses it. Run `grok-orchestra doctor` to see which tiers your machine has live right now.
 
-## Compared to GPT-Researcher
-
-[gpt-researcher](https://github.com/assafelovic/gpt-researcher) is the reference competitor. Honest scorecard:
-
-| Capability | Grok Agent Orchestra | GPT-Researcher |
-| --- | --- | --- |
-| Multi-agent debate | ✅ Visible & streamed | ❌ Hidden |
-| Safety veto layer | ✅ Lucas (fail-closed) | ❌ |
-| Native Grok multi-agent endpoint | ✅ | ❌ |
-| Build Bridge integration | ✅ Mode A (Bridge-led) + Mode B (combined runtime) | n/a |
-| Local docs ingest | 🟡 Roadmap | ✅ |
-| Web UI | ✅ Modern Next.js with real-time tree + lane views | ✅ |
-| Typed frontend client (TS) | ✅ `frontend/lib/api-client.ts` + WS hook | 🟡 |
-| Optional auth (shared password) | ✅ env-gated, off by default | ❌ |
-| Live web research | ✅ Tavily + cited findings | ✅ |
-| `pip install` from PyPI | 🟡 alpha-paired with Bridge — install from GitHub today | ✅ |
-| Multi-arch Docker image | ✅ amd64 + arm64 on `ghcr.io` | 🟡 |
-| Pluggable LLMs (BYOK) | ✅ Grok native + LiteLLM adapter | ✅ |
-| Inline image generation in reports | ✅ Flux/Replicate (Grok stub for future) | ✅ Gemini |
-| MCP (Model Context Protocol) client | ✅ stdio + HTTP transports, read-only gate | ❌ |
-| Claude Skill | ✅ ships at `skills/agent-orchestra/` (local + remote) | ❌ |
-| VS Code extension | ✅ Full extension with live debate panel | ❌ |
-
-🟡 = on the roadmap, see [Roadmap](#roadmap). We won't claim a checkmark we can't back.
-
 ## Benchmarks
 
 Agent Orchestra ships a public head-to-head benchmark harness at
@@ -692,4 +667,4 @@ for the full flow. Short version:
 
 Apache 2.0 — see [`LICENSE`](LICENSE). Use it, fork it, ship it. Lucas still has to sign off.
 
-Built on top of [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) and the [xAI SDK](https://docs.x.ai/). Inspired in spirit (and benchmarked against) [assafelovic/gpt-researcher](https://github.com/assafelovic/gpt-researcher).
+Built on top of [`grok-build-bridge`](https://github.com/agentmindcloud/grok-build-bridge) and the [xAI SDK](https://docs.x.ai/). Inspired in spirit by [assafelovic/gpt-researcher](https://github.com/assafelovic/gpt-researcher); the [`benchmarks/`](benchmarks/) harness runs head-to-head once API keys are configured.
