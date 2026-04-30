@@ -34,7 +34,7 @@ The Publisher layout is fixed:
 publisher:
   images:
     enabled: true
-    provider: flux            # grok | flux | stable_diffusion | stub
+    provider: flux            # grok | flux | stub
     budget: 3                 # max images per report
     cover: true
     section_illustrations: 2  # first N sections get an illo

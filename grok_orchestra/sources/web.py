@@ -6,7 +6,7 @@ This is the source the runner invokes when YAML carries:
 
     sources:
       - type: web
-        provider: tavily              # default; can be serpapi/bing/brave
+        provider: tavily              # default; pluggable via @register_provider
         max_results_per_query: 5
         allow_js: false
         allowed_domains: []

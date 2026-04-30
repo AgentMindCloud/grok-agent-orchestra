@@ -1,3 +1,21 @@
+import { createRequire } from "node:module";
+
+const requireFromHere = createRequire(import.meta.url);
+
+// `@sentry/nextjs` is an optional runtime dep — `lib/sentry.ts`
+// dynamic-imports it inside a `.catch(() => null)` so the absence is
+// handled gracefully. Webpack still resolves dynamic imports at build
+// time though, so without this probe a fresh `pnpm install` (no Sentry)
+// would fail `next build` on the import alone. Alias the package to
+// `false` only when it isn't installed.
+let sentryInstalled = false;
+try {
+  requireFromHere.resolve("@sentry/nextjs");
+  sentryInstalled = true;
+} catch {
+  sentryInstalled = false;
+}
+
 /** @type {import('next').NextConfig} */
 const baseConfig = {
   reactStrictMode: true,
@@ -13,8 +31,16 @@ const baseConfig = {
   },
   // Custom webpack tweaks:
   // - Tree-shake Radix harder by ensuring side-effect-free re-exports.
+  // - Skip the `@sentry/nextjs` resolve when it isn't installed so the
+  //   optional integration stays truly optional.
   webpack: (config) => {
     config.resolve.fallback = { ...(config.resolve.fallback ?? {}), fs: false };
+    if (!sentryInstalled) {
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        "@sentry/nextjs": false,
+      };
+    }
     return config;
   },
 };

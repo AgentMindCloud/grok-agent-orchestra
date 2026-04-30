@@ -77,7 +77,9 @@ class Fetcher:
         *,
         on_event: Any | None = None,
     ) -> list[FetchedPage]:
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"{type(self).__name__}.fetch_many() must be implemented by Fetcher subclasses"
+        )
 
 
 # --------------------------------------------------------------------------- #

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +13,12 @@ import {
 import { ApiClient } from "@/lib/api-client";
 import { login } from "@/lib/auth";
 
-interface LoginFormProps {
-  next: string;
-}
-
-export function LoginForm({ next }: LoginFormProps): JSX.Element {
+// `useSearchParams()` reads `?next=…` on the client, so the parent
+// page stays statically renderable for the export target.
+function LoginFormInner(): JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams?.get("next") ?? "/";
   const [pwd, setPwd] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,5 +75,26 @@ export function LoginForm({ next }: LoginFormProps): JSX.Element {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+// `useSearchParams()` needs a Suspense boundary above it during static
+// pre-render or Next bails the page out of static generation. The
+// fallback shows the empty card so layout shifts stay invisible while
+// the inner component reads the URL on hydration.
+export function LoginForm(): JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sign in</CardTitle>
+          </CardHeader>
+          <CardContent />
+        </Card>
+      }
+    >
+      <LoginFormInner />
+    </Suspense>
   );
 }

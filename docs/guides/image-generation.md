@@ -10,11 +10,11 @@ backends today and a stub for tests.
 | --- | --- | --- | --- |
 | `flux` | ✅ production | Replicate (Flux Schnell / Pro) | ~$0.003/image |
 | `grok` | 🟡 stub | xAI image endpoint | TBD |
-| `stable_diffusion` | 🟡 skeleton | hosted SD via Replicate | TBD |
 | `stub` | test-only | in-memory PNG | $0 |
 
-`grok` and `stable_diffusion` raise an explicit `ImageError` pointing to
-`flux` until xAI exposes a stable image endpoint.
+`grok` raises an explicit `ImageError` pointing to `flux` until xAI
+exposes a stable image endpoint. To plug in another backend, register a
+factory with `register_image_provider("name", factory)`.
 
 ## Setup (Flux)
 

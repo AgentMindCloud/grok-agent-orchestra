@@ -45,8 +45,6 @@ def _reset_tracer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     monkeypatch.delenv("LANGSMITH_PROJECT", raising=False)
     monkeypatch.delenv("LANGSMITH_SAMPLE_RATE", raising=False)
-    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
-    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
     from grok_orchestra.tracing import reset_global_tracer
 

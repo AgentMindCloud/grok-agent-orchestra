@@ -16,7 +16,7 @@ from __future__ import annotations
 import threading
 from collections import deque
 from types import TracebackType
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from grok_build_bridge import _console
 from rich import box
@@ -350,8 +350,3 @@ class DebateTUI:
         # Drop from the front until under the cap.
         while self._tokens and sum(len(t) for t in self._tokens) > _MAX_BODY_CHARS:
             self._tokens.pop(0)
-
-
-async def stream_debate(events: Any) -> None:  # pragma: no cover - session 10
-    """Async wrapper reserved for the full TUI pipeline in session 10."""
-    raise NotImplementedError("session 10")

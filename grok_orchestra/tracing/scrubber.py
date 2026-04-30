@@ -20,8 +20,8 @@ What gets redacted
    ``"…[truncated N chars]"``.
 
 The scrubber is invoked by every backend tracer (``LangSmithTracer``
-/ ``LangfuseTracer`` / ``OTelTracer``) before serialising a span to
-the wire. ``NoOpTracer`` skips it (nothing leaves the box anyway).
+/ ``OTelTracer``) before serialising a span to the wire. ``NoOpTracer``
+skips it (nothing leaves the box anyway).
 """
 
 from __future__ import annotations

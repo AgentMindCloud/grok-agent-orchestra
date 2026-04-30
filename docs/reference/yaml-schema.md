@@ -34,7 +34,7 @@ sources:                      # optional, list
 publisher:                    # optional, lazy
   images:
     enabled: bool
-    provider: grok | flux | stable_diffusion | stub
+    provider: grok | flux | stub
     budget: int
     cover: bool
     section_illustrations: int

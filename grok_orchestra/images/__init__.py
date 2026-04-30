@@ -7,7 +7,7 @@
     publisher:
       images:
         enabled: true
-        provider: flux                 # grok | flux | stable_diffusion
+        provider: flux                 # grok | flux
         budget: 4                      # max images per run
         cover: true
         section_illustrations: 2
@@ -20,8 +20,6 @@ Backends
   pointer to the Flux fallback.
 - :class:`FluxReplicateProvider` — Flux.1 via Replicate (BYOK
   ``REPLICATE_API_TOKEN``). Default backend today.
-- :class:`StableDiffusionProvider` — skeleton; wire up your own
-  Stability key. Documented for users who need it.
 
 BYOK contract
 -------------
@@ -43,7 +41,6 @@ from grok_orchestra.images.policy import (
     apply_style_prefix,
     policy_check,
 )
-from grok_orchestra.images.sd_provider import StableDiffusionProvider
 from grok_orchestra.images.types import (
     GeneratedImage,
     ImageBudget,
@@ -63,7 +60,6 @@ __all__ = [
     "ImageError",
     "ImagePolicyError",
     "ImageProvider",
-    "StableDiffusionProvider",
     "apply_style_prefix",
     "image_cache_dir",
     "policy_check",

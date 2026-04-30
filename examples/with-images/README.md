@@ -47,7 +47,6 @@ The default is `flux` (Flux.1 schnell on Replicate). Other options:
 
 - `provider: grok` — placeholder; raises a clear error pointing back to
   Flux until xAI ships a stable image API.
-- `provider: stable_diffusion` — skeleton, wire it up before use.
 
 ## Policy reminders
 

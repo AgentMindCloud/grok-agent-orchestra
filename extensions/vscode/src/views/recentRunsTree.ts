@@ -49,7 +49,7 @@ export class RecentRunsTreeProvider implements vscode.TreeDataProvider<RunResult
     return item;
   }
 
-  getChildren(parent?: RunResult): readonly RunResult[] {
-    return parent ? [] : this.runs;
+  getChildren(parent?: RunResult): RunResult[] {
+    return parent ? [] : [...this.runs];
   }
 }

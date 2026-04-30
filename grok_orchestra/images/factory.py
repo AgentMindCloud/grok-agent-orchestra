@@ -23,16 +23,9 @@ def _grok() -> Any:
     return GrokImageProvider
 
 
-def _stable_diffusion() -> Any:
-    from grok_orchestra.images.sd_provider import StableDiffusionProvider
-
-    return StableDiffusionProvider
-
-
 PROVIDER_REGISTRY: dict[str, Any] = {
     "flux": _flux,
     "grok": _grok,
-    "stable_diffusion": _stable_diffusion,
 }
 
 

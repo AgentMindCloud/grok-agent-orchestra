@@ -13,7 +13,6 @@ backend.
 | Backend   | Activator env var(s)                                      | Library             |
 | --------- | --------------------------------------------------------- | ------------------- |
 | LangSmith | `LANGSMITH_API_KEY`                                       | `langsmith`         |
-| Langfuse  | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`             | `langfuse`          |
 | OTLP      | `OTEL_EXPORTER_OTLP_ENDPOINT`                             | `opentelemetry-sdk` |
 
 Resolution order is the order above — first matching backend wins.
@@ -99,9 +98,8 @@ LangSmith reads `LANGSMITH_SAMPLE_RATE` (default `1.0`). The decision
 is made at the *root span* — once a root is sampled in, every child
 is captured; once it's sampled out, the whole tree is dropped.
 
-Langfuse reads `LANGFUSE_SAMPLE_RATE` with the same semantics. OTLP
-sampling is delegated to the collector (configure on the receiving
-side).
+OTLP sampling is delegated to the collector (configure on the
+receiving side).
 
 ## Failures
 

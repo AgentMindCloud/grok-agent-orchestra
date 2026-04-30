@@ -1,6 +1,6 @@
 {
   "name": "grok-orchestra-frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Next.js 14 dashboard for grok-agent-orchestra — courtroom debate viz, optional auth, deploy-ready.",
   "scripts": {

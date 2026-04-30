@@ -16,10 +16,8 @@ def test_factory_resolves_known_providers() -> None:
     from grok_orchestra.images import resolve_image_provider
     from grok_orchestra.images.flux_provider import FluxReplicateProvider
     from grok_orchestra.images.grok_provider import GrokImageProvider
-    from grok_orchestra.images.sd_provider import StableDiffusionProvider
 
     assert isinstance(resolve_image_provider("grok"), GrokImageProvider)
-    assert isinstance(resolve_image_provider("stable_diffusion"), StableDiffusionProvider)
     # Flux needs a token-or-client to construct; pass a fake client so we
     # don't trip the env-var guard.
     assert isinstance(
@@ -141,13 +139,3 @@ def test_flux_returns_empty_when_replicate_yields_nothing() -> None:
         provider.generate("anything")
 
 
-# --------------------------------------------------------------------------- #
-# StableDiffusion skeleton — explicit failure with TODO pointer.
-# --------------------------------------------------------------------------- #
-
-
-def test_stable_diffusion_skeleton_raises() -> None:
-    from grok_orchestra.images import ImageError, StableDiffusionProvider
-
-    with pytest.raises(ImageError, match="skeleton"):
-        StableDiffusionProvider().generate("anything")
