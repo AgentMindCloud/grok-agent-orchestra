@@ -24,3 +24,6 @@ coverage/
 # Build artefacts
 dist/
 build/
+
+# TypeScript incremental build cache — regenerated on every `tsc` run.
+*.tsbuildinfo
