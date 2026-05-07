@@ -11,7 +11,7 @@ Character counts are targets, not ceilings — trim if X re-counts.
 > Watch 4 Grok agents debate a post live, catch the unsafe one, and
 > ship the safe one — in one YAML.
 >
-> Grok Agent Orchestra: the missing multi-agent layer for Grok 4.20
+> Grok Agent Orchestra: the missing multi-agent layer for Grok 4
 > on X. Apache-2.0. ↓
 >
 > [attach orchestra-debate.gif — ~8s screen capture of the DebateTUI]
@@ -50,7 +50,7 @@ Character counts are targets, not ceilings — trim if X re-counts.
 ## Tweet 5 — Lucas veto moment (the headline safety feature)
 
 > Before anything ships, Lucas (contrarian) runs a final veto at
-> high reasoning effort on grok-4.20-0309.
+> high reasoning effort on grok-4-0709.
 >
 > Strict JSON verdict: {safe, confidence, reasons, alternative_post}.
 >
@@ -59,8 +59,8 @@ Character counts are targets, not ceilings — trim if X re-counts.
 
 ## Tweet 6 — two modes, one YAML
 
-> Native: grok-4.20-multi-agent-0309, 4 or 16 agents.
-> Simulated: visible Grok/Harper/Benjamin/Lucas on grok-4.20-0309.
+> Native: grok-4-0709, 4 or 16 agents.
+> Simulated: visible Grok/Harper/Benjamin/Lucas on grok-4-0709.
 >
 > Same YAML. `mode: auto` picks. `--dry-run` previews without
 > spending tokens.
@@ -98,7 +98,7 @@ Character counts are targets, not ceilings — trim if X re-counts.
 ## Tweet 10 — CTA + handles + alt hooks
 
 > Built by the community in Apache-2.0, 100% additive to official
-> xai-sdk + grok-4.20-multi-agent-0309.
+> xai-sdk + grok-4-0709.
 >
 > Would love your feedback, xAI crew.
 >
@@ -106,7 +106,7 @@ Character counts are targets, not ceilings — trim if X re-counts.
 >
 > ---
 >
-> alt hook #1: "Grok 4.20 + multi-agent + X-ready safety veto. One YAML."
+> alt hook #1: "Grok 4 + multi-agent + X-ready safety veto. One YAML."
 > alt hook #2: "We taught 4 Grok agents to disagree safely. Apache-2.0."
 > alt hook #3: "Every X post you've seen from Orchestra passed a Lucas veto."
 

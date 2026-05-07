@@ -1122,7 +1122,7 @@ reach rather than touching the core.
 ## [0.1.0] - 2026-04-30
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok
-4.20 multi-agent run — either xAI-native (`grok-4.20-multi-agent-0309`) or a
+4.20 multi-agent run — either xAI-native (`grok-4-0709`) or a
 visible prompt-simulated debate between Grok / Harper / Benjamin / Lucas —
 with a real safety veto before anything ships. **Pairs with
 [Grok Build Bridge](https://github.com/agentmindcloud/grok-build-bridge)**;
@@ -1203,7 +1203,7 @@ install Bridge first, Orchestra second.
   wrap phases 2-4 in one continuous show. Degrades gracefully to
   structured log lines on non-TTY stdout.
 - **Lucas veto** — `safety_lucas_veto` invokes Lucas at
-  `reasoning_effort="high"` on `grok-4.20-0309` with a strict JSON
+  `reasoning_effort="high"` on `grok-4-0709` with a strict JSON
   output shape; robust parser handles code-fence stripping + regex
   fallback; malformed responses retry with a terser prompt; low
   confidence downgrades to `safe=False`; `print_veto_verdict`

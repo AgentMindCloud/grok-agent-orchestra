@@ -1,7 +1,7 @@
 """Grok Agent Orchestra — multi-agent orchestration on top of Grok Build Bridge.
 
-This package extends :mod:`grok_build_bridge` with Grok 4.20 multi-agent
-capabilities: both the xAI-native ``grok-4.20-multi-agent-0309`` model and a
+This package extends :mod:`grok_build_bridge` with Grok 4 multi-agent
+capabilities: both the xAI-native ``grok-4-0709`` model and a
 prompt-simulated debate between named roles (Grok / Harper / Benjamin / Lucas).
 
 Orchestra deliberately does **not** duplicate Bridge primitives — the import

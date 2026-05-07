@@ -1,7 +1,7 @@
 """xAI-native multi-agent runtime.
 
 :func:`run_native_orchestra` drives a full native Orchestra flow against the
-``grok-4.20-multi-agent-0309`` model end-to-end, rendering a live debate TUI
+``grok-4-0709`` model end-to-end, rendering a live debate TUI
 while the stream arrives and then running the familiar post-run phases:
 safety audit, Lucas veto, deploy, summary.
 
@@ -40,7 +40,7 @@ from grok_orchestra.safety_veto import (
 )
 from grok_orchestra.streaming import DebateTUI
 
-NATIVE_MODEL_ID = "grok-4.20-multi-agent-0309"
+NATIVE_MODEL_ID = "grok-4-0709"
 
 
 # --------------------------------------------------------------------------- #
@@ -80,7 +80,7 @@ def run_native_orchestra(
     *,
     event_callback: EventCallback = None,
 ) -> OrchestraResult:
-    """Execute a native Orchestra run against ``grok-4.20-multi-agent-0309``.
+    """Execute a native Orchestra run against ``grok-4-0709``.
 
     Parameters
     ----------

@@ -1,58 +1,42 @@
-# Placeholder — pre-launch state
+# Template-coverage benchmark
 
-This file is the include target for
-[`docs/architecture/comparison.md`](../../docs/architecture/comparison.md)
-and the round-1 blog post. It ships in the repo so the docs site
-builds cleanly before the first benchmark run lands.
-
-When the recurring workflow at `.github/workflows/benchmarks.yml`
-lands its first green run, `_update_latest()` in
-`benchmarks/harness.py` rewrites this file as a symlink to that
-run's `comparison.md` — the seven canonical section headings below
-get replaced with real numbers. Until then, the docs site shows the
-prose above the include block.
+Deterministic baseline benchmark — exercises every shipped template against
+the Orchestra JSON Schema. Runs without API keys.
 
 ## Headline numbers
 
-_No public benchmark run has landed yet._
+- Templates exercised: **18**
+- Pass rate: **100%** (18/18)
+- Parse latency p50: **4.33 ms**
+- Parse latency max: **5.85 ms**
+- `orchestra` block coverage: **100%**
+- `safety` block coverage: **100%**
 
-The harness ships in `benchmarks/`. The recurring workflow runs
-monthly + on every release tag and opens a PR with real numbers
-once the four required secrets (`XAI_API_KEY`, `OPENAI_API_KEY`,
-`ANTHROPIC_API_KEY`, `TAVILY_API_KEY`) are configured. **No
-fabricated numbers will ever ship in this file.**
+## Per-template results
 
-## Aggregate by system
+| Template | OK | Parse (ms) | Notes |
+| --- | --- | --- | --- |
+| `combined-coder-critic.yaml` | ✓ | 5.85 |  |
+| `combined-trendseeker.yaml` | ✓ | 5.53 |  |
+| `competitive-analysis.yaml` | ✓ | 4.39 |  |
+| `debate-loop-with-local-docs.yaml` | ✓ | 4.75 |  |
+| `deep-research-hierarchical.yaml` | ✓ | 4.26 |  |
+| `due-diligence-investor-memo.yaml` | ✓ | 4.58 |  |
+| `orchestra-debate-loop-policy.yaml` | ✓ | 3.84 |  |
+| `orchestra-dynamic-spawn-trend-analyzer.yaml` | ✓ | 3.24 |  |
+| `orchestra-hierarchical-research.yaml` | ✓ | 4.01 |  |
+| `orchestra-native-16.yaml` | ✓ | 3.07 |  |
+| `orchestra-native-4.yaml` | ✓ | 2.69 |  |
+| `orchestra-parallel-tools-fact-check.yaml` | ✓ | 3.19 |  |
+| `orchestra-recovery-resilient.yaml` | ✓ | 2.83 |  |
+| `orchestra-simulated-truthseeker.yaml` | ✓ | 4.06 |  |
+| `paper-summarizer.yaml` | ✓ | 4.44 |  |
+| `product-launch-brief.yaml` | ✓ | 4.43 |  |
+| `red-team-the-plan.yaml` | ✓ | 4.50 |  |
+| `weekly-news-digest.yaml` | ✓ | 4.52 |  |
 
-_(populated by the renderer after the first run)_
+## How this fits the larger benchmark suite
 
-## Per-goal results
+The four-system head-to-head harness (`benchmarks/harness.py`) measures qualitative differences between Orchestra and competing agent frameworks. It needs real API keys and is gated behind the monthly CI workflow.
 
-_(populated by the renderer after the first run)_
-
-## Where each system wins
-
-_(populated by the renderer after the first run)_
-
-## Notable vetoes
-
-_(populated by the renderer after the first run)_
-
-## Honest limitations
-
-The methodology lives at
-[`benchmarks/methodology.md`](../methodology.md) — read it before
-the numbers land so the inevitable "but this is biased toward X"
-critique has a rubric to argue against.
-
-## Reproducibility
-
-Anyone with the four required API keys can run the harness:
-
-```bash
-python -m benchmarks.harness
-```
-
-…and `latest.md` will rewrite to point at their fresh run. The
-methodology guarantees byte-equal reproducibility within the
-documented inter-rater + wall-time tolerances.
+*This* benchmark is the always-green baseline — every PR can run it locally and verify that no template regression slipped past code review.

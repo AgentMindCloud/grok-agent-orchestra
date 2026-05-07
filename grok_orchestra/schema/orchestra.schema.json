@@ -118,7 +118,7 @@
         "model": {
           "type": "string",
           "description": "Optional per-role model override. Grok models (anything matching grok* / xai/* / x-ai/*) keep the native fast path; LiteLLM-style provider/model strings (openai/gpt-4o, anthropic/claude-3-5-sonnet, ollama/llama3.1) route through the [adapters] extra.",
-          "examples": ["openai/gpt-4o-mini", "anthropic/claude-3-5-sonnet", "grok-4.20-0309"]
+          "examples": ["openai/gpt-4o-mini", "anthropic/claude-3-5-sonnet", "grok-4-0709"]
         }
       },
       "required": ["name", "role"],
@@ -182,9 +182,9 @@
         },
         "fallback_model": {
           "type": "string",
-          "enum": ["grok-4.20-0309"],
+          "enum": ["grok-4-0709"],
           "description": "Single-agent model id to use as the fallback.",
-          "examples": ["grok-4.20-0309"]
+          "examples": ["grok-4-0709"]
         },
         "lowered_effort": {
           "type": "string",
@@ -333,10 +333,10 @@
         },
         "lucas_model": {
           "type": "string",
-          "enum": ["grok-4.20-0309"],
-          "default": "grok-4.20-0309",
+          "enum": ["grok-4-0709"],
+          "default": "grok-4-0709",
           "description": "Model used by the Lucas veto reviewer.",
-          "examples": ["grok-4.20-0309"]
+          "examples": ["grok-4-0709"]
         },
         "confidence_threshold": {
           "type": "number",

@@ -29,7 +29,7 @@ lands. Do **not** post until they're real.
 
 > **3/** **Lucas is the gate.**
 >
-> A separate `grok-4.20-0309` pass with strict-JSON output and
+> A separate `grok-4-0709` pass with strict-JSON output and
 > fail-closed defaults. Malformed JSON, low confidence, or timed-
 > out → exit code 4 → nothing ships. The default safety story isn't
 > a content moderation API — it's a model that argues with the model.

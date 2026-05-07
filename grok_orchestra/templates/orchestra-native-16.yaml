@@ -62,7 +62,7 @@ orchestra:
     pattern: native
     fallback_on_rate_limit:
       enabled: true
-      fallback_model: grok-4.20-0309
+      fallback_model: grok-4-0709
       lowered_effort: medium
 
 safety:

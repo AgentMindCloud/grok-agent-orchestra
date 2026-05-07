@@ -31,7 +31,7 @@ orchestra:
         model: gpt-4.1-mini
       Lucas:
         provider: xai
-        model: grok-4.20-0309         # always strict for the veto
+        model: grok-4-0709         # always strict for the veto
 ```
 
 ??? tip "Cheaper Harper, strict Lucas"

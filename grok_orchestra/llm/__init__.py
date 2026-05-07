@@ -3,8 +3,8 @@
 Two clients live behind one minimal contract:
 
 - :class:`GrokNativeClient` — the high-performance default. Drives
-  Grok's single-agent ``grok-4.20-0309`` and (when every role on a
-  run uses a Grok model) the multi-agent ``grok-4.20-multi-agent-0309``
+  Grok's single-agent ``grok-4-0709`` and (when every role on a
+  run uses a Grok model) the multi-agent ``grok-4-0709``
   endpoint via :class:`grok_orchestra.multi_agent_client.OrchestraClient`.
 
 - :class:`LiteLLMClient` — portability mode. Wraps

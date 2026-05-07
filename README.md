@@ -33,8 +33,8 @@
 ## Why Agent Orchestra?
 
 - **Visible debate, not a black box.** Four named roles (Grok, Harper, Benjamin, Lucas) argue on screen. Every turn, every tool call, every reasoning gauge streams into a Rich TUI you can actually read while it happens.
-- **Lucas veto = enforceable quality / safety gate.** A separate `grok-4.20-0309` pass with strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed, low-confidence, or timed-out → exit code 4 → nothing ships.
-- **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4.20-multi-agent-0309` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Bring your own key from any provider via the LiteLLM adapter — same orchestration, your choice of engine.
+- **Lucas veto = enforceable quality / safety gate.** A separate `grok-4-0709` pass with strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed, low-confidence, or timed-out → exit code 4 → nothing ships.
+- **Native Grok multi-agent endpoint as power mode.** Today: drive `grok-4-0709` directly (4 or 16 agents) *or* run a prompt-simulated debate from the same YAML. Bring your own key from any provider via the LiteLLM adapter — same orchestration, your choice of engine.
 - **Bridge-paired by design.** The combined runtime (`combined: true`) drives Bridge's generate → scan → Orchestra's debate → Lucas veto → Bridge's deploy in one TUI. The lighter Mode A drops a single `safety.lucas_veto_enabled: true` line into a Bridge YAML and Lucas gates the deploy.
 
 ## Three-tier capability matrix
@@ -62,7 +62,7 @@ Capabilities by tier:
 Honest tradeoffs:
 
 - **Demo mode** uses pre-canned event streams. It's the right path to learn the framework's vocabulary in five minutes, but it won't answer real research questions — every run produces the same canned text shape.
-- **Local mode** swaps in a real LLM, but `llama3.1:8b` is materially below `claude-3-5-sonnet` / `grok-4.20` on long-context synthesis. The visible debate + Lucas veto still keep failure modes loud — the *reasoning quality* tracks the model.
+- **Local mode** swaps in a real LLM, but `llama3.1:8b` is materially below `claude-3-5-sonnet` / `grok-4` on long-context synthesis. The visible debate + Lucas veto still keep failure modes loud — the *reasoning quality* tracks the model.
 - **Cloud mode** is the production path. Mixing a cloud-grade Lucas with a local Harper is a pragmatic middle ground (`mode_label="mixed"` in the run summary).
 
 Bridge sits underneath every tier — Orchestra never bypasses it. Run `grok-orchestra doctor` to see which tiers your machine has live right now.
@@ -307,7 +307,7 @@ orchestra:
     - {name: Grok,     role: coordinator}
     - {name: Harper,   role: researcher, model: openai/gpt-4o}
     - {name: Benjamin, role: logician}
-    - {name: Lucas,    role: contrarian, model: grok-4.20-0309}  # judge stays on Grok
+    - {name: Lucas,    role: contrarian, model: grok-4-0709}  # judge stays on Grok
 
 # Optional aliases — name your own.
 model_aliases:
@@ -320,7 +320,7 @@ The runtime auto-detects the run's mode and surfaces it on `OrchestraResult.mode
 | `mode_label` | When | What happens |
 | --- | --- | --- |
 | `native` | Every role uses a Grok model AND pattern is `native` | Multi-agent endpoint — fastest path. |
-| `simulated` | Every role uses a Grok model on a non-`native` pattern (hierarchical / debate-loop / …) | Per-role debate over `grok-4.20-0309`. |
+| `simulated` | Every role uses a Grok model on a non-`native` pattern (hierarchical / debate-loop / …) | Per-role debate over `grok-4-0709`. |
 | `adapter` | Every role uses a non-Grok model | Per-role debate over the LiteLLM adapter. |
 | `mixed` | Some Grok, some non-Grok | Per-role debate; each role hits its own provider. |
 

@@ -15,7 +15,7 @@
 #
 # Estimated cost
 #   ≈ 6–10 k tokens per run. 4 agents × ~1.5 k reasoning each + synthesis
-#   + one Lucas veto at high effort on grok-4.20-0309.
+#   + one Lucas veto at high effort on grok-4-0709.
 #
 # Expected output
 #   A 3-4 tweet thread on today's chosen trending topic, streamed live
@@ -53,7 +53,7 @@ orchestra:
     # Enable automatic degrade on 429s; we still want the thread out.
     fallback_on_rate_limit:
       enabled: true
-      fallback_model: grok-4.20-0309
+      fallback_model: grok-4-0709
       lowered_effort: medium
 
 safety:

@@ -2,8 +2,8 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://agentmind.cloud/schemas/grok-agent-orchestra/vscode.schema.json",
   "title": "Grok Agent Orchestra",
-  "description": "Grok Agent Orchestra spec — drive a multi-agent debate on Grok 4.20 (native or prompt-simulated) and a Bridge + Orchestra combined run.",
-  "markdownDescription": "# Grok Agent Orchestra\n\nDrives a multi-agent debate on Grok 4.20 — either **native** (`grok-4.20-multi-agent-0309` with server-side routing between 4 or 16 agents) or **simulated** (a visible round-by-round debate between Grok / Harper / Benjamin / Lucas on `grok-4.20-0309`).\n\nWhen `combined: true`, the same YAML also drives a Grok Build Bridge code-generation phase first, then runs the debate over the generated code, then Lucas's safety veto, then deploy.\n\n_4 minds. 1 safer post. Zero compromise._",
+  "description": "Grok Agent Orchestra spec — drive a multi-agent debate on Grok 4 (native or prompt-simulated) and a Bridge + Orchestra combined run.",
+  "markdownDescription": "# Grok Agent Orchestra\n\nDrives a multi-agent debate on Grok 4 — either **native** (`grok-4-0709` with server-side routing between 4 or 16 agents) or **simulated** (a visible round-by-round debate between Grok / Harper / Benjamin / Lucas on `grok-4-0709`).\n\nWhen `combined: true`, the same YAML also drives a Grok Build Bridge code-generation phase first, then runs the debate over the generated code, then Lucas's safety veto, then deploy.\n\n_4 minds. 1 safer post. Zero compromise._",
   "type": "object",
   "required": ["orchestra"],
   "additionalProperties": true,
@@ -70,8 +70,8 @@
           "default": "auto",
           "markdownDescription": "Execution mode.\n\n- `native` — xAI multi-agent endpoint.\n- `simulated` — visible named-role debate.\n- `auto` — pick automatically.\n\nSee enum descriptions below for when to choose each.",
           "markdownEnumDescriptions": [
-            "**native** — call `grok-4.20-multi-agent-0309` with 4 or 16 agents. Server-side role routing.\n\n- **when to use**: production, shipping-critical posts, highest quality.\n- **cost impact**: baseline; a 16-agent run is ~4× the tokens of a 4-agent run.\n- **visibility**: limited — the model handles agent transitions internally; you see the aggregated stream.",
-            "**simulated** — prompt-driven debate between Grok / Harper / Benjamin / Lucas on single-agent `grok-4.20-0309`.\n\n- **when to use**: debugging, playground, audits, demos, learning.\n- **cost impact**: roughly equal to a 4-agent native run; scales linearly with `debate_rounds`.\n- **visibility**: every system prompt, every role turn, every tool call is exposed and cacheable.",
+            "**native** — call `grok-4-0709` with 4 or 16 agents. Server-side role routing.\n\n- **when to use**: production, shipping-critical posts, highest quality.\n- **cost impact**: baseline; a 16-agent run is ~4× the tokens of a 4-agent run.\n- **visibility**: limited — the model handles agent transitions internally; you see the aggregated stream.",
+            "**simulated** — prompt-driven debate between Grok / Harper / Benjamin / Lucas on single-agent `grok-4-0709`.\n\n- **when to use**: debugging, playground, audits, demos, learning.\n- **cost impact**: roughly equal to a 4-agent native run; scales linearly with `debate_rounds`.\n- **visibility**: every system prompt, every role turn, every tool call is exposed and cacheable.",
             "**auto** — pick `native` when `agent_count` is set AND `include_verbose_streaming` is true; otherwise `simulated`.\n\n- **when to use**: set once, let the dispatcher decide per-run.\n- **cost impact**: matches whichever branch is selected."
           ],
           "examples": ["auto", "native", "simulated"]
@@ -198,8 +198,8 @@
         },
         "fallback_model": {
           "type": "string",
-          "enum": ["grok-4.20-0309"],
-          "markdownDescription": "Single-agent model to swap to on fallback. Currently `grok-4.20-0309` is the only supported target."
+          "enum": ["grok-4-0709"],
+          "markdownDescription": "Single-agent model to swap to on fallback. Currently `grok-4-0709` is the only supported target."
         },
         "lowered_effort": {
           "type": "string",
@@ -240,13 +240,13 @@
         "lucas_veto_enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "🛡 **Strongly recommended: keep `true`.** Lucas's veto is Orchestra's hero safety feature — the final gate before any agent-authored content ships (X post, PR body, deploy artefact).\n\nWhen true, every final content goes through `safety_lucas_veto`, which calls Lucas (contrarian role) on `grok-4.20-0309` at `reasoning_effort: high` and parses a strict JSON verdict `{safe, confidence, reasons, alternative_post?}`. Denials block `deploy` and exit the CLI with code **4**.\n\nDisable **only** for playground / debugging runs where you deliberately want to inspect raw debate output — and never on a production pipeline that ships to X."
+          "markdownDescription": "🛡 **Strongly recommended: keep `true`.** Lucas's veto is Orchestra's hero safety feature — the final gate before any agent-authored content ships (X post, PR body, deploy artefact).\n\nWhen true, every final content goes through `safety_lucas_veto`, which calls Lucas (contrarian role) on `grok-4-0709` at `reasoning_effort: high` and parses a strict JSON verdict `{safe, confidence, reasons, alternative_post?}`. Denials block `deploy` and exit the CLI with code **4**.\n\nDisable **only** for playground / debugging runs where you deliberately want to inspect raw debate output — and never on a production pipeline that ships to X."
         },
         "lucas_model": {
           "type": "string",
-          "enum": ["grok-4.20-0309"],
-          "default": "grok-4.20-0309",
-          "markdownDescription": "Model used by the Lucas reviewer. Pinned to `grok-4.20-0309` — this is a safety primitive, so we do not let users pick a smaller/cheaper model by mistake."
+          "enum": ["grok-4-0709"],
+          "default": "grok-4-0709",
+          "markdownDescription": "Model used by the Lucas reviewer. Pinned to `grok-4-0709` — this is a safety primitive, so we do not let users pick a smaller/cheaper model by mistake."
         },
         "confidence_threshold": {
           "type": "number",

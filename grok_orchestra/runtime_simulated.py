@@ -1,7 +1,7 @@
 """Prompt-simulated multi-agent runtime.
 
 Drives a visible debate between four named roles (Grok / Harper / Benjamin /
-Lucas) over the ``grok-4.20-0309`` single-agent model. The runtime is the
+Lucas) over the ``grok-4-0709`` single-agent model. The runtime is the
 transparent counterpart to :mod:`grok_orchestra.runtime_native` — every turn,
 every system prompt, and every tool call is rendered live into the TUI.
 
@@ -40,7 +40,7 @@ from grok_orchestra.multi_agent_client import MultiAgentEvent
 from grok_orchestra.runtime_native import OrchestraResult, _run_lucas_veto
 from grok_orchestra.streaming import DebateTUI
 
-SINGLE_AGENT_MODEL = "grok-4.20-0309"
+SINGLE_AGENT_MODEL = "grok-4-0709"
 
 __all__ = [
     "DryRunSimulatedClient",

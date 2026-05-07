@@ -77,7 +77,7 @@ spending outreach budget.
 quote on Day 7.
 
 - [ ] Build a shortlist of 20 people who either (a) posted about
-      Grok 4.20 on X this week or (b) star-contributed to any
+      Grok 4 on X this week or (b) star-contributed to any
       Grok-adjacent repo.
 - [ ] Send each a personal DM with a 30-second screen recording of
       `grok-orchestra combined --dry-run` on their own use-case (do

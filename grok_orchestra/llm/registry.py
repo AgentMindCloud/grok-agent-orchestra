@@ -2,7 +2,7 @@
 
 A model string is one of:
 
-- ``"grok-4.20-0309"`` / ``"grok-4.20-multi-agent-0309"`` /
+- ``"grok-4-0709"`` / ``"grok-4-0709"`` /
   ``"grok-2-latest"`` — anything starting with ``grok`` or ``xai/``
   routes to the GrokNativeClient.
 - ``"openai/gpt-4o"`` / ``"anthropic/claude-3-5-sonnet"`` /
@@ -30,7 +30,7 @@ __all__ = [
 
 # Default Grok single-agent model. Kept in sync with
 # ``runtime_simulated.SINGLE_AGENT_MODEL`` (single source of truth there).
-GROK_DEFAULT_MODEL = "grok-4.20-0309"
+GROK_DEFAULT_MODEL = "grok-4-0709"
 
 # Matches "grok-…", "xai/…", "x-ai/…", "@xai/…" — every shape we ever
 # see for an xAI-hosted model. Normalisation is intentionally

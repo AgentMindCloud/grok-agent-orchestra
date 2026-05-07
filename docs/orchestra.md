@@ -18,8 +18,8 @@ table-of-contents after.
 ```mermaid
 flowchart LR
   A[YAML spec] --> B{orchestra.mode}
-  B -->|native| N[grok-4.20-multi-agent-0309]
-  B -->|simulated| S[Grok / Harper / Benjamin / Lucas<br/>on grok-4.20-0309]
+  B -->|native| N[grok-4-0709]
+  B -->|simulated| S[Grok / Harper / Benjamin / Lucas<br/>on grok-4-0709]
   B -->|auto| D{agent_count set?<br/>+ verbose_streaming?}
   D -->|yes| N
   D -->|no| S
@@ -78,7 +78,7 @@ teaching, and playgrounds.
 | key                    | type    | default              | notes                                            |
 |------------------------|---------|----------------------|--------------------------------------------------|
 | `lucas_veto_enabled`   | bool    | `true`               | Keep `true` for anything that ships.             |
-| `lucas_model`          | enum    | `grok-4.20-0309`     | Pinned — not user-selectable.                    |
+| `lucas_model`          | enum    | `grok-4-0709`     | Pinned — not user-selectable.                    |
 | `confidence_threshold` | number  | `0.75`               | 0..1. Approvals below threshold are downgraded. |
 | `max_veto_retries`     | int     | `1`                  | Alt-post rewrite attempts (0..5).                |
 
@@ -102,7 +102,7 @@ runtime primitives; each pattern file is ≤120 LOC.
 sequenceDiagram
     participant CLI
     participant Runtime as run_native_orchestra
-    participant xAI as grok-4.20-multi-agent-0309
+    participant xAI as grok-4-0709
     participant Lucas
     CLI->>Runtime: config, client
     Runtime->>xAI: stream_multi_agent(goal, agent_count, tools)
@@ -214,7 +214,7 @@ agent-authored content leaves the process. Three design decisions make
 the gate robust enough to rely on in production:
 
 1. **One model, one effort, hard-coded.** Every veto call runs Lucas
-   on `grok-4.20-0309` at `reasoning_effort="high"`. Operators cannot
+   on `grok-4-0709` at `reasoning_effort="high"`. Operators cannot
    downgrade the reviewer to a cheaper model by mistake.
 2. **Strict JSON schema.** The system prompt ends with `Output ONLY
    valid JSON` and a shape specification. The parser strips code

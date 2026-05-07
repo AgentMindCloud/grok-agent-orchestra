@@ -49,7 +49,7 @@ def _spec(**orch_overrides: Any) -> dict[str, Any]:
         "orchestra": orch,
         "safety": {
             "lucas_veto_enabled": True,
-            "lucas_model": "grok-4.20-0309",
+            "lucas_model": "grok-4-0709",
             "confidence_threshold": 0.75,
             "max_veto_retries": 1,
         },

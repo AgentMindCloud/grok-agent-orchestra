@@ -42,7 +42,7 @@ The 60-second tour: roles, debate loop, veto, publisher, tracing.
 
 - **Visible debate, not a black box.** Every role turn, tool call, and reasoning
   gauge streams into the TUI / dashboard while it happens.
-- **Lucas veto = enforceable safety gate.** A separate `grok-4.20-0309` pass with
+- **Lucas veto = enforceable safety gate.** A separate `grok-4-0709` pass with
   strict-JSON output, high reasoning effort, and *fail-closed* defaults. Malformed,
   low-confidence, or timed-out → exit code 4 → nothing ships.
 - **Bring your own model.** Grok native is the power mode; OpenAI / Anthropic /

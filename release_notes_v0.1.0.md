@@ -1,7 +1,7 @@
 # v0.1.0 — Bridge-paired launch
 
 First public release. Grok Agent Orchestra turns a single YAML into a Grok
-4.20 multi-agent run — either xAI-native (`grok-4.20-multi-agent-0309`) or a
+4.20 multi-agent run — either xAI-native (`grok-4-0709`) or a
 visible prompt-simulated debate between **Grok / Harper / Benjamin / Lucas** —
 with a real safety veto before anything ships.
 

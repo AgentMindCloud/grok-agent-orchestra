@@ -1,7 +1,7 @@
 """xAI multi-agent client wrapper.
 
 :class:`OrchestraClient` extends Bridge's :class:`grok_build_bridge.xai_client.XAIClient`
-with a streaming multi-agent method that targets ``grok-4.20-multi-agent-0309``.
+with a streaming multi-agent method that targets ``grok-4-0709``.
 Retries, backoff, auth, and transport are all inherited from Bridge — this
 module deliberately adds no new retry logic.
 
@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # pragma: no cover - environment guard
     class RateLimitError(Exception):  # noqa: N818 - sentinel
         """Fallback raised when the client exhausts retries on a rate limit."""
 
-NATIVE_MODEL_ID = "grok-4.20-multi-agent-0309"
+NATIVE_MODEL_ID = "grok-4-0709"
 
 EventKind = Literal[
     "token",
@@ -111,7 +111,7 @@ class OrchestraClient(XAIClient):
         use_encrypted_content: bool = False,
         max_tokens: int = 16000,
     ) -> Iterator[MultiAgentEvent]:
-        """Stream a Grok 4.20 multi-agent response.
+        """Stream a Grok 4 multi-agent response.
 
         Parameters
         ----------

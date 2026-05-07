@@ -10,13 +10,13 @@ import pytest
 @pytest.mark.parametrize(
     "model",
     [
-        "grok-4.20-0309",
-        "grok-4.20-multi-agent-0309",
+        "grok-4-0709",
+        "grok-4",
         "grok-2-latest",
         "xai/grok-3",
         "x-ai/grok-2",
         "@xai/grok-2-mini",
-        "GROK-4.20-0309",   # case-insensitive
+        "GROK-4-0709",       # case-insensitive
         None,                # default → Grok
         "",                  # empty → Grok
     ],
@@ -80,7 +80,7 @@ def test_resolve_role_models_per_agent_overrides_global() -> None:
     from grok_orchestra.llm import resolve_role_models
 
     config = {
-        "model": "grok-4.20-0309",
+        "model": "grok-4-0709",
         "orchestra": {
             "agents": [
                 {"name": "Grok", "role": "coordinator"},
@@ -91,9 +91,9 @@ def test_resolve_role_models_per_agent_overrides_global() -> None:
         },
     }
     out = resolve_role_models(config, ["Grok", "Harper", "Benjamin", "Lucas"])
-    assert out["Grok"] == "grok-4.20-0309"
+    assert out["Grok"] == "grok-4-0709"
     assert out["Harper"] == "openai/gpt-4o"
-    assert out["Benjamin"] == "grok-4.20-0309"
+    assert out["Benjamin"] == "grok-4-0709"
     assert out["Lucas"] == "anthropic/claude-3-5-sonnet"
 
 
@@ -107,9 +107,9 @@ def test_resolve_role_models_falls_back_to_default_when_unset() -> None:
 def test_detect_mode_native_when_all_grok() -> None:
     from grok_orchestra.llm import detect_mode
 
-    assert detect_mode({"Grok": "grok-4.20-0309"}, pattern="native") == "native"
+    assert detect_mode({"Grok": "grok-4-0709"}, pattern="native") == "native"
     assert (
-        detect_mode({"Grok": "grok-4.20-0309"}, pattern="hierarchical")
+        detect_mode({"Grok": "grok-4-0709"}, pattern="hierarchical")
         == "simulated"
     )
 
@@ -129,7 +129,7 @@ def test_detect_mode_mixed_when_some_grok_some_not() -> None:
 
     role_models = {
         "Harper": "openai/gpt-4o",
-        "Lucas": "grok-4.20-0309",
+        "Lucas": "grok-4-0709",
     }
     assert detect_mode(role_models, pattern="native") == "mixed"
 
@@ -148,11 +148,11 @@ def test_roles_block_alternative_yaml_shape_is_supported() -> None:
             ],
             "roles": {
                 "harper": {"model": "openai/gpt-4o"},
-                "lucas": {"model": "grok-4.20-0309"},
+                "lucas": {"model": "grok-4-0709"},
             },
         },
     }
     out = resolve_role_models(config, ["Grok", "Harper", "Lucas"])
     assert out["Grok"] == "anthropic/claude-3-5-sonnet"   # global default
     assert out["Harper"] == "openai/gpt-4o"
-    assert out["Lucas"] == "grok-4.20-0309"
+    assert out["Lucas"] == "grok-4-0709"

@@ -121,10 +121,10 @@ build:                        # Bridge phase
 
 pattern: debate-then-veto     # Orchestra phase
 roles:
-  grok:    { model: grok-4.20-multi-agent-0309 }
-  harper:  { model: grok-4.20-fast }
-  benjamin:{ model: grok-4.20-fast }
-  lucas:   { model: grok-4.20-0309, veto_threshold: 0.8 }
+  grok:    { model: grok-4-0709 }
+  harper:  { model: grok-4-fast }
+  benjamin:{ model: grok-4-fast }
+  lucas:   { model: grok-4-0709, veto_threshold: 0.8 }
 
 deploy:
   target: stdout              # Bridge ships

@@ -5,7 +5,7 @@ output, by design:
 
 1. **Lucas veto** — every runtime runs `safety_lucas_veto` on the
    synthesised content before the deploy phase. The veto uses Lucas's
-   contrarian system prompt on `grok-4.20-0309` at a hard-coded
+   contrarian system prompt on `grok-4-0709` at a hard-coded
    `reasoning_effort="high"` with a strict JSON output shape
    (`{safe, confidence, reasons, alternative_post?}`). The gate
    **fails closed** — malformed JSON, transport failures, and

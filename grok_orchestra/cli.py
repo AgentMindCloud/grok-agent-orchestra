@@ -80,7 +80,7 @@ from grok_orchestra.safety_veto import print_veto_verdict, safety_lucas_veto
 app = typer.Typer(
     name="grok-orchestra",
     help=(
-        "Grok 4.20 multi-agent orchestration — 4 minds, 1 safer post, "
+        "Grok 4 multi-agent orchestration — 4 minds, 1 safer post, "
         "zero compromise."
     ),
     no_args_is_help=True,
@@ -1533,7 +1533,7 @@ def veto(
     veto_config = {
         "safety": {
             "lucas_veto_enabled": True,
-            "lucas_model": "grok-4.20-0309",
+            "lucas_model": "grok-4-0709",
             "confidence_threshold": threshold,
             "max_veto_retries": 1,
         }

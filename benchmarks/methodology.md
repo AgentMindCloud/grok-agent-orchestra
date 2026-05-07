@@ -96,7 +96,7 @@ claim. The judge prompt + rubric live in `benchmarks/judge.py`.
 ## LLM-as-judge
 
 **Independent third-party model.** We deliberately do **not** use
-Lucas (`grok-4.20-0309`) or any model the systems-under-test relied
+Lucas (`grok-4-0709`) or any model the systems-under-test relied
 on. The default judge is `claude-sonnet-4-6` via LiteLLM; any
 provider/model combo can be swapped via `--judge-model
 <provider>/<model>` on the harness CLI.

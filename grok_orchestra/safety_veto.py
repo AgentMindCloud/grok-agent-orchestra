@@ -42,7 +42,7 @@ __all__ = [
 ]
 
 
-LUCAS_MODEL = "grok-4.20-0309"
+LUCAS_MODEL = "grok-4-0709"
 LUCAS_REASONING_EFFORT = "high"
 
 _JSON_INSTRUCTION = (

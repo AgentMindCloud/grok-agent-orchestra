@@ -55,7 +55,7 @@ compatible.
 
 ## Auto-discovery — "find me an agent that does X"
 
-A single Grok 4.20 call classifies the user query and ranks the
+A single Grok 4 call classifies the user query and ranks the
 catalog. The marketplace wraps this call behind a thin search proxy;
 the prompt is fixed and version-pinned.
 

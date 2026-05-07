@@ -24,7 +24,7 @@ exits with code `4` (the dedicated `EXIT_SAFETY_VETO` value).
 
 ```mermaid
 flowchart TB
-  T[Debate transcript] --> P{Lucas evaluation<br/>grok-4.20-0309 · high effort}
+  T[Debate transcript] --> P{Lucas evaluation<br/>grok-4-0709 · high effort}
   P --> J[Strict-JSON parse]
   J -- valid --> C{Confidence ≥ threshold?}
   J -- malformed --> F1[Retry with terser prompt]
@@ -40,7 +40,7 @@ flowchart TB
 ```yaml
 safety:
   lucas_veto_enabled: true
-  lucas_model: grok-4.20-0309        # only Grok today
+  lucas_model: grok-4-0709        # only Grok today
   confidence_threshold: 0.85
   max_veto_retries: 1
 ```

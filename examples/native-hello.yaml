@@ -1,5 +1,5 @@
 name: native-hello
-goal: "Say hello in three languages using the Grok 4.20 native multi-agent model."
+goal: "Say hello in three languages using the Grok 4 native multi-agent model."
 
 orchestra:
   mode: native

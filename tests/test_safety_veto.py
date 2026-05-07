@@ -34,7 +34,7 @@ def _config(
     return {
         "safety": {
             "lucas_veto_enabled": True,
-            "lucas_model": "grok-4.20-0309",
+            "lucas_model": "grok-4-0709",
             "confidence_threshold": threshold,
             "max_veto_retries": max_retries,
         }

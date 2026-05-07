@@ -56,9 +56,9 @@ class OrchestraEnums:
         "recovery",
     )
     tools: tuple[str, ...] = ("x_search", "web_search", "code_execution")
-    fallback_models: tuple[str, ...] = ("grok-4.20-0309",)
+    fallback_models: tuple[str, ...] = ("grok-4-0709",)
     lowered_efforts: tuple[str, ...] = ("low", "medium")
-    lucas_models: tuple[str, ...] = ("grok-4.20-0309",)
+    lucas_models: tuple[str, ...] = ("grok-4-0709",)
 
 
 ENUMS = OrchestraEnums()
@@ -81,7 +81,7 @@ class OrchestraDefaults:
 
     # safety extension
     lucas_veto_enabled: bool = True
-    lucas_model: str = "grok-4.20-0309"
+    lucas_model: str = "grok-4-0709"
     confidence_threshold: float = 0.75
     max_veto_retries: int = 1
 
@@ -162,7 +162,7 @@ def _format_key_path(absolute_path: Any) -> str:
 def map_effort_to_agents(effort: str) -> int:
     """Map a ``reasoning_effort`` string to an ``agent_count`` value.
 
-    Low/medium map to 4, high/xhigh map to 16 (per Grok 4.20's multi-agent
+    Low/medium map to 4, high/xhigh map to 16 (per Grok 4's multi-agent
     model sizing guidance).
     """
     try:

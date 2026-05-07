@@ -29,7 +29,7 @@ feature line-up so you can pick the right tool.
 
 ## Where Orchestra is stronger
 
-- **Safety gate.** The Lucas veto runs as a separate `grok-4.20-0309`
+- **Safety gate.** The Lucas veto runs as a separate `grok-4-0709`
   pass with strict-JSON output and fail-closed defaults. Malformed
   JSON, low confidence, or timeout → exit 4 → nothing ships.
 - **Visible debate.** Four role lanes stream live in role-coloured

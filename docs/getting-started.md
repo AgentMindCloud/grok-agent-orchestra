@@ -262,7 +262,7 @@ Ship it (real tokens):
 grok-orchestra run my-spec.orchestra.yaml
 ```
 
-Nice. You just drove a Grok 4.20 multi-agent run from a YAML.
+Nice. You just drove a Grok 4 multi-agent run from a YAML.
 
 ## Troubleshooting
 
@@ -324,7 +324,7 @@ xAI capped you. Try one:
     orchestration:
       fallback_on_rate_limit:
         enabled: true
-        fallback_model: grok-4.20-0309
+        fallback_model: grok-4-0709
         lowered_effort: medium
   ```
 

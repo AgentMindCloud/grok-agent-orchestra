@@ -53,7 +53,7 @@ def _spec(**orch_overrides: Any) -> dict[str, Any]:
         "orchestra": orch,
         "safety": {
             "lucas_veto_enabled": True,
-            "lucas_model": "grok-4.20-0309",
+            "lucas_model": "grok-4-0709",
             "confidence_threshold": 0.75,
             "max_veto_retries": 1,
         },
@@ -88,7 +88,7 @@ class _ScriptedClient:
         self,
         messages: list[dict[str, str]] | None = None,
         *,
-        model: str = "grok-4.20-0309",
+        model: str = "grok-4-0709",
         tools: list[Any] | None = None,
         **_kwargs: Any,
     ) -> Iterator[MultiAgentEvent]:
@@ -428,7 +428,7 @@ def test_dry_run_client_records_model_and_tools() -> None:
     run_simulated_orchestra(_spec(debate_rounds=1), client=client)
     debate = _non_veto_calls(client)
     # First debate call is Grok (no tools by default).
-    assert debate[0]["model"] == "grok-4.20-0309"
+    assert debate[0]["model"] == "grok-4-0709"
     assert debate[0]["tools"] in (None, [])
     # Second debate call is Harper (web + x_search by default).
     assert debate[1]["tools"] is not None

@@ -60,7 +60,7 @@ def _spec(
     if fallback:
         orch["orchestration"]["fallback_on_rate_limit"] = {
             "enabled": True,
-            "fallback_model": "grok-4.20-0309",
+            "fallback_model": "grok-4-0709",
             "lowered_effort": "low",
         }
     return {
@@ -69,7 +69,7 @@ def _spec(
         "orchestra": orch,
         "safety": {
             "lucas_veto_enabled": veto_enabled,
-            "lucas_model": "grok-4.20-0309",
+            "lucas_model": "grok-4-0709",
             "confidence_threshold": 0.75,
             "max_veto_retries": max_veto_retries,
         },
@@ -441,7 +441,7 @@ def test_recovery_swaps_fallback_model_when_provided() -> None:
     primary = MagicMock(side_effect=[RateLimitError("429"), success])
     run_recovery(_spec("native", fallback=True), client=MagicMock(), primary_fn=primary)
     second_spec = primary.call_args_list[1].args[0]
-    assert second_spec["orchestra"].get("fallback_model") == "grok-4.20-0309"
+    assert second_spec["orchestra"].get("fallback_model") == "grok-4-0709"
 
 
 # --------------------------------------------------------------------------- #

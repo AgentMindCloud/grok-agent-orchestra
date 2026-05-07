@@ -120,7 +120,7 @@ templates:
     combined: false
     description: >-
       Native-16 run wrapped in the recovery pattern — on rate-limit or
-      tool-execution errors, degrades to grok-4.20-0309 at medium
+      tool-execution errors, degrades to grok-4-0709 at medium
       effort and retries once. Zero overhead on the happy path.
     categories: [production, resilient, scheduled, premium]
     estimated_tokens: 35000

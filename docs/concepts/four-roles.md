@@ -6,10 +6,10 @@ position in the debate.
 
 | Role     | Function          | Default model      | Tools (out of the box)              |
 | -------- | ----------------- | ------------------ | ----------------------------------- |
-| **Grok**     | coordinator   | `grok-4.20-0309`   | none — synthesises only             |
-| **Harper**   | researcher    | `grok-4.20-0309`   | `web_search`, `x_search`            |
-| **Benjamin** | logician      | `grok-4.20-0309`   | `code_execution`                    |
-| **Lucas**    | contrarian + veto | `grok-4.20-0309` | none — operates only on the transcript |
+| **Grok**     | coordinator   | `grok-4-0709`   | none — synthesises only             |
+| **Harper**   | researcher    | `grok-4-0709`   | `web_search`, `x_search`            |
+| **Benjamin** | logician      | `grok-4-0709`   | `code_execution`                    |
+| **Lucas**    | contrarian + veto | `grok-4-0709` | none — operates only on the transcript |
 
 The default models are Grok across the board because the framework's home base is
 xAI's native multi-agent endpoint — but every role can be overridden per-template
@@ -33,7 +33,7 @@ The `agents:` block in YAML accepts the four canonical names plus `custom`:
 ```yaml
 orchestra:
   agents:
-    - {name: Grok,     role: coordinator,  model: grok-4.20-0309}
+    - {name: Grok,     role: coordinator,  model: grok-4-0709}
     - {name: Harper,   role: researcher,   model: openai/gpt-4o-mini}
     - {name: Benjamin, role: logician,     model: ollama/llama3.1:8b}
     - {name: Lucas,    role: contrarian,   model: anthropic/claude-3-5-sonnet}

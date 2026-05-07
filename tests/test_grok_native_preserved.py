@@ -129,5 +129,5 @@ def test_simulated_run_with_all_grok_reports_mode_label_simulated(tmp_path) -> N
     assert result.mode_label == "simulated"
     # All-Grok ⇒ no LiteLLM cost surfaces.
     assert result.provider_costs == {}
-    # Per-role models all default to the Grok 4.20-0309 single-agent model.
+    # Per-role models all default to the Grok 4-0309 single-agent model.
     assert all("grok" in m.lower() for m in result.role_models.values())
